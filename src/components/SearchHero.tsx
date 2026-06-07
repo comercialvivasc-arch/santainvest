@@ -68,7 +68,10 @@ export default function SearchHero({
       </div>
 
       {/* Main Container Overly */}
-      <div className="relative z-10 w-full max-w-4xl px-6 md:px-8 text-center flex flex-col items-center">
+      <div 
+        className="relative z-10 w-full max-w-4xl px-6 md:px-8 text-center flex flex-col items-center"
+        style={{ height: '300px', marginBottom: '240px' }}
+      >
         {/* Dynamic Banner Advert Titles */}
         <motion.div
           key={'content-' + currentBanner.id}
@@ -76,6 +79,7 @@ export default function SearchHero({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
           className="max-w-2xl"
+          style={{ marginBottom: '299px' }}
         >
           <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3.5 py-1 text-xs font-semibold tracking-widest text-[#FF6600] uppercase border border-orange-500/20 mb-4 backdrop-blur-sm">
             <Sparkles className="h-3 w-3 animate-pulse text-orange-500" />

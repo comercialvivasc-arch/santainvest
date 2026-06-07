@@ -522,7 +522,8 @@ export default function PropertyCard({ property, allProperties = [], settings }:
                     const el = document.getElementById('simulador-box');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="rounded-xl bg-red-650 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-red-600/10 cursor-pointer uppercase tracking-wider"
+                  className="rounded-xl bg-[#ff6600] hover:bg-[#e65c00] text-white font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-orange-500/10 cursor-pointer uppercase tracking-wider"
+                  style={{ backgroundColor: '#ff6600' }}
                 >
                   Ver parcelas
                 </button>

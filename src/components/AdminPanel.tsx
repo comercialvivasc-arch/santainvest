@@ -8,7 +8,13 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BannerAd, BrandSettings, Broker, Client, Lead, Visit, Message, FloorPlan } from '../types';
 import { auth, googleProvider } from '../firebase';
-import { signInWithPopup, signOut as fbSignOut } from 'firebase/auth';
+import { 
+  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult, 
+  signInWithEmailAndPassword, 
+  signOut as fbSignOut 
+} from 'firebase/auth';
 import { 
   seedInitialDatabase,
   saveBrokerToFirestore,
@@ -103,6 +109,13 @@ export default function AdminPanel({
   const [authError, setAuthError] = useState('');
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   
+  // Email/Password login fallback states
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isEmailLoginOpen, setIsEmailLoginOpen] = useState(false);
+  const [isEmailLoggingIn, setIsEmailLoggingIn] = useState(false);
+  const [loginTab, setLoginTab] = useState<'google' | 'email' | 'local'>('google');
+  
   // Seeding status tracker
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
@@ -139,6 +152,30 @@ export default function AdminPanel({
     }
   }, [settings]);
 
+  // Listen for redirect login result on mount
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          if (result.user.email === 'comercial.vivasc@gmail.com') {
+            setIsAuthenticated(true);
+            setAuthError('');
+          } else {
+            setAuthError(`Usuário logado (${result.user.email}) não possui as permissões do administrador oficial (comercial.vivasc@gmail.com).`);
+            fbSignOut(auth);
+          }
+        }
+      })
+      .catch((error: any) => {
+        console.error("Erro no retorno de redirecionamento do Google:", error);
+        if (error.code === 'auth/unauthorized-domain') {
+          setAuthError(`Domínio não autorizado no Firebase Auth! Adicione este domínio (${window.location.hostname}) nas configurações de Autenticação do Console Firebase.`);
+        } else {
+          setAuthError(`Erro no redirecionamento do Google: ${error.message || error}`);
+        }
+      });
+  }, []);
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUser(user);
@@ -172,7 +209,54 @@ export default function AdminPanel({
       }
     } catch (e: any) {
       console.error(e);
-      setAuthError(`Erro ao autenticar com o Google: ${e.message || e}`);
+      if (e.code === 'auth/unauthorized-domain') {
+        setAuthError(`Domínio não autorizado no Firebase Auth! Vá no Console Firebase > Autenticação > Configurações > Domínios Autorizados e adicione o domínio atual (${window.location.hostname}) para permitir logins.`);
+      } else {
+        setAuthError(`Erro ao autenticar com o Google: ${e.message || e}`);
+      }
+    }
+  };
+
+  const handleGoogleRedirect = async () => {
+    try {
+      setAuthError('');
+      await signInWithRedirect(auth, googleProvider);
+    } catch (e: any) {
+      console.error(e);
+      if (e.code === 'auth/unauthorized-domain') {
+        setAuthError(`Domínio não autorizado no Firebase Auth! Vá no Console Firebase > Autenticação > Configurações > Domínios Autorizados e adicione o domínio atual (${window.location.hostname}) para permitir logins.`);
+      } else {
+        setAuthError(`Erro ao redirecionar para o Google: ${e.message || e}`);
+      }
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail || !loginPassword) {
+      setAuthError('Por favor, digite seu e-mail e senha de administrador.');
+      return;
+    }
+    setAuthError('');
+    setIsEmailLoggingIn(true);
+    try {
+      const result = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      if (result.user.email !== 'comercial.vivasc@gmail.com') {
+        setAuthError(`O e-mail (${result.user.email}) não é o do administrador oficial (comercial.vivasc@gmail.com).`);
+        await fbSignOut(auth);
+      } else {
+        setIsAuthenticated(true);
+        setAuthError('');
+      }
+    } catch (error: any) {
+      console.error("Erro no login por e-mail:", error);
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        setAuthError('E-mail ou senha incorretos. Verifique suas credenciais de e-mail/senha no Firebase Auth.');
+      } else {
+        setAuthError(`Erro de login por e-mail: ${error.message || error}`);
+      }
+    } finally {
+      setIsEmailLoggingIn(false);
     }
   };
 
@@ -630,89 +714,181 @@ export default function AdminPanel({
   // GATE SCREEN (IF NOT AUTHENTICATED)
   if (!isAuthenticated) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center px-4 relative">
+      <div className="min-h-[85vh] flex items-center justify-center px-4 py-8 relative">
         <div className="absolute inset-0 bg-radial-at-c from-orange-950/20 via-transparent to-transparent pointer-events-none"></div>
-        <div className="max-w-md w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-8 shadow-2xl relative">
+        <div className="max-w-md w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative">
           <div className="absolute -top-1 px-4 py-1 left-1/2 -translate-x-1/2 rounded-full border border-orange-500/30 bg-black text-[9px] text-orange-400 font-mono tracking-[0.2em] uppercase">
             Acesso Restrito
           </div>
           
-          <div className="text-center mb-8 mt-4">
+          <div className="text-center mb-6 mt-4">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-500 mb-4 animate-pulse">
               <Lock className="h-7 w-7" />
             </div>
             <h2 className="text-2xl font-black text-white tracking-tight uppercase">
               Área do Administrador
             </h2>
-            <p className="mt-1.5 text-xs text-zinc-400">
-              Faça login para gerenciar lançamentos imobiliários e banners comerciais de forma segura utilizando o Firebase.
+            <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">
+              Gerencie lançamentos imobiliários e banners com segurança. Escolha um método de autenticação abaixo.
             </p>
           </div>
 
-          <div className="space-y-5">
-            {/* GOOGLE REACTION DRIVEN SIGN IN BUTTON */}
-            <div>
-              <button
-                onClick={handleGoogleLogin}
-                className="w-full py-3.5 px-4 rounded-xl bg-white text-black hover:bg-zinc-200 text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer flex items-center justify-center gap-2.5 shadow-lg shadow-white/5 active:scale-98"
-              >
-                <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                </svg>
-                Conectar com o Google
-              </button>
-              <span className="block text-[9px] font-mono text-zinc-500 text-center mt-2 lowercase">
-                Apenas conta vinculada de administrador (comercial.vivasc@gmail.com)
-              </span>
-            </div>
-
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-zinc-800"></div>
-              <span className="flex-shrink mx-4 text-zinc-600 font-mono text-[9px] uppercase tracking-wider">ou use chave local</span>
-              <div className="flex-grow border-t border-zinc-800"></div>
-            </div>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-2">
-                  Chave Secundária (Apenas Visualização)
-                </label>
-                <input
-                  type="password"
-                  required
-                  className="w-full rounded-xl bg-black px-4 py-3 text-sm text-white placeholder-zinc-700 border border-zinc-800 focus:border-orange-500/60 outline-none text-center font-mono tracking-widest"
-                  placeholder="••••••••••••"
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                />
-              </div>
-
-              {authError && (
-                <div className="rounded-lg bg-red-950/20 border border-red-900/40 p-3 text-xs text-red-400 flex items-center gap-2 font-mono">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{authError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 px-4 rounded-xl bg-orange-500/10 hover:bg-orange-500 hover:text-black hover:shadow-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-extrabold tracking-widest uppercase transition-all duration-300 cursor-pointer shadow-lg"
-              >
-                Liberar Localmente
-              </button>
-            </form>
+          {/* Login Tabs Selector */}
+          <div className="flex border-b border-zinc-800 mb-6 font-mono text-[9px] sm:text-[10px] uppercase tracking-wider">
+            <button
+              type="button"
+              onClick={() => { setLoginTab('google'); setAuthError(''); }}
+              className={`flex-1 py-2.5 text-center transition-all border-b-2 ${loginTab === 'google' ? 'text-orange-500 border-orange-500 font-bold' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
+            >
+              Google Auth
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginTab('email'); setAuthError(''); }}
+              className={`flex-1 py-2.5 text-center transition-all border-b-2 ${loginTab === 'email' ? 'text-orange-500 border-orange-500 font-bold' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
+            >
+              E-mail e Senha
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginTab('local'); setAuthError(''); }}
+              className={`flex-1 py-2.5 text-center transition-all border-b-2 ${loginTab === 'local' ? 'text-orange-500 border-orange-500 font-bold' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
+            >
+              Chave Local
+            </button>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-zinc-900 text-center">
-            <span className="text-[10px] font-mono text-zinc-500 block uppercase">
-              🔑 Chave Local de Teste
-            </span>
-            <span className="text-sm font-bold text-orange-500 font-mono tracking-wider mt-1 block">
-              admin2026
-            </span>
+          <div className="space-y-5">
+            {/* TAB 1: GOOGLE AUTH */}
+            {loginTab === 'google' && (
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  className="w-full py-3.5 px-4 rounded-xl bg-white text-black hover:bg-zinc-200 text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer flex items-center justify-center gap-2.5 shadow-lg shadow-white/5 active:scale-98"
+                >
+                  <svg className="h-4.5 w-4.5 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                  Seguir com Login Pop-up
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleRedirect}
+                  className="w-full py-3.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold tracking-wider uppercase transition-all duration-300 border border-zinc-800 cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                >
+                  <Globe className="h-4.5 w-4.5 text-orange-400 shrink-0" />
+                  Login via Redirecionamento (Alt)
+                </button>
+
+                <span className="block text-[9px] font-mono text-zinc-500 text-center leading-normal">
+                  Apenas contas autorizadas. Administrador oficial:<br />
+                  <strong className="text-zinc-400 font-mono">comercial.vivasc@gmail.com</strong>
+                </span>
+
+                <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-[10px] text-zinc-400 font-sans leading-relaxed">
+                  <HelpCircle className="h-4 w-4 text-orange-500 inline mr-1 shrink-0 align-text-bottom" />
+                  <span className="font-bold text-zinc-300">Aviso Vercel/Popups:</span> Se o pop-up for rejeitado, utilize o botão de redirecionamento ou a aba <span className="text-orange-400">E-mail e Senha</span> para autenticação rápida sem popups. Certifique-se também de autorizar o domínio atual (<code className="text-orange-400 font-mono">{window.location.hostname}</code>) no painel Firebase Auth se houver erros de domínio.
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: EMAIL AND PASSWORD AUTH */}
+            {loginTab === 'email' && (
+              <form onSubmit={handleEmailLogin} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">
+                    E-mail do Administrador
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    className="w-full rounded-xl bg-black px-4 py-3 text-sm text-white placeholder-zinc-700 border border-zinc-800 focus:border-orange-500/60 outline-none"
+                    placeholder="ex: comercial.vivasc@gmail.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">
+                    Senha Secreta
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    className="w-full rounded-xl bg-black px-4 py-3 text-sm text-white placeholder-zinc-700 border border-zinc-800 focus:border-orange-500/60 outline-none font-mono"
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isEmailLoggingIn}
+                  className="w-full py-3 px-4 rounded-xl bg-orange-500 text-black hover:bg-orange-600 disabled:opacity-55 text-xs font-black tracking-widest uppercase transition-all duration-300 cursor-pointer shadow-lg shadow-orange-500/10"
+                >
+                  {isEmailLoggingIn ? 'Autenticando...' : 'Entrar com E-mail'}
+                </button>
+
+                <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-[10px] text-zinc-400 font-sans leading-relaxed">
+                  <span className="font-bold text-zinc-300 block mb-1">💡 Como funciona:</span> 
+                  O login por E-mail e Senha é executado totalmente dentro da página sem abrir nenhuma aba extra. Ative o provedor "E-mail/Senha" no seu console Firebase Auth e cadastre a conta <strong className="text-orange-400 font-mono">comercial.vivasc@gmail.com</strong> para utilizá-lo.
+                </div>
+              </form>
+            )}
+
+            {/* TAB 3: LOCAL BYPASS CHAVE */}
+            {loginTab === 'local' && (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-2">
+                    Chave Secundária (Apenas Visualização)
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    className="w-full rounded-xl bg-black px-4 py-3 text-sm text-white placeholder-zinc-700 border border-zinc-800 focus:border-orange-500/60 outline-none text-center font-mono tracking-widest"
+                    placeholder="••••••••••••"
+                    value={passcode}
+                    onChange={(e) => setPasscode(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 px-4 rounded-xl bg-orange-500/10 hover:bg-orange-500 hover:text-black hover:shadow-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-extrabold tracking-widest uppercase transition-all duration-300 cursor-pointer shadow-lg"
+                >
+                  Liberar Localmente
+                </button>
+
+                <div className="mt-4 pt-4 border-t border-zinc-900 text-center">
+                  <span className="text-[10px] font-mono text-zinc-500 block uppercase">
+                    🔑 Chave Local de Teste
+                  </span>
+                  <span className="text-sm font-bold text-orange-500 font-mono tracking-wider mt-1 block">
+                    admin2026
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-orange-950/25 border border-orange-900/20 text-[10px] text-orange-300 font-sans leading-relaxed">
+                  <ShieldAlert className="h-4 w-4 text-orange-400 inline mr-1 shrink-0 align-text-bottom" />
+                  <span className="font-bold text-orange-200">Atenção:</span> A visualização local com chave secundária funciona offline, mantendo suas alterações salvas apenas no seu navegador. Os salvamentos reais no banco Firestore exigem um login de administrador ativo por Google ou E-mail.
+                </div>
+              </form>
+            )}
+
+            {authError && (
+              <div className="rounded-xl bg-red-950/20 border border-red-900/40 p-3.5 text-xs text-red-400 flex items-start gap-2.5 font-mono">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span className="leading-normal">{authError}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

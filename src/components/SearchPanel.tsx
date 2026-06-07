@@ -131,8 +131,15 @@ export default function SearchPanel({
   };
 
   return (
-    <section id="search-section" className="w-full bg-[#0a0a0c] py-12 border-b border-zinc-900/50 relative z-10 transition-colors">
-      <div className="max-w-4xl mx-auto px-6 md:px-8">
+    <section 
+      id="search-section" 
+      className="w-full bg-[#0a0a0c] py-12 border-b border-zinc-900/50 relative z-10 transition-colors"
+      style={{ marginBottom: '0px', height: '879.65px' }}
+    >
+      <div 
+        className="max-w-4xl mx-auto px-6 md:px-8"
+        style={{ marginBottom: '0px', marginTop: '-26px' }}
+      >
         
         {/* Futuristic Search & Filters Container (Glassmorphism card) */}
         <div 
