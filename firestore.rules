@@ -1,0 +1,132 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core validation helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+             request.auth.token.email == "comercial.vivasc@gmail.com" &&
+             request.auth.token.email_verified == true;
+    }
+
+    // Checks if the user has a profile document indicating broker or admin role
+    function isBroker() {
+      return isSignedIn() && 
+             (exists(/databases/$(database)/documents/corretores/$(request.auth.uid)) || 
+              request.auth.token.email == "comercial.vivasc@gmail.com");
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // ----------------- Public Readable Collections -----------------
+
+    match /properties/{propId} {
+      allow get: if isValidId(propId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(propId);
+      allow delete: if isAdmin() && isValidId(propId);
+      allow update: if isAdmin() && isValidId(propId);
+    }
+
+    match /banners/{bannerId} {
+      allow get: if isValidId(bannerId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(bannerId);
+      allow delete: if isAdmin() && isValidId(bannerId);
+      allow update: if isAdmin() && isValidId(bannerId);
+    }
+
+    match /settings/{settingsId} {
+      allow get: if isValidId(settingsId);
+      allow list: if true;
+      allow create: if (isAdmin() || settingsId == 'brand') && isValidId(settingsId);
+      allow delete: if isAdmin() && isValidId(settingsId);
+      allow update: if (isAdmin() || settingsId == 'brand') && isValidId(settingsId);
+    }
+
+    match /empreendimentos/{projectId} {
+      allow get: if isValidId(projectId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(projectId);
+      allow delete: if isAdmin() && isValidId(projectId);
+      allow update: if isAdmin() && isValidId(projectId);
+    }
+
+    // ----------------- User Management -----------------
+
+    match /usuarios/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phone'])
+      ) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /corretores/{brokerId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isAdmin() && isValidId(brokerId);
+      allow update: if isAdmin() && isValidId(brokerId);
+      allow delete: if isAdmin() && isValidId(brokerId);
+    }
+
+    match /clientes/{clientId} {
+      allow get: if isBroker() || isAdmin();
+      allow list: if isBroker() || isAdmin();
+      allow create: if (isBroker() || isAdmin()) && isValidId(clientId);
+      allow update: if (isBroker() || isAdmin()) && isValidId(clientId);
+      allow delete: if isAdmin() && isValidId(clientId);
+    }
+
+    // ----------------- CRM Operations (Leads, Visitas, Favoritos, Mensagens) -----------------
+
+    match /leads/{leadId} {
+      allow get: if isBroker() || isAdmin();
+      allow list: if isBroker() || isAdmin();
+      // Public visitors can trigger contact requests
+      allow create: if isValidId(leadId) && incoming().name.size() > 0;
+      allow update: if (isBroker() || isAdmin()) && isValidId(leadId);
+      allow delete: if isAdmin() && isValidId(leadId);
+    }
+
+    match /visitas/{visitId} {
+      allow get: if isBroker() || isAdmin() || (isSignedIn() && existing().clientContact == request.auth.token.email);
+      allow list: if isBroker() || isAdmin();
+      allow create: if isValidId(visitId);
+      allow update: if (isBroker() || isAdmin()) && isValidId(visitId);
+      allow delete: if isAdmin() && isValidId(visitId);
+    }
+
+    match /favoritos/{favId} {
+      allow read: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(favId) && incoming().userId == request.auth.uid;
+      allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /mensagens/{msgId} {
+      allow get, list: if isBroker() || isAdmin();
+      allow create: if isValidId(msgId);
+      allow delete: if isAdmin() && isValidId(msgId);
+    }
+  }
+}

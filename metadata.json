@@ -1,0 +1,6 @@
+{
+  "name": "Portal de Lançamentos Imobiliários",
+  "description": "Plataforma moderna e futurista de lançamentos imobiliários com busca intuitiva, filtros avançados e painel administrativo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

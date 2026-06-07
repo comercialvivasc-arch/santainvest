@@ -1,0 +1,219 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profiling and routing permissions",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["Administrador", "Corretor", "Cliente"] },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "role", "createdAt"]
+    },
+    "Broker": {
+      "title": "Broker",
+      "description": "Real estate broker credentials and performance tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "status": { "type": "string", "enum": ["Ativo", "Inativo"] },
+        "region": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "phone", "status", "region", "createdAt"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Customer logs and CRM directory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "observations": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "phone", "createdAt"]
+    },
+    "Property": {
+      "title": "Property",
+      "description": "Real estate listing details for a development",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["Lançamento", "Em construção", "Pronto", "Pré-lançamento"] },
+        "deliveryDate": { "type": "string" },
+        "neighborhood": { "type": "string" },
+        "address": { "type": "string" },
+        "region": { "type": "string" },
+        "projectType": { "type": "string" },
+        "bedrooms": { "type": "integer" },
+        "area": { "type": "integer" },
+        "parkingSpaces": { "type": "integer" },
+        "price": { "type": "number" },
+        "downpayment": { "type": "number" },
+        "installments": { "type": "number" },
+        "images": { "type": "array" }
+      },
+      "required": ["id", "name", "status", "deliveryDate", "neighborhood", "address", "region", "projectType", "bedrooms", "area", "parkingSpaces", "price"]
+    },
+    "Development": {
+      "title": "Development",
+      "description": "Enterprise construction complex representing overall developments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "city": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["id", "name", "city"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Incoming visual or contact request generated for estates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "contact": { "type": "string" },
+        "message": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "propertyName": { "type": "string" },
+        "status": { "type": "string", "enum": ["Novo", "Em Atendimento", "Visita Agendada", "Finalizado"] },
+        "brokerId": { "type": "string" },
+        "brokerName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "contact", "message", "propertyId", "propertyName", "status", "createdAt"]
+    },
+    "Visit": {
+      "title": "Visit",
+      "description": "Scheduled appointments with properties",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "propertyName": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientContact": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pendente", "Confirmada", "Realizada", "Cancelada"] },
+        "brokerId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "propertyId", "propertyName", "clientName", "clientContact", "date", "time", "status", "createdAt"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "User flagged entries representing interested items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "propertyId", "createdAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Direct chat items generated inline with property listings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "contact": { "type": "string" },
+        "message": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "contact", "message", "propertyId", "createdAt"]
+    },
+    "BrandSettings": {
+      "title": "BrandSettings",
+      "description": "Customizable branding assets and contact info",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "brandName": { "type": "string" },
+        "tagline": { "type": "string" }
+      },
+      "required": ["id", "phone", "email", "logoUrl", "brandName", "tagline"]
+    },
+    "BannerAd": {
+      "title": "BannerAd",
+      "description": "Promotional slide images in top page hero",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "link": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "imageUrl", "title", "active"]
+    }
+  },
+  "firestore": {
+    "usuarios": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User identification and profiles"
+    },
+    "corretores": {
+      "schema": { "$ref": "#/entities/Broker" },
+      "description": "Brokers in the platform"
+    },
+    "clientes": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Registered prospective buyers and clientele directory"
+    },
+    "properties": {
+      "schema": { "$ref": "#/entities/Property" },
+      "description": "Real estate properties core catalogue"
+    },
+    "empreendimentos": {
+      "schema": { "$ref": "#/entities/Development" },
+      "description": "Construction developments and projects metadata"
+    },
+    "leads": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Incoming client interest card listings"
+    },
+    "visitas": {
+      "schema": { "$ref": "#/entities/Visit" },
+      "description": "Real-time client tour schedulings"
+    },
+    "favoritos": {
+      "schema": { "$ref": "#/entities/Favorite" },
+      "description": "Client profile interest bookmarks"
+    },
+    "mensagens": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Slight general chat queries"
+    },
+    "settings": {
+      "schema": { "$ref": "#/entities/BrandSettings" },
+      "description": "Configuration metadata settings and headers"
+    },
+    "banners": {
+      "schema": { "$ref": "#/entities/BannerAd" },
+      "description": "Slides headers autoplay banners"
+    }
+  }
+}
