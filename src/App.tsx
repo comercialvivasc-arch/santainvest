@@ -97,6 +97,7 @@ export default function App() {
 
   // Navigation View ('home' or 'admin')
   const [currentView, setCurrentView] = useState<'home' | 'admin'>('home');
+  const [globalSelectedPropertyId, setGlobalSelectedPropertyId] = useState<string | null>(null);
 
   // Search filter parameters
   const [query, setQuery] = useState('');
@@ -279,6 +280,10 @@ export default function App() {
   };
 
   // ADVANCED REAL-TIME FILTER ENGINE
+  const globalSelectedProperty = useMemo(() => {
+    return properties.find((p) => p.id === globalSelectedPropertyId) || null;
+  }, [properties, globalSelectedPropertyId]);
+
   const filteredProperties = useMemo(() => {
     return properties.filter((p) => {
       // 1. Text Filter (Name, Neighborhood, Region, Type)
@@ -369,6 +374,7 @@ export default function App() {
               <SearchHero 
                 properties={properties}
                 banners={banners}
+                onOpenProperty={(id) => setGlobalSelectedPropertyId(id)}
               />
 
               {/* Integrated Search & Filters Section under the slider */}
@@ -555,6 +561,21 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Global Property Detail Modal Host */}
+      {globalSelectedProperty && (
+        <div style={{ display: 'none' }}>
+          <PropertyCard 
+            property={globalSelectedProperty}
+            allProperties={properties}
+            settings={settings}
+            isOpen={true}
+            onOpenChange={(open) => {
+              if (!open) setGlobalSelectedPropertyId(null);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

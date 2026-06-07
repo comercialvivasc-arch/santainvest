@@ -391,6 +391,7 @@ export default function AdminPanel({
   const [bannerSubtitle, setBannerSubtitle] = useState('');
   const [bannerImageUrl, setBannerImageUrl] = useState('');
   const [bannerActive, setBannerActive] = useState(true);
+  const [bannerLink, setBannerLink] = useState('');
 
   // Default Passcode helper (local simulation backup)
   const MASTER_CODE = 'admin2026';
@@ -668,6 +669,7 @@ export default function AdminPanel({
     setBannerSubtitle('');
     setBannerImageUrl(IMAGE_PRESETS[3]);
     setBannerActive(true);
+    setBannerLink('');
     setIsBannerFormOpen(true);
   };
 
@@ -677,6 +679,7 @@ export default function AdminPanel({
     setBannerSubtitle(b.subtitle || '');
     setBannerImageUrl(b.imageUrl);
     setBannerActive(b.active);
+    setBannerLink(b.link || '');
     setIsBannerFormOpen(true);
   };
 
@@ -692,7 +695,8 @@ export default function AdminPanel({
       title: bannerTitle,
       subtitle: bannerSubtitle,
       imageUrl: bannerImageUrl,
-      active: bannerActive
+      active: bannerActive,
+      link: bannerLink
     };
 
     if (editingBannerId) {
@@ -3515,6 +3519,24 @@ export default function AdminPanel({
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Banner Property Link */}
+                <div>
+                  <label className="text-[10px] font-bold tracking-widest text-[#FF6600] uppercase font-mono block mb-1.5 font-bold">Imóvel Vinculado (Anúncio)</label>
+                  <select
+                    className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-orange-500 outline-none"
+                    value={bannerLink}
+                    onChange={(e) => setBannerLink(e.target.value)}
+                  >
+                    <option value="">-- Sem Vínculo (Banner Geral) --</option>
+                    {properties.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        [{p.projectType}] {p.name} - {p.neighborhood} (Ref: {p.id})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-zinc-500 font-mono mt-1">Ao selecionar um imóvel, o botão "Conhecer Agora" aparecerá no banner da Home e abrirá as informações detalhadas dele.</p>
                 </div>
 
                 {/* Active Switcher checkbox */}

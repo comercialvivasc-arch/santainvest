@@ -6,11 +6,13 @@ import { Property, BannerAd } from '../types';
 interface SearchHeroProps {
   properties: Property[];
   banners: BannerAd[];
+  onOpenProperty?: (id: string) => void;
 }
 
 export default function SearchHero({
   properties,
   banners,
+  onOpenProperty,
 }: SearchHeroProps) {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
@@ -41,7 +43,7 @@ export default function SearchHero({
   const currentBanner = activeBanners[activeBannerIndex] || activeBanners[0];
 
   return (
-    <section className="relative h-screen min-h-[90vh] w-full overflow-hidden flex flex-col items-center justify-center">
+    <section className="relative h-screen min-h-[85vh] w-full overflow-hidden flex flex-col items-center justify-center">
       {/* Background Banners list with smooth slide-fade animation */}
       <div className="absolute inset-0 z-0 bg-black">
         <AnimatePresence mode="wait">
@@ -68,47 +70,57 @@ export default function SearchHero({
       </div>
 
       {/* Main Container Overly */}
-      <div 
-        className="relative z-10 w-full max-w-4xl px-6 md:px-8 text-center flex flex-col items-center"
-        style={{ height: '300px', marginBottom: '240px' }}
-      >
+      <div className="relative z-10 w-full max-w-4xl px-6 md:px-8 text-center flex flex-col items-center justify-center">
         {/* Dynamic Banner Advert Titles */}
         <motion.div
           key={'content-' + currentBanner.id}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="max-w-2xl"
-          style={{ marginBottom: '299px' }}
+          className="max-w-2xl flex flex-col items-center justify-center"
         >
           <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3.5 py-1 text-xs font-semibold tracking-widest text-[#FF6600] uppercase border border-orange-500/20 mb-4 backdrop-blur-sm">
             <Sparkles className="h-3 w-3 animate-pulse text-orange-500" />
             Lançamentos de Alto Padrão
           </span>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl uppercase leading-tight font-sans">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl uppercase leading-tight font-sans">
             {currentBanner.title}
           </h1>
           {currentBanner.subtitle && (
-            <p className="mt-4 text-base md:text-lg text-zinc-350 font-sans tracking-wide">
+            <p className="mt-4 text-sm md:text-lg text-zinc-300 font-sans tracking-wide">
               {currentBanner.subtitle}
             </p>
           )}
+
+          {/* Button "Conhecer agora" (only if currentBanner.link is set) */}
+          {currentBanner.link && (
+            <button
+              onClick={() => {
+                if (onOpenProperty && currentBanner.link) {
+                  onOpenProperty(currentBanner.link);
+                }
+              }}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#FF6600] text-black font-extrabold text-xs sm:text-sm px-6 py-3.5 hover:bg-[#e65c00] hover:shadow-xl hover:shadow-orange-500/30 transition-all duration-300 active:scale-95 cursor-pointer uppercase tracking-wider shadow-lg shadow-orange-500/10 border-0"
+            >
+              Conhecer agora
+            </button>
+          )}
+
+          {/* Scroll Indicator containing ONLY the arrow icon inside the circle */}
+          <button
+            onClick={() => {
+              const el = document.getElementById('search-section');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+            className="mt-8 flex items-center justify-center h-11 w-11 rounded-full bg-black/60 border border-zinc-800 text-zinc-400 hover:text-[#FF6600] hover:border-[#FF6600]/80 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/15 active:scale-95 group cursor-pointer"
+            aria-label="Rolar para pesquisa"
+          >
+            <ChevronDown className="h-5 w-5 stroke-[2.5] group-hover:translate-y-0.5 transition-transform duration-300" />
+          </button>
         </motion.div>
       </div>
-
-      {/* Scroll Indicator containing ONLY the arrow icon inside the circle */}
-      <button
-        onClick={() => {
-          const el = document.getElementById('search-section');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-          }
-        }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center justify-center h-12 w-12 rounded-full bg-black/60 border border-zinc-800 text-zinc-400 hover:text-[#FF6600] hover:border-[#FF6600]/80 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/15 active:scale-95 group cursor-pointer z-20"
-        aria-label="Rolar para pesquisa"
-      >
-        <ChevronDown className="h-6 w-6 stroke-[2.5] group-hover:translate-y-0.5 transition-transform duration-300" />
-      </button>
     </section>
   );
 }

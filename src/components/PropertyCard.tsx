@@ -49,11 +49,21 @@ interface PropertyCardProps {
   allProperties?: Property[];
   key?: React.Key;
   settings?: BrandSettings;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function PropertyCard({ property, allProperties = [], settings }: PropertyCardProps) {
+export default function PropertyCard({ property, allProperties = [], settings, isOpen, onOpenChange }: PropertyCardProps) {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [internalModalOpen, setInternalModalOpen] = useState(false);
+  const isModalOpen = isOpen !== undefined ? isOpen : internalModalOpen;
+  const setIsModalOpen = (val: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(val);
+    } else {
+      setInternalModalOpen(val);
+    }
+  };
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [quickQuestion, setQuickQuestion] = useState('');
