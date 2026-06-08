@@ -8,7 +8,8 @@ import { Property, BannerAd, SearchFilters, BrandSettings, Broker, Client, Lead,
 import { INITIAL_PROPERTIES, INITIAL_BANNERS, DEFAULT_BRAND_SETTINGS } from './data';
 import { 
   Building, MapPin, MessageSquare, ShieldCheck, HelpCircle, 
-  Sparkles, Compass, Instagram, Facebook, ArrowUpRight, FilterX, HelpCircle as HelpIcon 
+  Sparkles, Compass, Instagram, Facebook, ArrowUpRight, FilterX, HelpCircle as HelpIcon,
+  SlidersHorizontal, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -105,6 +106,7 @@ export default function App() {
   const [maxPrice, setMaxPrice] = useState<number>(10000000); // Default to R$ 10 M to match slider cap
   const [selectedStatus, setSelectedStatus] = useState<Property['status'] | null>(null);
   const [maxDownpayment, setMaxDownpayment] = useState<number>(0); // 0 means any
+  const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
 
   // Real-time public Firestore listeners
   useEffect(() => {
@@ -416,27 +418,9 @@ export default function App() {
               <SearchHero 
                 properties={properties}
                 banners={banners}
+                query={query}
+                setQuery={setQuery}
                 onOpenProperty={(id) => setGlobalSelectedPropertyId(id)}
-              />
-
-              {/* Integrated Search & Filters Section under the slider */}
-              <SearchPanel 
-                properties={properties}
-                selectedBedrooms={selectedBedrooms}
-                setSelectedBedrooms={setSelectedBedrooms}
-                maxPrice={maxPrice}
-                setMaxPrice={setMaxPrice}
-                selectedStatus={selectedStatus}
-                setSelectedStatus={setSelectedStatus}
-                maxDownpayment={maxDownpayment}
-                setMaxDownpayment={setMaxDownpayment}
-                onSearch={({ query: q, bedrooms: b, maxPrice: m, status: s, maxDownpayment: d }) => {
-                  setQuery(q);
-                  if (b !== undefined) setSelectedBedrooms(b);
-                  if (m !== undefined) setMaxPrice(m);
-                  if (s !== undefined) setSelectedStatus(s);
-                  if (d !== undefined) setMaxDownpayment(d);
-                }}
               />
 
               {/* Real Estate Suggested Grid Section */}
@@ -459,8 +443,19 @@ export default function App() {
                       </p>
                     </div>
 
-                    {/* Dynamic stats tracker indicator (Translucent widget) */}
-                    <div className="flex items-center gap-6 text-zinc-700 font-mono text-[11px] bg-zinc-50 p-4 border border-zinc-200 rounded-xl shadow-sm">
+                    <div className="flex flex-wrap items-center gap-4">
+                      {/* FILTERS POPUP TRIGGER BUTTON */}
+                      <button 
+                        onClick={() => setIsFilterPopupOpen(true)}
+                        className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-orange-500/40 px-5 py-3.5 text-xs font-bold uppercase tracking-widest text-zinc-900 transition-all duration-300 shadow-sm cursor-pointer"
+                        title="Abrir filtros de pesquisa"
+                      >
+                        <SlidersHorizontal className="h-4 w-4 text-[#FF6600]" />
+                        Filtrar Lançamentos
+                      </button>
+
+                      {/* Dynamic stats tracker indicator (Translucent widget) */}
+                      <div className="flex items-center gap-6 text-zinc-700 font-mono text-[11px] bg-zinc-50 p-4 border border-zinc-200 rounded-xl shadow-sm">
                       <div>
                         <span className="block text-zinc-400 font-bold uppercase text-[9px]">Lançamentos</span>
                         <span className="text-base font-extrabold text-zinc-900 block mt-0.5">{properties.length}</span>
@@ -472,6 +467,7 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                </div>
 
                   {/* Grid items */}
                   <motion.div 
@@ -510,6 +506,68 @@ export default function App() {
                   )}
                 </div>
               </section>
+
+              {/* Filters Popup Modal */}
+              <AnimatePresence>
+                {isFilterPopupOpen && (
+                  <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                    {/* Close backdrop on click */}
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 cursor-default"
+                      onClick={() => setIsFilterPopupOpen(false)}
+                    />
+
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0, y: 15 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 0.95, opacity: 0, y: 15 }}
+                      className="relative w-full max-w-4xl bg-zinc-950 rounded-3xl border border-zinc-800 overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
+                    >
+                      {/* Top Close Bar */}
+                      <div className="flex items-center justify-between px-6 py-4.5 border-b border-zinc-900 bg-[#121318]">
+                        <div className="flex items-center gap-2">
+                          <SlidersHorizontal className="h-4 w-4 text-orange-500 animate-pulse" />
+                          <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-white font-mono">Filtros de Pesquisa</span>
+                        </div>
+                        <button 
+                          onClick={() => setIsFilterPopupOpen(false)}
+                          className="p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors"
+                          aria-label="Minimizar filtros"
+                        >
+                          <X className="h-4.5 w-4.5" />
+                        </button>
+                      </div>
+                      
+                      {/* Scrollable Filters */}
+                      <div className="overflow-y-auto flex-1 styles-scrollbar-custom">
+                        <SearchPanel 
+                          properties={properties}
+                          selectedBedrooms={selectedBedrooms}
+                          setSelectedBedrooms={setSelectedBedrooms}
+                          maxPrice={maxPrice}
+                          setMaxPrice={setMaxPrice}
+                          selectedStatus={selectedStatus}
+                          setSelectedStatus={setSelectedStatus}
+                          maxDownpayment={maxDownpayment}
+                          setMaxDownpayment={setMaxDownpayment}
+                          onSearch={({ query: q, bedrooms: b, maxPrice: m, status: s, maxDownpayment: d }) => {
+                            setQuery(q);
+                            if (b !== undefined) setSelectedBedrooms(b);
+                            if (m !== undefined) setMaxPrice(m);
+                            if (s !== undefined) setSelectedStatus(s);
+                            if (d !== undefined) setMaxDownpayment(d);
+                          }}
+                          onClose={() => setIsFilterPopupOpen(false)}
+                        />
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+
             </motion.div>
           ) : (
             <motion.div
@@ -578,7 +636,15 @@ export default function App() {
           <div className="flex gap-6 uppercase font-mono tracking-widest text-[9px] text-zinc-300">
             <a href="#projects-showcase" onClick={() => setCurrentView('home')} className="hover:text-primary transition-colors">Voltar ao topo</a>
             <span className="text-white/15">•</span>
-            <button onClick={() => setCurrentView('admin')} className="hover:text-primary transition-colors cursor-pointer">Login Admin</button>
+            <button 
+              onClick={() => {
+                setCurrentView(currentView === 'admin' ? 'home' : 'admin');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }} 
+              className="hover:text-primary text-primary transition-colors cursor-pointer font-extrabold"
+            >
+              {currentView === 'admin' ? 'View Área Pública' : 'Painel Admin'}
+            </button>
             <span className="text-white/15">•</span>
             <a href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-primary transition-colors">WhatsApp Oficial</a>
           </div>

@@ -567,6 +567,23 @@ export default function AdminPanel({
     setPropFloorPlans(propFloorPlans.filter((_, i) => i !== idx));
   };
 
+  const handleBannerImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, envie apenas arquivos de imagem válidos!');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setBannerImageUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handlePlanImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -3574,32 +3591,75 @@ export default function AdminPanel({
                   />
                 </div>
 
-                {/* Banner Image link */}
+                {/* Banner Image Input */}
                 <div>
-                  <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">Link da Imagem de Fundo (1920x1080 recomendado) *</label>
-                  <input
-                    type="url"
-                    required
-                    className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-orange-500 outline-none font-mono"
-                    placeholder="https://link-de-imagem.com/hotel.jpg"
-                    value={bannerImageUrl}
-                    onChange={(e) => setBannerImageUrl(e.target.value)}
-                  />
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">Imagem de Fundo (1920x1080 recomendado) *</label>
+                    <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase">Arquivo ou URL</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {/* URL Input */}
+                    <input
+                      type="text"
+                      className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-orange-500 outline-none font-mono"
+                      placeholder="https://link-de-imagem.com/hotel.jpg"
+                      value={bannerImageUrl}
+                      onChange={(e) => setBannerImageUrl(e.target.value)}
+                    />
+
+                    {/* Image File Upload Trigger */}
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerImageUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-15"
+                      />
+                      <button
+                        type="button"
+                        className="w-full py-2.5 rounded bg-zinc-900 border border-zinc-800 hover:border-orange-500/50 hover:text-white text-zinc-300 text-xs transition-colors flex items-center justify-center gap-1.5 font-bold uppercase tracking-wider"
+                      >
+                        <Upload className="h-3 w-3 text-orange-500" />
+                        Upload do Dispositivo / Foto Local
+                      </button>
+                    </div>
+
+                    {bannerImageUrl && (
+                      <div className="flex items-center gap-2.5 bg-black/40 p-2 rounded-xl border border-zinc-900 mt-2">
+                        <img 
+                          src={bannerImageUrl} 
+                          alt="Preview do Banner" 
+                          referrerPolicy="no-referrer"
+                          className="w-14 h-10 rounded border border-zinc-800 object-cover" 
+                        />
+                        <div className="overflow-hidden">
+                          <span className="text-[10px] text-zinc-400 font-mono block truncate">Imagem selecionada</span>
+                          <span className="text-[8px] text-zinc-600 font-mono block truncate">
+                            {bannerImageUrl.startsWith('data:') ? 'Arquivo do Dispositivo (Base64)' : bannerImageUrl}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Easy preset images select */}
-                  <div className="flex gap-2.5 mt-2.5 overflow-x-auto pb-1">
-                    {IMAGE_PRESETS.slice(0, 5).map((imgUrl, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setBannerImageUrl(imgUrl)}
-                        className={`w-14 h-10 rounded border overflow-hidden shrink-0 transition-all ${
-                          bannerImageUrl === imgUrl ? 'border-orange-500 scale-95' : 'border-zinc-800'
-                        }`}
-                      >
-                        <img src={imgUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
+                  <div className="mt-3">
+                    <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest block mb-1">Favoritos e Sugestões:</span>
+                    <div className="flex gap-2.5 overflow-x-auto pb-1">
+                      {IMAGE_PRESETS.slice(0, 5).map((imgUrl, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setBannerImageUrl(imgUrl)}
+                          className={`w-14 h-10 rounded border overflow-hidden shrink-0 transition-all ${
+                            bannerImageUrl === imgUrl ? 'border-orange-500 scale-95' : 'border-zinc-800'
+                          }`}
+                        >
+                          <img src={imgUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

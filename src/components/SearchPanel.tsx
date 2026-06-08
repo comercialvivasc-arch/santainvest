@@ -20,6 +20,7 @@ interface SearchPanelProps {
   setSelectedStatus: (status: Property['status'] | null) => void;
   maxDownpayment: number;
   setMaxDownpayment: (val: number) => void;
+  onClose?: () => void;
 }
 
 export default function SearchPanel({
@@ -33,6 +34,7 @@ export default function SearchPanel({
   setSelectedStatus,
   maxDownpayment,
   setMaxDownpayment,
+  onClose,
 }: SearchPanelProps) {
   const [searchInput, setSearchInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -131,33 +133,22 @@ export default function SearchPanel({
   };
 
   return (
-    <section 
-      id="search-section" 
-      className="w-full bg-[#0a0a0c] py-12 border-b border-zinc-900/50 relative z-10 transition-colors"
-      style={{ marginBottom: '0px', height: '879.65px' }}
+    <div 
+      id="search-filter-box"
+      className="w-full bg-[#121318] p-6 sm:p-8 relative"
     >
-      <div 
-        className="max-w-4xl mx-auto px-6 md:px-8"
-        style={{ marginBottom: '0px', marginTop: '-26px' }}
-      >
-        
-        {/* Futuristic Search & Filters Container (Glassmorphism card) */}
-        <div 
-          id="search-filter-box"
-          className="w-full rounded-2xl border border-zinc-800 bg-[#121318] p-6 sm:p-8 shadow-2xl relative"
-        >
-          {/* Subtle Orange top neon border glow */}
-          <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-[#FF6600] to-transparent"></div>
+      {/* Subtle Orange top neon border glow */}
+      <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-[#FF6600] to-transparent"></div>
 
-          {/* Title inside search block */}
-          <div className="mb-6 text-left">
-            <h3 className="text-xs font-bold tracking-widest text-[#FF6600] uppercase font-mono">
-              ⚡ Encontre seu Imóvel Ideal
-            </h3>
-            <p className="text-xs text-zinc-400 mt-1">
-              Filtre em tempo real nossa seleção de lançamentos por localização, dormitórios, estágio de obra e fluxo de pagamento.
-            </p>
-          </div>
+      {/* Title inside search block */}
+      <div className="mb-6 text-left">
+        <h3 className="text-xs font-bold tracking-widest text-[#FF6600] uppercase font-mono">
+          ⚡ Encontre seu Imóvel Ideal
+        </h3>
+        <p className="text-xs text-zinc-400 mt-1">
+          Filtre em tempo real nossa seleção de lançamentos por localização, dormitórios, estágio de obra e fluxo de pagamento.
+        </p>
+      </div>
 
           {/* Search Bar Row with integrated suggestions */}
           <div className="relative w-full">
@@ -361,6 +352,7 @@ export default function SearchPanel({
               onClick={() => {
                 const el = document.getElementById('projects-showcase');
                 el?.scrollIntoView({ behavior: 'smooth' });
+                onClose?.();
               }}
               type="button"
               className="w-full sm:w-auto px-10 py-4 rounded-xl bg-[#FF6600] text-black font-extrabold text-xs uppercase tracking-widest hover:bg-orange-600 hover:shadow-lg hover:shadow-[#FF6600]/25 active:scale-98 flex items-center justify-center gap-2 cursor-pointer transition-all duration-300"
@@ -370,8 +362,6 @@ export default function SearchPanel({
             </button>
           </div>
 
-        </div>
-      </div>
-    </section>
+    </div>
   );
 }

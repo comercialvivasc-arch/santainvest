@@ -43,8 +43,14 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
   const headerBgClass = 'bg-transparent border-b border-transparent shadow-none';
 
   return (
-    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${headerBgClass} ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8">
+    <header 
+      style={{ backgroundColor: '#37409A' }}
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${headerBgClass} ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
+    >
+      <div 
+        style={{ backgroundColor: '#37409A' }}
+        className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8"
+      >
         {/* Futuristic Logo & Brand (ESQUERDA) */}
         <div 
           onClick={() => onNavigate('home')} 
@@ -56,7 +62,8 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
               src={settings.logoUrl} 
               alt={settings.brandName || "Logo"} 
               referrerPolicy="no-referrer"
-              className="h-8 sm:h-10 object-contain transition-all duration-300 group-hover:scale-105"
+              style={{ width: '120px', height: '80px' }}
+              className="object-contain transition-all duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-primary rotate-45 shadow-lg shadow-primary/20 transition-all duration-300 group-hover:scale-105">
@@ -74,25 +81,12 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
           </div>
         </div>
 
-        {/* Live Search Bar in the middle (CENTRO) */}
-        {currentView === 'home' && (
-          <div className="flex-1 max-w-xs md:max-w-md mx-2 sm:mx-6 relative" id="header-search-bar">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Buscar (ex: Itapema, Centro, ...)"
-              value={query || ''}
-              onChange={(e) => setQuery?.(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-full py-1.5 pl-8 pr-3 text-[11px] sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-all font-mono"
-            />
-          </div>
-        )}
-
         {/* Navigation & Actions (DIREITA) */}
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide text-zinc-300 uppercase shrink-0">
           <button 
             onClick={() => onNavigate('home')}
+            style={{ color: '#F6CF40' }}
             className={`transition-colors duration-200 hover:text-primary text-left cursor-pointer ${currentView === 'home' ? 'text-primary border-b-2 border-primary pb-1 mt-1' : ''}`}
           >
             Lançamentos
@@ -112,44 +106,10 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
           >
             Contato
           </a>
-
-          {/* Admin Switcher */}
-          <button
-            onClick={() => onNavigate(currentView === 'admin' ? 'home' : 'admin')}
-            className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold tracking-wider transition-all duration-300 border cursor-pointer ${
-              currentView === 'admin' 
-                ? 'bg-primary text-black border-primary hover:bg-[#e65c00] hover:shadow-lg hover:shadow-primary/20 font-bold' 
-                : 'bg-white/10 text-white border-white/10 hover:border-primary hover:bg-white/15'
-            }`}
-          >
-            {currentView === 'admin' ? (
-              <>
-                <User className="h-4 w-4" />
-                Área Pública
-              </>
-            ) : (
-              <>
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                Painel Admin
-              </>
-            )}
-          </button>
         </nav>
 
         {/* Mobile Menu Toggle (DIREITA - MOBILE VIEW) */}
         <div className="flex md:hidden items-center gap-2 shrink-0">
-          <button
-            onClick={() => onNavigate(currentView === 'admin' ? 'home' : 'admin')}
-            className={`p-1.5 sm:p-2 rounded-lg border transition-all ${
-              currentView === 'admin' 
-                ? 'bg-primary text-black border-primary' 
-                : 'bg-white/10 text-primary border-white/10'
-            }`}
-            title="Admin Dashboard"
-          >
-            <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5" />
-          </button>
-          
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-1.5 sm:p-2 rounded-lg bg-transparent border border-transparent text-zinc-300 hover:text-white cursor-pointer transition-all focus:outline-none"
@@ -180,7 +140,7 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
             Exclusivos
           </a>
           <a
-            href={`https://wa.me/${settings.phone || '5547999999999'}?text=${encodeURIComponent("Olá! Gostaria de falar com um consultor sobre os lançamentos ativos.")}`}
+            href={`https://wa.me/${settings.phone || '5547999999999'}?text=${encodeURIComponent("Olá! Gostaria de falar com um consultor sobre os lançamentos activos.")}`}
             onClick={() => setIsOpen(false)}
             target="_blank"
             rel="noopener noreferrer"
@@ -189,12 +149,6 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
           >
             Contato WhatsApp
           </a>
-          <button
-            onClick={() => { onNavigate(currentView === 'admin' ? 'home' : 'admin'); setIsOpen(false); }}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-xs font-bold uppercase tracking-wider text-black"
-          >
-            {currentView === 'admin' ? 'Retornar ao Site' : 'Painel de Administração'}
-          </button>
         </motion.div>
       )}
     </header>

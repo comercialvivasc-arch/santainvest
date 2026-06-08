@@ -1,20 +1,73 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Sparkles, ChevronDown } from 'lucide-react';
+import { Sparkles, ChevronDown, Search, MapPin, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BannerAd } from '../types';
 
 interface SearchHeroProps {
   properties: Property[];
   banners: BannerAd[];
+  query: string;
+  setQuery: (q: string) => void;
   onOpenProperty?: (id: string) => void;
 }
 
 export default function SearchHero({
   properties,
   banners,
+  query,
+  setQuery,
   onOpenProperty,
 }: SearchHeroProps) {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [searchInput, setSearchInput] = useState(query || '');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Synchronize local input with outer query changes
+  useEffect(() => {
+    setSearchInput(query);
+  }, [query]);
+
+  // Aggregate stats per city/region and neighborhood dynamically
+  const regionStats = useMemo(() => {
+    const statsMap: Record<string, { name: string; count: number; type: 'Bairro' | 'Cidade' }> = {};
+    
+    properties.forEach((p) => {
+      // Neighborhood stats
+      if (p.neighborhood) {
+        const key = `neigh-${p.neighborhood.trim().toLowerCase()}`;
+        if (!statsMap[key]) {
+          statsMap[key] = { name: p.neighborhood.trim(), count: 0, type: 'Bairro' };
+        }
+        statsMap[key].count += 1;
+      }
+      
+      // City/Region stats
+      if (p.region) {
+        const key = `reg-${p.region.trim().toLowerCase()}`;
+        if (!statsMap[key]) {
+          statsMap[key] = { name: p.region.trim(), count: 0, type: 'Cidade' };
+        }
+        statsMap[key].count += 1;
+      }
+    });
+    
+    return Object.values(statsMap);
+  }, [properties]);
+
+  const filteredSuggestions = useMemo(() => {
+    if (!searchInput.trim()) return [];
+    const low = searchInput.toLowerCase();
+    
+    return regionStats
+      .filter((s) => s.name.toLowerCase().includes(low))
+      .sort((a, b) => {
+        const aIndex = a.name.toLowerCase().indexOf(low);
+        const bIndex = b.name.toLowerCase().indexOf(low);
+        if (aIndex !== bIndex) return aIndex - bIndex;
+        return b.count - a.count;
+      })
+      .slice(0, 5);
+  }, [searchInput, regionStats]);
 
   // Filter active banners
   const activeBanners = useMemo(() => {
@@ -77,9 +130,100 @@ export default function SearchHero({
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="max-w-2xl flex flex-col items-center justify-center"
+          className="max-w-2xl flex flex-col items-center justify-center w-full"
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3.5 py-1 text-xs font-semibold tracking-widest text-[#FF6600] uppercase border border-orange-500/20 mb-4 backdrop-blur-sm">
+          {/* Region Search Bar above banner texts */}
+          <div className="w-full max-w-md mx-auto mb-10 relative z-50">
+            <div className="flex items-center rounded-full bg-black/80 border border-zinc-800 focus-within:border-primary/80 transition-all duration-300 pl-4 pr-1.5 py-1.5 shadow-2xl backdrop-blur-md">
+              <Search className="h-4 w-4 text-primary shrink-0 animate-pulse" />
+              <input
+                type="text"
+                className="w-full bg-transparent px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:ring-0 font-sans font-medium"
+                placeholder="Qual cidade ou bairro você busca?"
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchInput('');
+                    setQuery('');
+                  }}
+                  className="p-1 text-zinc-400 hover:text-white cursor-pointer mr-1.5"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery(searchInput);
+                  setShowSuggestions(false);
+                  const el = document.getElementById('projects-showcase');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                style={{ backgroundColor: '#F6CF40' }}
+                className="hover:scale-105 text-black px-4.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shrink-0"
+              >
+                Buscar
+              </button>
+            </div>
+
+            {/* Suggestions Overlay with actual statistics counts */}
+            <AnimatePresence>
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 5 }}
+                  className="absolute left-0 right-0 mt-2 rounded-2xl border border-zinc-800 bg-black/95 backdrop-blur-md p-1.5 shadow-3xl z-50 text-left overflow-hidden max-h-72 overflow-y-auto"
+                >
+                  <div className="text-[9px] font-mono font-bold text-zinc-500 tracking-wider px-3 py-1.5 border-b border-zinc-900 uppercase">
+                    Regiões Encontradas
+                  </div>
+                  {filteredSuggestions.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setSearchInput(item.name);
+                        setQuery(item.name);
+                        setShowSuggestions(false);
+                        const el = document.getElementById('projects-showcase');
+                        setTimeout(() => {
+                          el?.scrollIntoView({ behavior: 'smooth' });
+                        }, 80);
+                      }}
+                      className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-zinc-900 border-b border-zinc-950/20 text-left transition-all cursor-pointer group"
+                    >
+                      <span className="flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="text-xs font-bold text-zinc-100 group-hover:text-white">{item.name}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[9px] leading-none uppercase tracking-wider font-mono bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">
+                          {item.type}
+                        </span>
+                        <span className="text-[10px] leading-none font-bold text-primary font-mono bg-primary/10 border border-primary/25 px-2 py-0.5 rounded-full">
+                          {item.count} {item.count === 1 ? 'imóvel' : 'imóveis'}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <span 
+            style={{ color: '#F6CF40' }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3.5 py-1 text-xs font-semibold tracking-widest uppercase border border-orange-500/20 mb-4 backdrop-blur-sm"
+          >
             <Sparkles className="h-3 w-3 animate-pulse text-orange-500" />
             Lançamentos de Alto Padrão
           </span>
@@ -98,13 +242,14 @@ export default function SearchHero({
               if (currentBanner.link && onOpenProperty) {
                 onOpenProperty(currentBanner.link);
               } else {
-                const el = document.getElementById('search-section');
+                const el = document.getElementById('projects-showcase');
                 if (el) {
                   el.scrollIntoView({ behavior: 'smooth' });
                 }
               }
             }}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#FF6600] text-white font-extrabold text-xs sm:text-sm px-6 py-3.5 hover:bg-[#e65c00] hover:shadow-xl hover:shadow-orange-500/30 transition-all duration-300 active:scale-95 cursor-pointer uppercase tracking-wider shadow-lg shadow-orange-500/10 border-0"
+            style={{ backgroundColor: '#F6CF40' }}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl text-black font-extrabold text-xs sm:text-sm px-6 py-3.5 hover:shadow-xl transition-all duration-300 active:scale-95 cursor-pointer uppercase tracking-wider border-0"
           >
             Conhecer agora
           </button>
@@ -112,7 +257,7 @@ export default function SearchHero({
           {/* Scroll Indicator containing ONLY the arrow icon inside the circle */}
           <button
             onClick={() => {
-              const el = document.getElementById('search-section');
+              const el = document.getElementById('projects-showcase');
               if (el) {
                 el.scrollIntoView({ behavior: 'smooth' });
               }
