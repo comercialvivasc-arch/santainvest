@@ -62,7 +62,7 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
               src={settings.logoUrl} 
               alt={settings.brandName || "Logo"} 
               referrerPolicy="no-referrer"
-              style={{ width: '135px', height: '80px' }}
+              style={{ width: '155px', height: '80px' }}
               className="object-contain transition-all duration-300 group-hover:scale-105"
             />
           ) : (

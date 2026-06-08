@@ -136,13 +136,14 @@ export default function SearchHero({
           {/* Region Search Bar above banner texts */}
           <div className="w-full max-w-md mx-auto mb-10 relative z-50">
             <div 
-              style={{ backgroundColor: '#ffffff', borderRadius: '10px' }}
+              style={{ backgroundColor: '#ffffff', borderRadius: '10px', height: '52px', fontSize: '16px' }}
               className="flex items-center border border-zinc-200 focus-within:border-primary/80 transition-all duration-300 pl-4 pr-1.5 py-1.5 shadow-2xl backdrop-blur-md"
             >
               <Search className="h-4 w-4 text-zinc-500 shrink-0 animate-pulse" />
               <input
                 type="text"
-                className="w-full bg-transparent px-3 py-1.5 text-xs text-zinc-900 placeholder-zinc-500 outline-none focus:ring-0 font-sans font-medium"
+                className="w-full bg-transparent px-3 py-1.5 text-zinc-900 placeholder-zinc-500 outline-none focus:ring-0 font-sans font-medium"
+                style={{ fontSize: '16px' }}
                 placeholder="Qual cidade ou bairro você busca?"
                 value={searchInput}
                 onChange={(e) => {
@@ -171,8 +172,8 @@ export default function SearchHero({
                   const el = document.getElementById('projects-showcase');
                   el?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                style={{ backgroundColor: '#F6CF40' }}
-                className="hover:scale-105 text-black px-4.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shrink-0"
+                style={{ backgroundColor: '#F6CF40', color: '#203366' }}
+                className="hover:scale-105 px-4.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shrink-0"
               >
                 Buscar
               </button>
@@ -252,8 +253,8 @@ export default function SearchHero({
                 }
               }
             }}
-            style={{ backgroundColor: '#F6CF40' }}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl text-black font-extrabold text-xs sm:text-sm px-6 py-3.5 hover:shadow-xl transition-all duration-300 active:scale-95 cursor-pointer uppercase tracking-wider border-0"
+            style={{ backgroundColor: '#F6CF40', color: '#203366' }}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl font-extrabold text-xs sm:text-sm px-6 py-3.5 hover:shadow-xl transition-all duration-300 active:scale-95 cursor-pointer uppercase tracking-wider border-0"
           >
             Conhecer agora
           </button>
