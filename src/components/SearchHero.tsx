@@ -112,6 +112,7 @@ export default function SearchHero({
               src={currentBanner.imageUrl}
               alt={currentBanner.title}
               referrerPolicy="no-referrer"
+              style={{ borderColor: '#e7e7e7' }}
               className="h-full w-full object-cover object-center filter brightness-[0.70] contrast-[1.05]"
             />
           </motion.div>
@@ -134,11 +135,14 @@ export default function SearchHero({
         >
           {/* Region Search Bar above banner texts */}
           <div className="w-full max-w-md mx-auto mb-10 relative z-50">
-            <div className="flex items-center rounded-full bg-black/80 border border-zinc-800 focus-within:border-primary/80 transition-all duration-300 pl-4 pr-1.5 py-1.5 shadow-2xl backdrop-blur-md">
-              <Search className="h-4 w-4 text-primary shrink-0 animate-pulse" />
+            <div 
+              style={{ backgroundColor: '#ffffff', borderRadius: '10px' }}
+              className="flex items-center border border-zinc-200 focus-within:border-primary/80 transition-all duration-300 pl-4 pr-1.5 py-1.5 shadow-2xl backdrop-blur-md"
+            >
+              <Search className="h-4 w-4 text-zinc-500 shrink-0 animate-pulse" />
               <input
                 type="text"
-                className="w-full bg-transparent px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:ring-0 font-sans font-medium"
+                className="w-full bg-transparent px-3 py-1.5 text-xs text-zinc-900 placeholder-zinc-500 outline-none focus:ring-0 font-sans font-medium"
                 placeholder="Qual cidade ou bairro você busca?"
                 value={searchInput}
                 onChange={(e) => {
@@ -154,7 +158,7 @@ export default function SearchHero({
                     setSearchInput('');
                     setQuery('');
                   }}
-                  className="p-1 text-zinc-400 hover:text-white cursor-pointer mr-1.5"
+                  className="p-1 text-zinc-400 hover:text-zinc-800 cursor-pointer mr-1.5"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -262,7 +266,7 @@ export default function SearchHero({
                 el.scrollIntoView({ behavior: 'smooth' });
               }
             }}
-            className="mt-8 flex items-center justify-center h-11 w-11 rounded-full bg-black/60 border border-zinc-800 text-zinc-400 hover:text-[#FF6600] hover:border-[#FF6600]/80 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/15 active:scale-95 group cursor-pointer"
+            className="mt-8 flex items-center justify-center h-11 w-11 rounded-full bg-black/60 border border-zinc-800 text-zinc-400 hover:text-[#f6cf40] hover:border-[#f6cf40]/80 transition-all duration-300 hover:shadow-lg hover:shadow-[#f6cf40]/15 active:scale-95 group cursor-pointer"
             aria-label="Rolar para pesquisa"
           >
             <ChevronDown className="h-5 w-5 stroke-[2.5] group-hover:translate-y-0.5 transition-transform duration-300" />

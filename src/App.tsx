@@ -432,7 +432,7 @@ export default function App() {
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                   <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6 relative z-10">
                     <div>
-                      <span className="text-[11px] font-bold tracking-widest text-[#FF6600] uppercase font-mono block mb-1">
+                      <span className="text-[11px] font-bold tracking-widest text-[#f6cf40] uppercase font-mono block mb-1">
                         ✦ Portfolio Selecionado
                       </span>
                       <h2 className="text-3xl font-black text-zinc-950 tracking-tight sm:text-4xl uppercase">
@@ -447,10 +447,10 @@ export default function App() {
                       {/* FILTERS POPUP TRIGGER BUTTON */}
                       <button 
                         onClick={() => setIsFilterPopupOpen(true)}
-                        className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-orange-500/40 px-5 py-3.5 text-xs font-bold uppercase tracking-widest text-zinc-900 transition-all duration-300 shadow-sm cursor-pointer"
+                        className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-[#f6cf40]/40 px-5 py-3.5 text-xs font-bold uppercase tracking-widest text-zinc-900 transition-all duration-300 shadow-sm cursor-pointer"
                         title="Abrir filtros de pesquisa"
                       >
-                        <SlidersHorizontal className="h-4 w-4 text-[#FF6600]" />
+                        <SlidersHorizontal className="h-4 w-4 text-[#f6cf40]" />
                         Filtrar Lançamentos
                       </button>
 
@@ -463,7 +463,7 @@ export default function App() {
                       <div className="h-8 w-[1px] bg-zinc-200"></div>
                       <div>
                         <span className="block text-zinc-400 font-bold uppercase text-[9px]">Filtrados</span>
-                        <span className="text-base font-extrabold text-[#FF6600] block mt-0.5">{filteredProperties.length}</span>
+                        <span className="text-base font-extrabold text-[#f6cf40] block mt-0.5">{filteredProperties.length}</span>
                       </div>
                     </div>
                   </div>
@@ -486,11 +486,11 @@ export default function App() {
                       animate={{ opacity: 1, scale: 1 }}
                       className="max-w-md mx-auto text-center py-16 border border-zinc-200 rounded-2xl bg-zinc-50 p-8 relative z-10 shadow-sm"
                     >
-                      <FilterX className="h-10 w-10 text-[#FF6600] mx-auto mb-4 animate-pulse" />
+                      <FilterX className="h-10 w-10 text-[#f6cf40] mx-auto mb-4 animate-pulse" />
                       <h3 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">Nenhum Imóvel Encontrado</h3>
                       <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
                         Não existem lançamentos integrados que correspondam simultaneamente a todos os filtros selecionados:
-                        <span className="block text-[#FF6600] font-mono mt-1 font-semibold">
+                        <span className="block text-[#f6cf40] font-mono mt-1 font-semibold">
                           {query ? `Busca "${query}"` : ''} 
                           {selectedBedrooms ? ` | ${selectedBedrooms} Dorms` : ''} 
                           {` | Valor até R$ ${(maxPrice / 1000000).toFixed(1)}M`}
@@ -498,7 +498,7 @@ export default function App() {
                       </p>
                       <button
                         onClick={handleResetFilters}
-                        className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-[#FF6600] px-5 py-3 text-xs font-bold text-black uppercase tracking-wider hover:bg-[#e65c00] hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-300 cursor-pointer"
+                        className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-[#f6cf40] px-5 py-3 text-xs font-bold text-black uppercase tracking-wider hover:bg-[#e0b92f] hover:shadow-lg hover:shadow-[#f6cf40]/20 transition-all duration-300 cursor-pointer"
                       >
                         Limpar Filtros e Ver Todos
                       </button>

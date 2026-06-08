@@ -72,6 +72,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [quickQuestion, setQuickQuestion] = useState('');
   const [activePlanIdx, setActivePlanIdx] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   const [emailFormName, setEmailFormName] = useState('');
   const [emailFormContact, setEmailFormContact] = useState('');
@@ -319,7 +320,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
 
             {/* Data de Entrega */}
             <span className="flex items-center gap-1 rounded-md bg-black/70 px-2.5 py-1 text-[10px] tracking-wide text-zinc-100 border border-white/10 backdrop-blur-sm font-mono font-bold">
-              <Calendar className="h-3 w-3 text-[#FF6600] shrink-0" />
+              <Calendar className="h-3 w-3 text-[#f6cf40] shrink-0" />
               {property.status === 'Pronto' ? 'Pronto' : `Entrega: ${property.deliveryDate}`}
             </span>
           </div>
@@ -457,7 +458,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                 <span className="text-[9px] font-bold tracking-wider text-zinc-500 uppercase block mb-0.5">
                   Mensais R$
                 </span>
-                <span className="font-extrabold text-[#FF6600] text-[11px] block">
+                <span className="font-extrabold text-[#f6cf40] text-[11px] block">
                   {formatBRL(property.installments)}
                 </span>
               </div>
@@ -466,7 +467,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
             {/* Botao Ver Oferta */}
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold tracking-wider text-black uppercase cursor-pointer hover:bg-[#e65c00] hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold tracking-wider text-black uppercase cursor-pointer hover:bg-[#e0b92f] hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
             >
               <Sparkles className="h-4 w-4 shrink-0 stroke-[2.5]" />
               Ver Oferta
@@ -555,7 +556,8 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                     src={property.images[currentImgIndex]}
                     alt={property.name}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover select-none"
+                    className="w-full h-full object-cover select-none cursor-zoom-in"
+                    onClick={() => setIsLightboxOpen(true)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-zinc-500 font-mono text-xs">Sem Imagens Cadastradas</div>
@@ -634,7 +636,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                   <span className="text-[10px] sm:text-xs tracking-widest font-bold text-zinc-550 uppercase font-mono block">
                     {property.status === 'Pronto' ? 'Venda / Pronto' : 'A PARTIR DE'}
                   </span>
-                  <div className="text-3xl sm:text-4xl font-extrabold text-[#FF6600] tracking-tight font-mono mt-0.5">
+                  <div className="text-3xl sm:text-4xl font-extrabold text-[#f6cf40] tracking-tight font-mono mt-0.5">
                     {formatBRL(property.price)}
                   </div>
                   <p className="mt-1 text-xs text-zinc-650 uppercase font-mono tracking-wider font-semibold">
@@ -646,8 +648,8 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                     const el = document.getElementById('simulador-box');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="rounded-xl bg-[#ff6600] hover:bg-[#e65c00] text-white font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-orange-500/10 cursor-pointer uppercase tracking-wider"
-                  style={{ backgroundColor: '#ff6600' }}
+                  className="rounded-xl bg-[#f6cf40] hover:bg-[#e0b92f] text-black font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-[#f6cf40]/10 cursor-pointer uppercase tracking-wider"
+                  style={{ backgroundColor: '#f6cf40' }}
                 >
                   Ver parcelas
                 </button>
@@ -724,7 +726,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
               {/* MAIN TITLE, BADGE CATEGORY, AND LONG DESCRIPTION */}
               <div className="text-left py-4 border-t border-zinc-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="bg-[#FF6600]/10 border border-[#FF6600]/20 text-[#FF6600] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md font-mono">
+                  <span className="bg-[#f6cf40]/10 border border-[#f6cf40]/20 text-[#f6cf40] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md font-mono">
                     {property.projectType || 'Lançamento'}
                   </span>
                   <span className="text-zinc-400">•</span>
@@ -736,9 +738,16 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                 </h3>
 
                 <div className="mt-5 space-y-4">
-                  <h4 className="text-xs font-extrabold uppercase tracking-widest text-[#FF6600] font-mono">Descrição detalhada</h4>
-                  <p className="text-sm text-zinc-700 leading-relaxed font-sans">ame                  Este espetacular empreendimento localizado no prestigiado bairro {property.neighborhood} ({property.region}) redefine os conceitos de sofisticação, conforto e liquidez na região de Santa Catarina. O projeto arquitetônico traz design de linhas marcantes futuristas, além de contar com áreas com metragens de {property.area}m², contendo {property.bedrooms} amplos dormitórios e infraestrutura completa de lazer, segurança monitorada por IA e áreas comuns de finíssimo acabamento. Oferece simulação simplificada com as melhores taxas do mercado.
-                  </p>
+                  <h4 className="text-xs font-extrabold uppercase tracking-widest text-[#f6cf40] font-mono">Descrição detalhada</h4>
+                  {property.detailedDescription ? (
+                    <div className="text-sm text-zinc-700 leading-relaxed font-sans whitespace-pre-line">
+                      {property.detailedDescription}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-zinc-700 leading-relaxed font-sans">
+                      Este espetacular empreendimento localizado no prestigiado bairro {property.neighborhood} ({property.region}) redefine os conceitos de sofisticação, conforto e liquidez na região de Santa Catarina. O projeto arquitetônico traz design de linhas marcantes futuristas, além de contar com áreas com metragens de {property.area}m², contendo {property.bedrooms} amplos dormitórios e infraestrutura completa de lazer, segurança monitorada por IA e áreas comuns de finíssimo acabamento. Oferece simulação simplificada com as melhores taxas do mercado.
+                    </p>
+                  )}
                 </div>
 
                 <p className="mt-6 text-[10px] text-zinc-500 font-mono">
@@ -771,10 +780,9 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                           onClick={() => setActivePlanIdx(idx)}
                           className={`px-4 py-2.5 rounded-xl font-bold tracking-wide uppercase text-[11px] transition-all duration-300 cursor-pointer ${
                             isSelected
-                              ? 'bg-[#FF6600] text-black shadow-lg shadow-[#FF6600]/25 border border-transparent'
+                              ? 'bg-[#f6cf40] text-black shadow-lg shadow-[#f6cf40]/25 border border-transparent'
                               : 'bg-zinc-200 text-zinc-700 hover:text-zinc-900 hover:bg-zinc-305 border border-zinc-300'
                           }`}
-                          style={idx === 0 ? { color: '#ffffff' } : undefined}
                         >
                           {plan.name} {plan.area ? `(${formatAreaLabel(plan.area)})` : ''}
                         </button>
@@ -821,7 +829,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                       {/* Right: Descritivo */}
                       <div className="md:col-span-5 space-y-3 flex flex-col justify-center">
                         <div>
-                          <span className="text-[10px] font-bold text-[#FF6600] tracking-widest uppercase font-mono">
+                          <span className="text-[10px] font-bold text-[#f6cf40] tracking-widest uppercase font-mono">
                             Layout Premium Selecionado
                           </span>
                           <h5 className="text-sm sm:text-md font-bold text-zinc-900 mt-1">
@@ -854,7 +862,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
               {/* DETAILED FINANCIAL SIMULATOR BLOCK */}
               <div id="simulador-box" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
                 <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
-                  <Compass className="h-4.5 w-4.5 text-[#FF6600]" />
+                  <Compass className="h-4.5 w-4.5 text-[#f6cf40]" />
                   <h3 className="text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
                     Plano de Pagamento Facilitado
                   </h3>
@@ -887,7 +895,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                       <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Prazo direto da construtora ({property.installmentsCount || 60} parcelas)</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-extrabold text-[#FF6600] block">
+                      <span className="text-sm font-extrabold text-[#f6cf40] block">
                         {formatBRL(property.installments)}
                       </span>
                       <span className="text-[9px] text-zinc-500 block uppercase font-bold mt-0.5">Por mês</span>
@@ -940,6 +948,69 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                   <span>Simular Pagamento no WhatsApp</span>
                 </a>
               </div>
+
+              {/* VIDEO ANNEXED BY PROPERTY ADMIN PANEL */}
+              {property.videoUrl && (
+                <div id="video-section" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
+                  <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
+                    <svg className="h-5 w-5 text-[#f6cf40]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polygon points="23 7 16 12 23 17 23 7" />
+                      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                    </svg>
+                    <h3 className="text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
+                      Apresentação em Vídeo
+                    </h3>
+                  </div>
+                  
+                  <div className="aspect-video w-full rounded-xl overflow-hidden bg-black shadow-inner border border-zinc-200">
+                    {(() => {
+                      const videoUrl = property.videoUrl.trim();
+                      const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                      const match = videoUrl.match(ytRegExp);
+                      
+                      if (match && match[2].length === 11) {
+                        const ytId = match[2];
+                        return (
+                          <iframe
+                            className="w-full h-full border-0"
+                            src={`https://www.youtube.com/embed/${ytId}`}
+                            title="Apresentação do Imóvel"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            referrerPolicy="no-referrer"
+                          />
+                        );
+                      }
+                      
+                      const vimeoRegExp = /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/;
+                      const vimeoMatch = videoUrl.match(vimeoRegExp);
+                      if (vimeoMatch && vimeoMatch[3]) {
+                        return (
+                          <iframe
+                            src={`https://player.vimeo.com/video/${vimeoMatch[3]}`}
+                            className="w-full h-full border-0"
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowFullScreen
+                            title="Apresentação do Imóvel"
+                            referrerPolicy="no-referrer"
+                          />
+                        );
+                      }
+
+                      return (
+                        <video 
+                          src={videoUrl} 
+                          controls 
+                          className="w-full h-full object-contain"
+                          referrerPolicy="no-referrer"
+                        >
+                          Seu navegador não suporta a tag de vídeo. Como alternativa, por favor clique no link abaixo para visualizar.
+                        </video>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
 
               {/* FAST QUESTIONS ENQUIRY WIDGET (SCREENSHOT 2 REAL IMPLEMENTATION) */}
               <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5 sm:p-6 text-left space-y-4">
@@ -1114,7 +1185,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}`;
                   window.open(mapUrl, '_blank', 'referrerPolicy=no-referrer');
                 }}
-                className="bg-zinc-50 border border-zinc-200 shadow-md rounded-2xl p-4 sm:p-5 flex items-center justify-between hover:border-[#FF6600]/40 hover:bg-zinc-100 transition-all cursor-pointer group"
+                className="bg-zinc-50 border border-zinc-200 shadow-md rounded-2xl p-4 sm:p-5 flex items-center justify-between hover:border-[#f6cf40]/40 hover:bg-zinc-100 transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-4">
                   <div className="h-11 w-11 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover:scale-105 transition-all shrink-0">
@@ -1168,7 +1239,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                             </p>
                           </div>
                           <div>
-                            <div className="text-md font-black text-[#FF6600] font-mono pt-1">
+                            <div className="text-md font-black text-[#f6cf40] font-mono pt-1">
                               {formatBRL(simProp.price)}
                             </div>
                             <div className="text-[10px] text-zinc-600 font-mono pt-1 border-t border-zinc-200 mt-2 flex justify-between">
@@ -1229,6 +1300,90 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                 </a>
               </div>
             </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* FULLSCREEN LIGHTBOX FOR IMAGE ZOOMING */}
+      <AnimatePresence>
+        {isLightboxOpen && (
+          <div className="fixed inset-0 z-[150] flex flex-col justify-between p-4 md:p-6 select-none bg-black/95 backdrop-blur-md">
+            {/* Top Bar with counter and close */}
+            <div className="w-full flex items-center justify-between text-white z-10">
+              <span className="font-mono text-xs uppercase tracking-widest text-zinc-400 font-bold bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
+                Visualização Ampliada • {currentImgIndex + 1} de {property.images.length}
+              </span>
+              <button 
+                onClick={() => setIsLightboxOpen(false)}
+                className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:scale-105 active:scale-95 transition-all text-white cursor-pointer"
+                title="Fechar Zoom"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Central stage area */}
+            <div className="flex-1 w-full max-w-5xl mx-auto flex items-center justify-center relative my-4">
+              {property.images.length > 0 ? (
+                <motion.img
+                  key={currentImgIndex}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.2 }}
+                  src={property.images[currentImgIndex]}
+                  alt={`${property.name} zoom`}
+                  referrerPolicy="no-referrer"
+                  className="max-h-[72vh] max-w-full object-contain rounded-xl shadow-2xl border border-white/10"
+                />
+              ) : null}
+
+              {/* Prev and Next navigation arrows inside Lightbox */}
+              {property.images.length > 1 && (
+                <>
+                  <button
+                    onClick={handlePrevImage}
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-white hover:scale-105 active:scale-95 transition-all z-20 cursor-pointer"
+                    aria-label="Imagem Anterior"
+                  >
+                    <ChevronLeft className="h-6 w-6 stroke-[2.5]" />
+                  </button>
+                  <button
+                    onClick={handleNextImage}
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-white hover:scale-105 active:scale-95 transition-all z-20 cursor-pointer"
+                    aria-label="Próxima Imagem"
+                  >
+                    <ChevronRight className="h-6 w-6 stroke-[2.5]" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Bottom mini-gallery selector inside Lightbox */}
+            {property.images.length > 1 && (
+              <div className="w-full text-center z-10 max-w-3xl mx-auto">
+                <div className="flex gap-2 justify-center overflow-x-auto py-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20">
+                  {property.images.map((imgUrl, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImgIndex(index)}
+                      className={`relative flex-shrink-0 w-16 h-11 rounded-md overflow-hidden border transition-all duration-200 cursor-pointer ${
+                        index === currentImgIndex
+                          ? 'border-[#f6cf40] ring-1 ring-[#f6cf40] scale-95 shadow-lg'
+                          : 'border-white/10 opacity-60 hover:opacity-100 hover:scale-95'
+                      }`}
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`${property.name} zoom thumb ${index + 1}`}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </AnimatePresence>

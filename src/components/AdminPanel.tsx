@@ -1308,7 +1308,7 @@ export default function AdminPanel({
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/5 to-transparent pointer-events-none rounded-tr-2xl"></div>
             
             <div>
-              <span className="text-[10px] font-bold tracking-widest text-[#FF6600] font-mono uppercase block mb-1">
+              <span className="text-[10px] font-bold tracking-widest text-[#f6cf40] font-mono uppercase block mb-1">
                 ✦ Customização de Identidade
               </span>
               <h2 className="text-xl font-bold text-white uppercase tracking-wider">
@@ -2577,7 +2577,7 @@ export default function AdminPanel({
                             {dir.title.replace(/^\d+\.\s*/, '')}
                           </span>
                         </div>
-                        <span className="text-[9px] text-[#FF6600] font-mono shrink-0">
+                        <span className="text-[9px] text-[#f6cf40] font-mono shrink-0">
                           {isExpanded ? 'RECOLHER ▲' : 'DETALHES ▼'}
                         </span>
                       </button>
@@ -2630,7 +2630,7 @@ export default function AdminPanel({
 
                 {/* Combobox selected property */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest text-[#FF6600] uppercase font-mono block">
+                  <label className="text-[10px] font-bold tracking-widest text-[#f6cf40] uppercase font-mono block">
                     Escolha um Empreendimento cadastrado:
                   </label>
                   {properties.length === 0 ? (
@@ -2825,7 +2825,7 @@ export default function AdminPanel({
                               setCopiedSchemaId(prop.id);
                               setTimeout(() => setCopiedSchemaId(null), 2000);
                             }}
-                            className="font-mono text-[9px] font-bold text-[#FF6600] uppercase cursor-pointer flex items-center gap-1 border border-orange-500/20 px-2 py-0.5 rounded bg-orange-500/5 hover:bg-orange-500/10 truncate"
+                            className="font-mono text-[9px] font-bold text-[#f6cf40] uppercase cursor-pointer flex items-center gap-1 border border-[#f6cf40]/20 px-2 py-0.5 rounded bg-[#f6cf40]/5 hover:bg-[#f6cf40]/10 truncate"
                           >
                             {copiedSchemaId === prop.id ? 'COPIADO!' : 'COPIAR JSON-LD'}
                           </button>
@@ -3382,7 +3382,7 @@ export default function AdminPanel({
                           <img src={p.image} className="w-16 h-12 rounded object-cover shrink-0 bg-black/20" alt={p.name} />
                           <div className="overflow-hidden">
                             <h6 className="text-[11px] font-extrabold text-white truncate">{p.name}</h6>
-                            <p className="text-[10px] text-[#FF6600] font-mono mt-0.5">{p.area ? `${p.area} m²` : 'Metragem sob consulta'}</p>
+                            <p className="text-[10px] text-[#f6cf40] font-mono mt-0.5">{p.area ? `${p.area} m²` : 'Metragem sob consulta'}</p>
                             <p className="text-[9px] text-zinc-500 truncate mt-0.5 font-sans">{p.description}</p>
                           </div>
                           <button
@@ -3481,7 +3481,7 @@ export default function AdminPanel({
                       <button
                         type="button"
                         onClick={handleAddNewPlan}
-                        className="px-5 py-2 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-500 hover:bg-[#FF6600] hover:text-black font-extrabold text-xs transition-all uppercase tracking-wider cursor-pointer"
+                        className="px-5 py-2 rounded-lg bg-[#f6cf40]/15 border border-[#f6cf40]/30 text-[#f6cf40] hover:bg-[#f6cf40] hover:text-black font-extrabold text-xs transition-all uppercase tracking-wider cursor-pointer"
                       >
                         ➕ Adicionar Planta ao Imóvel
                       </button>
@@ -3665,9 +3665,9 @@ export default function AdminPanel({
 
                 {/* Banner Property Link */}
                 <div>
-                  <label className="text-[10px] font-bold tracking-widest text-[#FF6600] uppercase font-mono block mb-1.5 font-bold">Imóvel Vinculado (Anúncio)</label>
+                  <label className="text-[10px] font-bold tracking-widest text-[#f6cf40] uppercase font-mono block mb-1.5 font-bold">Imóvel Vinculado (Anúncio)</label>
                   <select
-                    className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-orange-500 outline-none"
+                    className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-[#f6cf40] outline-none"
                     value={bannerLink}
                     onChange={(e) => setBannerLink(e.target.value)}
                   >

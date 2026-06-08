@@ -62,7 +62,7 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
               src={settings.logoUrl} 
               alt={settings.brandName || "Logo"} 
               referrerPolicy="no-referrer"
-              style={{ width: '120px', height: '80px' }}
+              style={{ width: '135px', height: '80px' }}
               className="object-contain transition-all duration-300 group-hover:scale-105"
             />
           ) : (
@@ -114,7 +114,11 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
             onClick={() => setIsOpen(!isOpen)}
             className="p-1.5 sm:p-2 rounded-lg bg-transparent border border-transparent text-zinc-300 hover:text-white cursor-pointer transition-all focus:outline-none"
           >
-            {isOpen ? <X className="h-5.5 w-5.5 sm:h-6 sm:w-6" /> : <Menu className="h-5.5 w-5.5 sm:h-6 sm:w-6" />}
+            {isOpen ? (
+              <X style={{ width: '28px', height: '28px' }} />
+            ) : (
+              <Menu style={{ width: '28px', height: '28px' }} />
+            )}
           </button>
         </div>
       </div>

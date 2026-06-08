@@ -29,6 +29,8 @@ export interface Property {
   seoKeywords?: string;
   schemaMarkup?: string;
   privateNotes?: string;
+  detailedDescription?: string;
+  videoUrl?: string;
   floorPlans?: FloorPlan[];
   downpaymentPct?: number;
   installmentsPct?: number;
