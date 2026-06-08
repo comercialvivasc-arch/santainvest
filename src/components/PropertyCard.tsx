@@ -26,6 +26,9 @@ const formatAreaLabel = (val: string | number) => {
 const formatParkingLabel = (val: string | number, isShort: boolean = true) => {
   const s = String(val).trim();
   const lower = s.toLowerCase();
+  if (lower.includes('opcion') || lower === 'opcional') {
+    return 'Vaga Opcional';
+  }
   if (lower.includes('vag') || lower.includes('vg')) {
     return s;
   }
@@ -51,9 +54,10 @@ interface PropertyCardProps {
   settings?: BrandSettings;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  isModalOnly?: boolean;
 }
 
-export default function PropertyCard({ property, allProperties = [], settings, isOpen, onOpenChange }: PropertyCardProps) {
+export default function PropertyCard({ property, allProperties = [], settings, isOpen, onOpenChange, isModalOnly = false }: PropertyCardProps) {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [internalModalOpen, setInternalModalOpen] = useState(false);
   const isModalOpen = isOpen !== undefined ? isOpen : internalModalOpen;
@@ -73,6 +77,98 @@ export default function PropertyCard({ property, allProperties = [], settings, i
   const [emailFormContact, setEmailFormContact] = useState('');
   const [emailFormMsg, setEmailFormMsg] = useState('');
   const [emailFormStatus, setEmailFormStatus] = useState<'idle' | 'success'>('idle');
+
+  // Favorites state hooks & localStorage sync
+  const [isFavorited, setIsFavorited] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('vivas_favorites');
+      if (saved) {
+        const list = JSON.parse(saved);
+        return Array.isArray(list) && list.includes(property.id);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return false;
+  });
+
+  const toggleFavorite = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    try {
+      const saved = localStorage.getItem('vivas_favorites');
+      let list: string[] = [];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          list = parsed;
+        }
+      }
+      
+      let nextState = false;
+      if (list.includes(property.id)) {
+        list = list.filter((id) => id !== property.id);
+        nextState = false;
+      } else {
+        list.push(property.id);
+        nextState = true;
+      }
+      
+      localStorage.setItem('vivas_favorites', JSON.stringify(list));
+      setIsFavorited(nextState);
+      
+      // Notify other instances immediately
+      window.dispatchEvent(new Event('favorites-updated'));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      try {
+        const saved = localStorage.getItem('vivas_favorites');
+        if (saved) {
+          const list = JSON.parse(saved);
+          setIsFavorited(Array.isArray(list) && list.includes(property.id));
+        } else {
+          setIsFavorited(false);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    
+    window.addEventListener('favorites-updated', handleUpdate);
+    return () => window.removeEventListener('favorites-updated', handleUpdate);
+  }, [property.id]);
+
+  // Native share handler
+  const handleShare = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    const realUrl = `${window.location.origin}${window.location.pathname}?imovel=${property.id}`;
+    const shareData = {
+      title: property.name,
+      text: `${property.projectType || 'Lançamento'} - ${property.neighborhood}, ${property.region}. Veja fotos, plantas e plano de parcelas facilitado!`,
+      url: realUrl,
+    };
+    
+    if (navigator.share) {
+      navigator.share(shareData)
+        .catch((err) => {
+          navigator.clipboard?.writeText(realUrl);
+          alert("Link do imóvel copiado!");
+        });
+    } else {
+      navigator.clipboard?.writeText(realUrl);
+      alert("Link do imóvel copiado para a área de transferência!");
+    }
+  };
 
   // Filter for similar properties excluding this one
   const similarProperties = React.useMemo(() => {
@@ -195,14 +291,15 @@ export default function PropertyCard({ property, allProperties = [], settings, i
 
   return (
     <>
-      <motion.div
-        layout
-        initial={{ opacity: 0, scale: 0.95 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-        className="group relative rounded-2xl border border-zinc-205 bg-white overflow-hidden flex flex-col justify-between hover:border-primary hover:shadow-xl hover:shadow-primary/5 transition-all duration-500"
-      >
+      {!isModalOnly && (
+        <motion.div
+          layout
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="group relative rounded-2xl border border-zinc-205 bg-white overflow-hidden flex flex-col justify-between hover:border-primary hover:shadow-xl hover:shadow-primary/5 transition-all duration-500"
+        >
         {/* Absolute top neon corner decoration */}
         <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none rounded-tr-2xl"></div>
 
@@ -275,6 +372,21 @@ export default function PropertyCard({ property, allProperties = [], settings, i
               </div>
             </>
           )}
+
+          {/* Heart button on card image bottom-right */}
+          <button
+            onClick={toggleFavorite}
+            className={`absolute bottom-3 right-3 z-30 h-8 w-8 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md border hover:scale-110 active:scale-90 transition-all cursor-pointer ${
+              isFavorited 
+                ? 'text-red-500 border-red-500/40 bg-red-950/20 shadow-red-500/20 shadow-sm' 
+                : 'text-zinc-200 border-white/10 hover:text-red-500 hover:border-red-500'
+            }`}
+            title={isFavorited ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
+          >
+            <svg className={`h-4 w-4 ${isFavorited ? 'fill-red-500 text-red-500' : 'fill-none stroke-current'}`} viewBox="0 0 24 24" strokeWidth="2.5">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </button>
         </div>
 
         {/* BOTTOM METRICS AND TEXTS */}
@@ -362,11 +474,12 @@ export default function PropertyCard({ property, allProperties = [], settings, i
           </div>
         </div>
       </motion.div>
+      )}
 
       {/* RENDER MODAL OVERLAY ON CLICK (IMMERSE FULL-SCREEN DETAIL PAGE) */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] w-screen h-screen bg-white flex flex-col backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] w-full max-w-full h-full max-h-full sm:h-[100vh] h-[100dvh] bg-white flex flex-col backdrop-blur-md overflow-hidden">
             {/* Opaque backdrop behind immersive layout */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -451,21 +564,22 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                 {/* Overlaid share/favorites at top-right of image */}
                 <div className="absolute top-4 right-4 z-20 flex gap-2">
                   <button 
-                    onClick={() => {
-                      navigator.clipboard?.writeText(window.location.href);
-                      alert("Link do imóvel copiado para a área de transferência!");
-                    }}
+                    onClick={handleShare}
                     className="h-10 w-10 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-zinc-200 hover:text-primary hover:border-primary transition-all cursor-pointer"
                     title="Compartilhar"
                   >
                     <Share2 className="h-4.5 w-4.5" />
                   </button>
                   <button 
-                    onClick={() => alert("Imóvel adicionado aos seus favoritos!")}
-                    className="h-10 w-10 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-zinc-200 hover:text-red-500 hover:border-red-500 transition-all cursor-pointer"
-                    title="Salvar"
+                    onClick={toggleFavorite}
+                    className={`h-10 w-10 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md border transition-all cursor-pointer ${
+                      isFavorited 
+                        ? 'text-red-500 border-red-500/40 bg-red-950/20' 
+                        : 'text-zinc-200 border-white/15 hover:text-red-500 hover:border-red-500'
+                    }`}
+                    title={isFavorited ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
                   >
-                    <svg className="h-4.5 w-4.5 fill-current" viewBox="0 0 24 24">
+                    <svg className={`h-4.5 w-4.5 ${isFavorited ? 'fill-red-500 text-red-500' : 'fill-none stroke-current'}`} viewBox="0 0 24 24" strokeWidth="2">
                       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                     </svg>
                   </button>
@@ -518,13 +632,13 @@ export default function PropertyCard({ property, allProperties = [], settings, i
               <div className="w-full flex items-center justify-between border-b border-zinc-200 pb-5" id="details-section">
                 <div>
                   <span className="text-[10px] sm:text-xs tracking-widest font-bold text-zinc-550 uppercase font-mono block">
-                    {property.status === 'Pronto' ? 'Venda / Pronto' : 'Lançamento Exclusivo'}
+                    {property.status === 'Pronto' ? 'Venda / Pronto' : 'A PARTIR DE'}
                   </span>
                   <div className="text-3xl sm:text-4xl font-extrabold text-[#FF6600] tracking-tight font-mono mt-0.5">
                     {formatBRL(property.price)}
                   </div>
-                  <p className="mt-1 text-xs text-zinc-600 uppercase font-mono tracking-wider">
-                    Sem Taxa de Condomínio • Entrega Garantida
+                  <p className="mt-1 text-xs text-zinc-650 uppercase font-mono tracking-wider font-semibold">
+                    {property.status === 'Pronto' ? 'Pronto para Morar' : `Previsão ${property.deliveryDate}`}
                   </p>
                 </div>
                 <button 
@@ -540,28 +654,43 @@ export default function PropertyCard({ property, allProperties = [], settings, i
               </div>
 
               {/* SPEC GRID (CHAVES NAMAO 5-COLUMN METRIC TILES) */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-1.5">
-                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
-                  <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Área útil</span>
-                  <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatAreaLabel(property.area)}</span>
-                </div>
-                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
-                  <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Quartos</span>
-                  <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBedroomsLabel(property.bedrooms, 'Quartos')}</span>
-                </div>
-                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
-                  <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Suítes</span>
-                  <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBedroomsLabel(property.bedrooms, 'Suítes')}</span>
-                </div>
-                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
-                  <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Banheiros</span>
-                  <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBathroomsLabel(property.bedrooms)}</span>
-                </div>
-                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all col-span-2 sm:col-span-1">
-                  <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Vagas / Garagem</span>
-                  <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatParkingLabel(property.parkingSpaces, false)}</span>
-                </div>
-              </div>
+              {(() => {
+                const hasSuites = property.suites !== undefined && 
+                  property.suites !== null && 
+                  property.suites !== '' && 
+                  property.suites !== 0 && 
+                  property.suites !== '0' && 
+                  String(property.suites).toLowerCase().trim() !== 'sem suítes' && 
+                  String(property.suites).toLowerCase().trim() !== 'sem suite' && 
+                  String(property.suites).toLowerCase().trim() !== 'não';
+
+                return (
+                  <div className={`grid grid-cols-2 ${hasSuites ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-3 mt-1.5`}>
+                    <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
+                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Área útil</span>
+                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatAreaLabel(property.area)}</span>
+                    </div>
+                    <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
+                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Quartos</span>
+                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBedroomsLabel(property.bedrooms, 'Quartos')}</span>
+                    </div>
+                    {hasSuites && (
+                      <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
+                        <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Suítes</span>
+                        <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBedroomsLabel(property.suites!, 'Suítes')}</span>
+                      </div>
+                    )}
+                    <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
+                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Banheiros</span>
+                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBathroomsLabel(property.bedrooms)}</span>
+                    </div>
+                    <div className={`bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all ${hasSuites ? 'col-span-2 sm:col-span-1' : 'col-span-2 sm:col-span-1'}`}>
+                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Vagas / Garagem</span>
+                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatParkingLabel(property.parkingSpaces, false)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* HORIZONTAL THUMBNAIL PHOTO SLIDER */}
               {property.images.length > 0 && (
@@ -645,6 +774,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                               ? 'bg-[#FF6600] text-black shadow-lg shadow-[#FF6600]/25 border border-transparent'
                               : 'bg-zinc-200 text-zinc-700 hover:text-zinc-900 hover:bg-zinc-305 border border-zinc-300'
                           }`}
+                          style={idx === 0 ? { color: '#ffffff' } : undefined}
                         >
                           {plan.name} {plan.area ? `(${formatAreaLabel(plan.area)})` : ''}
                         </button>
@@ -678,7 +808,10 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                           </div>
 
                           {floorPlansList[activePlanIdx >= floorPlansList.length ? 0 : activePlanIdx].area && (
-                            <div className="absolute top-2 left-2 bg-zinc-900/90 border border-zinc-750 px-2.5 py-1 rounded text-[10px] font-mono font-extrabold text-orange-450">
+                            <div 
+                              className="absolute top-2 left-2 bg-zinc-900/90 border border-zinc-750 px-2.5 py-1 rounded text-[10px] font-mono font-extrabold text-orange-450"
+                              style={{ color: '#fefeff' }}
+                            >
                               {formatAreaLabel(floorPlansList[activePlanIdx >= floorPlansList.length ? 0 : activePlanIdx].area || '')}
                             </div>
                           )}
@@ -717,6 +850,96 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                   )}
                 </div>
               )}
+
+              {/* DETAILED FINANCIAL SIMULATOR BLOCK */}
+              <div id="simulador-box" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
+                <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
+                  <Compass className="h-4.5 w-4.5 text-[#FF6600]" />
+                  <h3 className="text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
+                    Plano de Pagamento Facilitado
+                  </h3>
+                </div>
+                
+                <div className="space-y-4 pt-1 font-mono">
+                  {/* Valor Fina */}
+                  <div className="flex items-center justify-between border-b border-zinc-200 pb-2.5">
+                    <span className="text-xs text-zinc-500 uppercase tracking-wide">Valor de Lista</span>
+                    <span className="text-xl sm:text-2xl font-black text-zinc-900 font-mono">
+                      {formatBRL(property.price)}
+                    </span>
+                  </div>
+
+                  {/* 1. Entrada */}
+                  <div className="flex items-start justify-between border-b border-zinc-200 pb-2.5">
+                    <div>
+                      <span className="text-xs text-zinc-800 uppercase font-bold block">1. Entrada</span>
+                      <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Ato ou sinal facilitado ({property.downpaymentPct !== undefined ? property.downpaymentPct : 10}%)</span>
+                    </div>
+                    <span className="text-sm font-extrabold text-zinc-900">
+                      {formatBRL(property.downpayment)}
+                    </span>
+                  </div>
+
+                  {/* 2. Mensais */}
+                  <div className="flex items-start justify-between border-b border-zinc-200 pb-2.5">
+                    <div>
+                      <span className="text-xs text-zinc-800 uppercase block font-bold">2. Mensais ({property.installmentsPct !== undefined ? property.installmentsPct : 60}%)</span>
+                      <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Prazo direto da construtora ({property.installmentsCount || 60} parcelas)</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-extrabold text-[#FF6600] block">
+                        {formatBRL(property.installments)}
+                      </span>
+                      <span className="text-[9px] text-zinc-500 block uppercase font-bold mt-0.5">Por mês</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Reforços (Balões) */}
+                  <div className="flex items-start justify-between border-b border-zinc-200 pb-2.5">
+                    <div>
+                      <span className="text-xs text-zinc-800 uppercase block font-bold">3. Reforços / Balões ({property.reintegrationPct !== undefined ? property.reintegrationPct : 20}%)</span>
+                      <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Investimento em {property.reintegrationCount || 5} parcelas anuais/semestrais</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-extrabold text-zinc-900 block">
+                        {formatBRL(property.reintegrationValue !== undefined ? property.reintegrationValue : Math.round(property.price * 0.2 / (property.reintegrationCount || 5)))}
+                      </span>
+                      <span className="text-[9px] text-zinc-500 block font-bold mt-0.5">{property.reintegrationCount || 5}x Anuais</span>
+                    </div>
+                  </div>
+
+                  {/* 4. Entrega das Chaves */}
+                  <div className="flex items-start justify-between pb-1.5">
+                    <div>
+                      <span className="text-xs text-zinc-800 uppercase block font-bold">4. Nas Chaves ({property.keysPct !== undefined ? property.keysPct : 10}%)</span>
+                      <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Entrega efetiva do imóvel ou financiamento bancário</span>
+                    </div>
+                    <span className="text-sm font-extrabold text-zinc-900">
+                      {formatBRL(property.keysValue !== undefined ? property.keysValue : Math.round(property.price * 0.1))}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-orange-500/5 border border-orange-500/20 p-3 rounded-lg text-[10px] text-zinc-800 leading-normal font-sans block">
+                  💡 <strong>Condição Facilitada VivaSC:</strong> Fluxo calculado de forma integrada ({((property.downpaymentPct || 10) + (property.installmentsPct || 60) + (property.reintegrationPct || 20) + (property.keysPct || 10))}%). Fluxo e parcelamento direto com a incorporadora altamente maleável conforme sua necessidade de liquidez.
+                </div>
+
+                {/* Simulated Payment WhatsApp redirection button */}
+                <a
+                  href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}?text=${encodeURIComponent(
+                    `Olá! Estou visualizando o lançamento "${property.name}" (Ref: ${property.id}) e gostaria de receber uma simulação de pagamento personalizada.\n\nValor: ${formatBRL(property.price)}\nEntrada de: ${formatBRL(property.downpayment)}\nParcelas de: ${formatBRL(property.installments)}/mês`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  referrerPolicy="no-referrer"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white font-extrabold text-sm uppercase tracking-wider py-4 transition-all text-center cursor-pointer select-none active:scale-[0.99] mt-3 hover:shadow-lg hover:shadow-green-500/15"
+                >
+                  <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.197 1.488 4.792 1.489 5.4 0 9.794-4.39 9.797-9.786.002-2.613-1.015-5.07-2.868-6.924C16.483 2.08 14.025 1.06 11.4 1.06 6.002 1.06 1.61 5.45 1.607 10.843c0 1.698.446 3.353 1.295 4.81l-.827 3.02 3.111-.817.039.02l.042.022zM18.006 14.77c-.31-.155-1.84-.907-2.124-1.01-.284-.105-.49-.156-.697.155-.207.31-.802 1.01-.983 1.218-.18.208-.363.233-.673.078-1.554-.775-2.63-1.34-3.666-3.123-.272-.468.272-.434.782-1.448.086-.172.043-.323-.021-.453-.065-.13-.532-1.282-.73-1.758-.192-.463-.385-.4-.532-.407h-.453c-.156 0-.41.058-.625.295-.215.237-.822.802-.822 1.954 0 1.152.837 2.267.954 2.422.117.155 1.647 2.515 3.99 3.528 1.83.792 2.51.782 3.407.641.447-.07 1.84-.75 2.1-1.474.26-.723.26-1.344.18-1.474-.077-.13-.284-.207-.595-.363z"/>
+                  </svg>
+                  <span>Simular Pagamento no WhatsApp</span>
+                </a>
+              </div>
 
               {/* FAST QUESTIONS ENQUIRY WIDGET (SCREENSHOT 2 REAL IMPLEMENTATION) */}
               <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5 sm:p-6 text-left space-y-4">
@@ -857,7 +1080,8 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                     <div>
                       <input
                         type="text"
-                        required                         value={emailFormContact}
+                        required
+                        value={emailFormContact}
                         onChange={(e) => setEmailFormContact(e.target.value)}
                         placeholder="Seu E-mail ou Telefone"
                         className="w-full bg-white border border-zinc-250 rounded-xl px-4 py-2.5 text-xs text-zinc-850 placeholder-zinc-400 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all"
@@ -881,80 +1105,6 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                     </button>
                   </form>
                 )}
-              </div>
-
-              {/* DETAILED FINANCIAL SIMULATOR BLOCK */}
-              <div id="simulador-box" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
-                <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
-                  <Compass className="h-4.5 w-4.5 text-[#FF6600]" />
-                  <h3 className="text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
-                    Plano de Pagamento Facilitado
-                  </h3>
-                </div>
-                
-                <div className="space-y-4 pt-1 font-mono">
-                  {/* Valor Fina */}
-                  <div className="flex items-center justify-between border-b border-zinc-200 pb-2.5">
-                    <span className="text-xs text-zinc-500 uppercase tracking-wide">Valor de Lista</span>
-                    <span className="text-xl sm:text-2xl font-black text-zinc-900 font-mono">
-                      {formatBRL(property.price)}
-                    </span>
-                  </div>
-
-                  {/* 1. Entrada */}
-                  <div className="flex items-start justify-between border-b border-zinc-200 pb-2.5">
-                    <div>
-                      <span className="text-xs text-zinc-800 uppercase font-bold block">1. Entrada</span>
-                      <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Ato ou sinal facilitado ({property.downpaymentPct !== undefined ? property.downpaymentPct : 10}%)</span>
-                    </div>
-                    <span className="text-sm font-extrabold text-zinc-900">
-                      {formatBRL(property.downpayment)}
-                    </span>
-                  </div>
-
-                  {/* 2. Mensais */}
-                  <div className="flex items-start justify-between border-b border-zinc-200 pb-2.5">
-                    <div>
-                      <span className="text-xs text-zinc-800 uppercase block font-bold">2. Mensais ({property.installmentsPct !== undefined ? property.installmentsPct : 60}%)</span>
-                      <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Prazo direto da construtora ({property.installmentsCount || 60} parcelas)</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm font-extrabold text-[#FF6600] block">
-                        {formatBRL(property.installments)}
-                      </span>
-                      <span className="text-[9px] text-zinc-500 block uppercase font-bold mt-0.5">Por mês</span>
-                    </div>
-                  </div>
-
-                  {/* 3. Reforços (Balões) */}
-                  <div className="flex items-start justify-between border-b border-zinc-200 pb-2.5">
-                    <div>
-                      <span className="text-xs text-zinc-800 uppercase block font-bold">3. Reforços / Balões ({property.reintegrationPct !== undefined ? property.reintegrationPct : 20}%)</span>
-                      <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Investimento em {property.reintegrationCount || 5} parcelas anuais/semestrais</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm font-extrabold text-zinc-900 block">
-                        {formatBRL(property.reintegrationValue !== undefined ? property.reintegrationValue : Math.round(property.price * 0.2 / (property.reintegrationCount || 5)))}
-                      </span>
-                      <span className="text-[9px] text-zinc-500 block font-bold mt-0.5">{property.reintegrationCount || 5}x Anuais</span>
-                    </div>
-                  </div>
-
-                  {/* 4. Entrega das Chaves */}
-                  <div className="flex items-start justify-between pb-1.5">
-                    <div>
-                      <span className="text-xs text-zinc-800 uppercase block font-bold">4. Nas Chaves ({property.keysPct !== undefined ? property.keysPct : 10}%)</span>
-                      <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Entrega efetiva do imóvel ou financiamento bancário</span>
-                    </div>
-                    <span className="text-sm font-extrabold text-zinc-900">
-                      {formatBRL(property.keysValue !== undefined ? property.keysValue : Math.round(property.price * 0.1))}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-orange-500/5 border border-orange-500/20 p-3 rounded-lg text-[10px] text-zinc-800 leading-normal font-sans block">
-                  💡 <strong>Condição Facilitada VivaSC:</strong> Fluxo calculado de forma integrada ({((property.downpaymentPct || 10) + (property.installmentsPct || 60) + (property.reintegrationPct || 20) + (property.keysPct || 10))}%). Fluxo e parcelamento direto com a incorporadora altamente maleável conforme sua necessidade de liquidez.
-                </div>
               </div>
 
               {/* LOCATION BANNER CARD (WITH RED PIN HOVERABLE CARD IN SCREENSHOTS) */}
@@ -1042,8 +1192,8 @@ export default function PropertyCard({ property, allProperties = [], settings, i
             </div> {/* Closes original scrollable container */}
 
             {/* 4. FIXED FOOTER BAR - Pinned perfectly at screen bottom for both Web & Mobile */}
-            <div className="shrink-0 w-full bg-white/95 backdrop-blur-md border-t border-zinc-200 px-4 py-3.5 pb-safe z-[130] shadow-2xl">
-              <div className="max-w-4xl mx-auto flex items-center gap-3">
+            <div className="shrink-0 w-full bg-white/95 backdrop-blur-md border-t border-zinc-200 px-3 sm:px-4 py-3 pb-safe z-[130] shadow-2xl">
+              <div className="max-w-4xl mx-auto flex items-center gap-2 sm:gap-3">
                 {/* Telephone call outline item */}
                 <a
                   href={`tel:${(settings?.phone || '5547999999999').replace(/\D/g, '')}`}

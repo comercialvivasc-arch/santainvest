@@ -92,19 +92,22 @@ export default function SearchHero({
             </p>
           )}
 
-          {/* Button "Conhecer agora" (only if currentBanner.link is set) */}
-          {currentBanner.link && (
-            <button
-              onClick={() => {
-                if (onOpenProperty && currentBanner.link) {
-                  onOpenProperty(currentBanner.link);
+          {/* Button "Conhecer agora" */}
+          <button
+            onClick={() => {
+              if (currentBanner.link && onOpenProperty) {
+                onOpenProperty(currentBanner.link);
+              } else {
+                const el = document.getElementById('search-section');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
                 }
-              }}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#FF6600] text-black font-extrabold text-xs sm:text-sm px-6 py-3.5 hover:bg-[#e65c00] hover:shadow-xl hover:shadow-orange-500/30 transition-all duration-300 active:scale-95 cursor-pointer uppercase tracking-wider shadow-lg shadow-orange-500/10 border-0"
-            >
-              Conhecer agora
-            </button>
-          )}
+              }
+            }}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#FF6600] text-white font-extrabold text-xs sm:text-sm px-6 py-3.5 hover:bg-[#e65c00] hover:shadow-xl hover:shadow-orange-500/30 transition-all duration-300 active:scale-95 cursor-pointer uppercase tracking-wider shadow-lg shadow-orange-500/10 border-0"
+          >
+            Conhecer agora
+          </button>
 
           {/* Scroll Indicator containing ONLY the arrow icon inside the circle */}
           <button

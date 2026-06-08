@@ -16,6 +16,7 @@ export interface Property {
   region: string; // e.g., 'Centro', 'Zona Sul', 'Litoral'
   projectType: string; // e.g., 'Apartamento', 'Cobertura', 'Studio', 'Casa'
   bedrooms: string | number;
+  suites?: string | number;
   area: string | number; // in m²
   parkingSpaces: string | number;
   price: number; // starting price (valor a partir de)

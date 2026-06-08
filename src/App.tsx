@@ -215,6 +215,48 @@ export default function App() {
     localStorage.setItem('vivas_settings', JSON.stringify(settings));
   }, [settings]);
 
+  // Open Admin view automatically if ?admin=true or hash is #admin on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === 'true' || window.location.hash === '#admin') {
+      setCurrentView('admin');
+    }
+  }, []);
+
+  // Deep link parsing on mount or properties load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const imovelId = params.get('imovel') || params.get('id');
+    if (imovelId && imovelId !== globalSelectedPropertyId) {
+      const found = properties.some((p) => p.id === imovelId);
+      if (found) {
+        setGlobalSelectedPropertyId(imovelId);
+      }
+    }
+  }, [properties]);
+
+  // Sync globalSelectedPropertyId to URL search params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const currentParam = params.get('imovel') || params.get('id');
+    if (globalSelectedPropertyId) {
+      if (currentParam !== globalSelectedPropertyId) {
+        params.set('imovel', globalSelectedPropertyId);
+        // Preserve other existing params if present
+        const newUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+        window.history.pushState({ path: newUrl }, '', newUrl);
+      }
+    } else {
+      if (currentParam) {
+        params.delete('imovel');
+        params.delete('id');
+        const searchStr = params.toString();
+        const newUrl = `${window.location.pathname}${searchStr ? '?' + searchStr : ''}${window.location.hash}`;
+        window.history.pushState({ path: newUrl }, '', newUrl);
+      }
+    }
+  }, [globalSelectedPropertyId]);
+
   // MUTATION CALLBACKS FOR ADMIN ACTIONS (COMMITS TO FIRESTORE AND FORWARD UPDATED LOGIC)
   const handleSaveSettings = async (updatedSettings: BrandSettings) => {
     try {
@@ -564,17 +606,16 @@ export default function App() {
 
       {/* Global Property Detail Modal Host */}
       {globalSelectedProperty && (
-        <div style={{ display: 'none' }}>
-          <PropertyCard 
-            property={globalSelectedProperty}
-            allProperties={properties}
-            settings={settings}
-            isOpen={true}
-            onOpenChange={(open) => {
-              if (!open) setGlobalSelectedPropertyId(null);
-            }}
-          />
-        </div>
+        <PropertyCard 
+          property={globalSelectedProperty}
+          allProperties={properties}
+          settings={settings}
+          isOpen={true}
+          isModalOnly={true}
+          onOpenChange={(open) => {
+            if (!open) setGlobalSelectedPropertyId(null);
+          }}
+        />
       )}
     </div>
   );

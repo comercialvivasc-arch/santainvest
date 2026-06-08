@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit2, Trash2, ShieldAlert, Lock, Check, CheckCircle2, Upload,
   X, Image as ImageIcon, Building, Tag, Calendar, MapPin, 
-  Bed, Maximize, AlertCircle, FileText, ChevronRight, ToggleLeft, ToggleRight, Sparkles,
+  Bed, Maximize, AlertCircle, FileText, ChevronLeft, ChevronRight, ToggleLeft, ToggleRight, Sparkles,
   Search, Copy, Globe, Share2, Users, UserCheck, Briefcase, CalendarDays, TrendingUp, HelpCircle, BarChart3, PieChart as PieIcon, Layers, MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -324,6 +324,7 @@ export default function AdminPanel({
   const [propAddress, setPropAddress] = useState('');
   const [propType, setPropType] = useState('Apartamento');
   const [propBedrooms, setPropBedrooms] = useState<string | number>(2);
+  const [propSuites, setPropSuites] = useState<string | number>('');
   const [propArea, setPropArea] = useState<string | number>(80);
   const [propParking, setPropParking] = useState<string | number>(1);
   const [propPrice, setPropPrice] = useState(600000);
@@ -429,6 +430,7 @@ export default function AdminPanel({
     setPropAddress('');
     setPropType('Apartamento');
     setPropBedrooms(2);
+    setPropSuites('');
     setPropArea(85);
     setPropParking(2);
     setPropPrice(650000);
@@ -459,6 +461,7 @@ export default function AdminPanel({
     setPropAddress(p.address);
     setPropType(p.projectType);
     setPropBedrooms(p.bedrooms);
+    setPropSuites(p.suites !== undefined && p.suites !== null ? p.suites : '');
     setPropArea(p.area);
     setPropParking(p.parkingSpaces);
     setPropPrice(p.price);
@@ -512,6 +515,24 @@ export default function AdminPanel({
 
   const handleRemoveImageUrl = (idx: number) => {
     setPropImagesList(propImagesList.filter((_, i) => i !== idx));
+  };
+
+  const handleMoveImageLeft = (idx: number) => {
+    if (idx === 0) return;
+    const newList = [...propImagesList];
+    const temp = newList[idx];
+    newList[idx] = newList[idx - 1];
+    newList[idx - 1] = temp;
+    setPropImagesList(newList);
+  };
+
+  const handleMoveImageRight = (idx: number) => {
+    if (idx === propImagesList.length - 1) return;
+    const newList = [...propImagesList];
+    const temp = newList[idx];
+    newList[idx] = newList[idx + 1];
+    newList[idx + 1] = temp;
+    setPropImagesList(newList);
   };
 
   const selectPresetImage = (url: string) => {
@@ -631,6 +652,7 @@ export default function AdminPanel({
       address: propAddress,
       projectType: propType,
       bedrooms: parseFlexField(propBedrooms),
+      suites: parseFlexField(propSuites),
       area: parseFlexField(propArea),
       parkingSpaces: parseFlexField(propParking),
       price: Number(propPrice),
@@ -2942,9 +2964,9 @@ export default function AdminPanel({
                 </div>
 
                 {/* technical metrics details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-black/30 border border-zinc-900 rounded-xl p-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-black/30 border border-zinc-900 rounded-xl p-4">
                   {/* Bedrooms */}
-                  <div>
+                  <div className="col-span-2 lg:col-span-1">
                     <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">Dormitórios (Ex: 2 e 3 Qts)</label>
                     <input
                       type="text"
@@ -2955,8 +2977,20 @@ export default function AdminPanel({
                     />
                   </div>
 
+                  {/* Suites */}
+                  <div className="col-span-2 lg:col-span-1">
+                    <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">Suítes (Deixe vazio p/ ocultar)</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-orange-500 outline-none"
+                      value={propSuites}
+                      onChange={(e) => setPropSuites(e.target.value)}
+                      placeholder="Ex: 1, 2 ou deixe vazio"
+                    />
+                  </div>
+
                   {/* Area */}
-                  <div>
+                  <div className="col-span-2 lg:col-span-1">
                     <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">Área Privativa (Ex: 80 a 120)</label>
                     <input
                       type="text"
@@ -2968,7 +3002,7 @@ export default function AdminPanel({
                   </div>
 
                   {/* Vagas */}
-                  <div>
+                  <div className="col-span-2 lg:col-span-1">
                     <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">Vagas de Garagem (Ex: 1 e 2)</label>
                     <input
                       type="text"
@@ -3249,22 +3283,70 @@ export default function AdminPanel({
                   </div>
 
                   {/* Current selected image list preview list */}
-                  <div className="flex flex-wrap gap-2 text-xs font-mono">
-                    {propImagesList.map((url, idx) => (
-                      <div 
-                        key={idx}
-                        className="flex items-center gap-1.5 rounded-lg border border-zinc-850 px-2 py-1.5 bg-black/40 text-zinc-400 group relative max-w-xs shrink-0"
-                      >
-                        <span className="truncate text-[10px] w-24">Image #{idx + 1}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImageUrl(idx)}
-                          className="p-0.5 rounded bg-zinc-905 hover:bg-red-950 hover:text-red-400"
+                  <div>
+                    <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase font-mono block mb-2">Imagens adicionadas / Ordem de exibição</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                      {propImagesList.map((url, idx) => (
+                        <div 
+                          key={idx}
+                          className="group/img relative aspect-square border border-zinc-800 rounded-xl overflow-hidden bg-black/40 flex flex-col"
                         >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                          {/* Image preview */}
+                          <img 
+                            src={url} 
+                            alt={`Imagem ${idx + 1}`} 
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover transition-transform group-hover/img:scale-105" 
+                          />
+                          
+                          {/* Top-right delete/remove button */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImageUrl(idx)}
+                            className="absolute top-1.5 right-1.5 z-10 p-1.5 rounded-full bg-black/70 hover:bg-red-950 hover:text-red-400 border border-white/10 text-zinc-400 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                            title="Deletar Imagem"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+
+                          {/* Image count label */}
+                          <div className="absolute top-1.5 left-1.5 bg-black/60 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-zinc-300 border border-white/5">
+                            #{idx + 1}
+                          </div>
+
+                          {/* Bottom reordering controls bar */}
+                          <div className="absolute bottom-0 inset-x-0 bg-black/80 backdrop-blur-xs py-1 px-1.5 flex items-center justify-between border-t border-zinc-850 opacity-0 group-hover/img:opacity-100 transition-opacity duration-200">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveImageLeft(idx)}
+                              className={`p-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-orange-500 hover:border-orange-500/50 transition-all ${
+                                idx === 0 ? 'opacity-30 cursor-not-allowed text-zinc-650' : 'cursor-pointer'
+                              }`}
+                              title="Mover para Esquerda"
+                            >
+                              <ChevronLeft className="h-3.5 w-3.5" />
+                            </button>
+
+                            <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
+                              Posição
+                            </span>
+
+                            <button
+                              type="button"
+                              disabled={idx === propImagesList.length - 1}
+                              onClick={() => handleMoveImageRight(idx)}
+                              className={`p-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-orange-500 hover:border-orange-500/50 transition-all ${
+                                idx === propImagesList.length - 1 ? 'opacity-30 cursor-not-allowed text-zinc-650' : 'cursor-pointer'
+                              }`}
+                              title="Mover para Direita"
+                            >
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
