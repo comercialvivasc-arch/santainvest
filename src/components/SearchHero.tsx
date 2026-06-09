@@ -172,7 +172,7 @@ export default function SearchHero({
                   const el = document.getElementById('projects-showcase');
                   el?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                style={{ backgroundColor: '#FFBC00', color: '#203366' }}
+                style={{ backgroundColor: '#FF9D00', color: '#203366' }}
                 className="hover:scale-105 px-4.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shrink-0"
               >
                 Buscar
@@ -226,7 +226,7 @@ export default function SearchHero({
           </div>
 
           <span 
-            style={{ color: '#FFBC00' }}
+            style={{ color: '#FF9D00' }}
             className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3.5 py-1 text-xs font-semibold tracking-widest uppercase border border-orange-500/20 mb-4 backdrop-blur-sm"
           >
             <Sparkles className="h-3 w-3 animate-pulse text-orange-500" />
@@ -253,7 +253,7 @@ export default function SearchHero({
                 }
               }
             }}
-            style={{ backgroundColor: '#FFBC00', color: '#203366' }}
+            style={{ backgroundColor: '#FF9D00', color: '#203366' }}
             className="mt-6 inline-flex items-center gap-2 rounded-xl font-extrabold text-xs sm:text-sm px-6 py-3.5 hover:shadow-xl transition-all duration-300 active:scale-95 cursor-pointer uppercase tracking-wider border-0"
           >
             Conhecer agora
@@ -267,7 +267,7 @@ export default function SearchHero({
                 el.scrollIntoView({ behavior: 'smooth' });
               }
             }}
-            className="mt-8 flex items-center justify-center h-11 w-11 rounded-full bg-black/60 border border-zinc-800 text-zinc-400 hover:text-[#FFBC00] hover:border-[#FFBC00]/80 transition-all duration-300 hover:shadow-lg hover:shadow-[#FFBC00]/15 active:scale-95 group cursor-pointer"
+            className="mt-8 flex items-center justify-center h-11 w-11 rounded-full bg-black/60 border border-zinc-800 text-zinc-400 hover:text-[#FF9D00] hover:border-[#FF9D00]/80 transition-all duration-300 hover:shadow-lg hover:shadow-[#FF9D00]/15 active:scale-95 group cursor-pointer"
             aria-label="Rolar para pesquisa"
           >
             <ChevronDown className="h-5 w-5 stroke-[2.5] group-hover:translate-y-0.5 transition-transform duration-300" />

@@ -333,6 +333,7 @@ export default function AdminPanel({
   const [propImageInput, setPropImageInput] = useState('');
   const [propImagesList, setPropImagesList] = useState<string[]>([]);
   const [propPrivateNotes, setPropPrivateNotes] = useState('');
+  const [propDetailedDescription, setPropDetailedDescription] = useState('');
   const [propFloorPlans, setPropFloorPlans] = useState<FloorPlan[]>([]);
   
   // Financing Percentages and Count settings
@@ -447,6 +448,7 @@ export default function AdminPanel({
     setPropImageInput('');
     setPropImagesList([IMAGE_PRESETS[0]]);
     setPropPrivateNotes('');
+    setPropDetailedDescription('');
     setPropFloorPlans([]);
     setIsPropertyFormOpen(true);
   };
@@ -478,6 +480,7 @@ export default function AdminPanel({
     setPropImageInput('');
     setPropImagesList(p.images);
     setPropPrivateNotes(p.privateNotes || '');
+    setPropDetailedDescription(p.detailedDescription || '');
     setPropFloorPlans(p.floorPlans || []);
     setIsPropertyFormOpen(true);
   };
@@ -690,6 +693,7 @@ export default function AdminPanel({
       seoKeywords: calculatedKeywords,
       schemaMarkup: calculatedSchema,
       privateNotes: propPrivateNotes,
+      detailedDescription: propDetailedDescription,
       floorPlans: propFloorPlans
     };
 
@@ -1308,7 +1312,7 @@ export default function AdminPanel({
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/5 to-transparent pointer-events-none rounded-tr-2xl"></div>
             
             <div>
-              <span className="text-[10px] font-bold tracking-widest text-[#FFBC00] font-mono uppercase block mb-1">
+              <span className="text-[10px] font-bold tracking-widest text-[#FF9D00] font-mono uppercase block mb-1">
                 ✦ Customização de Identidade
               </span>
               <h2 className="text-xl font-bold text-white uppercase tracking-wider">
@@ -2577,7 +2581,7 @@ export default function AdminPanel({
                             {dir.title.replace(/^\d+\.\s*/, '')}
                           </span>
                         </div>
-                        <span className="text-[9px] text-[#FFBC00] font-mono shrink-0">
+                        <span className="text-[9px] text-[#FF9D00] font-mono shrink-0">
                           {isExpanded ? 'RECOLHER ▲' : 'DETALHES ▼'}
                         </span>
                       </button>
@@ -2624,13 +2628,13 @@ export default function AdminPanel({
                     Simulador & Validador de Resultados Google
                   </h3>
                   <p className="text-xs text-zinc-400 mt-1">
-                    Gere em tempo real os códigos de metatags descritivos e o JSON-LD que o robô do Google lê para criar as listagens com destaque orgânico nos rankings de buscas.
+                    Gere em tempo real os códigos de metatags descritivos e o JSON-LD que o robô do Google lê para criar as listagens with destaque orgânico nos rankings de buscas.
                   </p>
                 </div>
 
                 {/* Combobox selected property */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold tracking-widest text-[#FFBC00] uppercase font-mono block">
+                  <label className="text-[10px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
                     Escolha um Empreendimento cadastrado:
                   </label>
                   {properties.length === 0 ? (
@@ -2825,7 +2829,7 @@ export default function AdminPanel({
                               setCopiedSchemaId(prop.id);
                               setTimeout(() => setCopiedSchemaId(null), 2000);
                             }}
-                            className="font-mono text-[9px] font-bold text-[#FFBC00] uppercase cursor-pointer flex items-center gap-1 border border-[#FFBC00]/20 px-2 py-0.5 rounded bg-[#FFBC00]/5 hover:bg-[#FFBC00]/10 truncate"
+                            className="font-mono text-[9px] font-bold text-[#FF9D00] uppercase cursor-pointer flex items-center gap-1 border border-[#FF9D00]/20 px-2 py-0.5 rounded bg-[#FF9D00]/5 hover:bg-[#FF9D00]/10 truncate"
                           >
                             {copiedSchemaId === prop.id ? 'COPIADO!' : 'COPIAR JSON-LD'}
                           </button>
@@ -3382,7 +3386,7 @@ export default function AdminPanel({
                           <img src={p.image} className="w-16 h-12 rounded object-cover shrink-0 bg-black/20" alt={p.name} />
                           <div className="overflow-hidden">
                             <h6 className="text-[11px] font-extrabold text-white truncate">{p.name}</h6>
-                            <p className="text-[10px] text-[#FFBC00] font-mono mt-0.5">{p.area ? `${p.area} m²` : 'Metragem sob consulta'}</p>
+                            <p className="text-[10px] text-[#FF9D00] font-mono mt-0.5">{p.area ? `${p.area} m²` : 'Metragem sob consulta'}</p>
                             <p className="text-[9px] text-zinc-500 truncate mt-0.5 font-sans">{p.description}</p>
                           </div>
                           <button
@@ -3481,12 +3485,29 @@ export default function AdminPanel({
                       <button
                         type="button"
                         onClick={handleAddNewPlan}
-                        className="px-5 py-2 rounded-lg bg-[#FFBC00]/15 border border-[#FFBC00]/30 text-[#FFBC00] hover:bg-[#FFBC00] hover:text-black font-extrabold text-xs transition-all uppercase tracking-wider cursor-pointer"
+                        className="px-5 py-2 rounded-lg bg-[#FF9D00]/15 border border-[#FF9D00]/30 text-[#FF9D00] hover:bg-[#FF9D00] hover:text-black font-extrabold text-xs transition-all uppercase tracking-wider cursor-pointer"
                       >
                         ➕ Adicionar Planta ao Imóvel
                       </button>
                     </div>
                   </div>
+                </div>
+
+                {/* Detailed Description Section */}
+                <div className="space-y-2 border-t border-zinc-900 pt-6">
+                  <label className="text-[10px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+                    Descrição Detalhada do Imóvel (Pública — Aparece no site)
+                  </label>
+                  <p className="text-[11px] text-zinc-500">
+                    Insira a descrição detalhada que será mostrada no card expandido do imóvel para os clientes. Caso fique em branco, o sistema gerará uma descrição padrão contendo as características fundamentais do imóvel.
+                  </p>
+                  <textarea
+                    rows={6}
+                    className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2.5 text-xs text-white focus:border-orange-500 outline-none font-sans"
+                    placeholder="Ex: Este espetacular empreendimento localizado no prestigiado bairro Meia Praia redefine os conceitos de sofisticação..."
+                    value={propDetailedDescription}
+                    onChange={(e) => setPropDetailedDescription(e.target.value)}
+                  />
                 </div>
 
                 {/* Private Notes Section */}

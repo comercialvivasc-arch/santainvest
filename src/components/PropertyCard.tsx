@@ -320,7 +320,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
 
             {/* Data de Entrega */}
             <span className="flex items-center gap-1 rounded-md bg-black/70 px-2.5 py-1 text-[10px] tracking-wide text-zinc-100 border border-white/10 backdrop-blur-sm font-mono font-bold">
-              <Calendar className="h-3 w-3 text-[#FFBC00] shrink-0" />
+              <Calendar className="h-3 w-3 text-[#FF9D00] shrink-0" />
               {property.status === 'Pronto' ? 'Pronto' : `Entrega: ${property.deliveryDate}`}
             </span>
           </div>
@@ -394,7 +394,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
         <div className="p-5 flex-1 flex flex-col justify-between">
           <div>
             {/* Project template / type & location subheaders */}
-            <div className="flex items-center gap-1 text-[10px] font-bold tracking-wider text-primary uppercase font-mono mb-1">
+            <div className="flex items-center gap-1 text-[12px] font-bold tracking-wider text-primary uppercase font-mono mb-1">
               <Compass className="h-3 w-3" />
               {property.projectType}
             </div>
@@ -450,7 +450,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                 <span className="text-[9px] font-bold tracking-wider text-zinc-500 uppercase block mb-0.5">
                   Entrada R$
                 </span>
-                <span className="font-extrabold text-zinc-900 text-[11px] block">
+                <span className="font-extrabold text-zinc-900 text-[13px] block">
                   {formatBRL(property.downpayment)}
                 </span>
               </div>
@@ -458,7 +458,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                 <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5">
                   Mensais R$
                 </span>
-                <span className="font-extrabold text-[#FFBC00] text-[11px] block">
+                <span className="font-extrabold text-[#FF9D00] text-[13px] block">
                   {formatBRL(property.installments)}
                 </span>
               </div>
@@ -494,7 +494,8 @@ export default function PropertyCard({ property, allProperties = [], settings, i
               {/* Left: Close/Back button */}
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-950 transition-all cursor-pointer font-bold text-xs sm:text-sm uppercase tracking-wide py-1.5"
+                className="flex items-center gap-1.5 transition-all cursor-pointer font-bold text-xs sm:text-sm uppercase tracking-wide py-1.5"
+                style={{ color: '#b9b7b7' }}
               >
                 <ChevronLeft className="h-4 w-4 stroke-[3]" />
                 <span>Anúncio</span>
@@ -636,7 +637,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                   <span className="text-[10px] sm:text-xs tracking-widest font-bold text-zinc-550 uppercase font-mono block">
                     {property.status === 'Pronto' ? 'Venda / Pronto' : 'A PARTIR DE'}
                   </span>
-                  <div className="text-3xl sm:text-4xl font-extrabold text-[#FFBC00] tracking-tight font-mono mt-0.5">
+                  <div className="text-3xl sm:text-4xl font-extrabold text-[#FF9D00] tracking-tight font-mono mt-0.5">
                     {formatBRL(property.price)}
                   </div>
                   <p className="mt-1 text-xs text-zinc-650 uppercase font-mono tracking-wider font-semibold">
@@ -648,8 +649,8 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                     const el = document.getElementById('simulador-box');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="rounded-xl bg-[#FFBC00] hover:bg-[#E0A500] text-black font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-[#FFBC00]/10 cursor-pointer uppercase tracking-wider"
-                  style={{ backgroundColor: '#FFBC00' }}
+                  className="rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-black font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-[#FF9D00]/10 cursor-pointer uppercase tracking-wider"
+                  style={{ backgroundColor: '#FF9D00' }}
                 >
                   Ver parcelas
                 </button>
@@ -704,7 +705,10 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                     {property.images.map((imgUrl, index) => (
                       <button
                         key={index}
-                        onClick={() => setCurrentImgIndex(index)}
+                        onClick={() => {
+                          setCurrentImgIndex(index);
+                          setIsLightboxOpen(true);
+                        }}
                         className={`relative flex-shrink-0 w-24 h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 cursor-pointer ${
                           index === currentImgIndex
                             ? 'border-primary shadow-lg scale-95'
@@ -726,7 +730,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
               {/* MAIN TITLE, BADGE CATEGORY, AND LONG DESCRIPTION */}
               <div className="text-left py-4 border-t border-zinc-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="bg-[#FFBC00]/10 border border-[#FFBC00]/20 text-[#FFBC00] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md font-mono">
+                  <span className="bg-[#FF9D00]/10 border border-[#FF9D00]/20 text-[#FF9D00] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md font-mono">
                     {property.projectType || 'Lançamento'}
                   </span>
                   <span className="text-zinc-400">•</span>
@@ -738,7 +742,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                 </h3>
 
                 <div className="mt-5 space-y-4">
-                  <h4 className="text-xs font-extrabold uppercase tracking-widest text-[#FFBC00] font-mono">Descrição detalhada</h4>
+                  <h4 className="text-xs font-extrabold uppercase tracking-widest text-[#FF9D00] font-mono">Descrição detalhada</h4>
                   {property.detailedDescription ? (
                     <div className="text-sm text-zinc-700 leading-relaxed font-sans whitespace-pre-line">
                       {property.detailedDescription}
@@ -780,7 +784,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                           onClick={() => setActivePlanIdx(idx)}
                           className={`px-4 py-2.5 rounded-xl font-bold tracking-wide uppercase text-[11px] transition-all duration-300 cursor-pointer ${
                             isSelected
-                              ? 'bg-[#FFBC00] text-black shadow-lg shadow-[#FFBC00]/25 border border-transparent'
+                              ? 'bg-[#FF9D00] text-black shadow-lg shadow-[#FF9D00]/25 border border-transparent'
                               : 'bg-zinc-200 text-zinc-700 hover:text-zinc-900 hover:bg-zinc-305 border border-zinc-300'
                           }`}
                         >
@@ -829,7 +833,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                       {/* Right: Descritivo */}
                       <div className="md:col-span-5 space-y-3 flex flex-col justify-center">
                         <div>
-                          <span className="text-[10px] font-bold text-[#FFBC00] tracking-widest uppercase font-mono">
+                          <span className="text-[10px] font-bold text-[#FF9D00] tracking-widest uppercase font-mono">
                             Layout Premium Selecionado
                           </span>
                           <h5 className="text-sm sm:text-md font-bold text-zinc-900 mt-1">
@@ -862,7 +866,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                        {/* DETAILED FINANCIAL SIMULATOR BLOCK */}
               <div id="simulador-box" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
                 <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
-                  <Compass className="h-4.5 w-4.5 text-[#FFBC00]" />
+                  <Compass className="h-4.5 w-4.5 text-[#FF9D00]" />
                   <h3 className="text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
                     Plano de Pagamento Facilitado
                   </h3>
@@ -895,7 +899,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                       <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Prazo direto da construtora ({property.installmentsCount || 60} parcelas)</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-extrabold text-[#FFBC00] block">
+                      <span className="text-sm font-extrabold text-[#FF9D00] block">
                         {formatBRL(property.installments)}
                       </span>
                       <span className="text-[9px] text-zinc-500 block uppercase font-bold mt-0.5">Por mês</span>
@@ -953,7 +957,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
               {property.videoUrl && (
                 <div id="video-section" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
-                    <svg className="h-5 w-5 text-[#FFBC00]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <svg className="h-5 w-5 text-[#FF9D00]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <polygon points="23 7 16 12 23 17 23 7" />
                       <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                     </svg>
@@ -1185,7 +1189,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}`;
                   window.open(mapUrl, '_blank', 'referrerPolicy=no-referrer');
                 }}
-                className="bg-zinc-50 border border-zinc-200 shadow-md rounded-2xl p-4 sm:p-5 flex items-center justify-between hover:border-[#FFBC00]/40 hover:bg-zinc-100 transition-all cursor-pointer group"
+                className="bg-zinc-50 border border-zinc-200 shadow-md rounded-2xl p-4 sm:p-5 flex items-center justify-between hover:border-[#FF9D00]/40 hover:bg-zinc-100 transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-4">
                   <div className="h-11 w-11 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover:scale-105 transition-all shrink-0">
@@ -1239,7 +1243,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                             </p>
                           </div>
                           <div>
-                            <div className="text-md font-black text-[#FFBC00] font-mono pt-1">
+                            <div className="text-md font-black text-[#FF9D00] font-mono pt-1">
                               {formatBRL(simProp.price)}
                             </div>
                             <div className="text-[10px] text-zinc-600 font-mono pt-1 border-t border-zinc-200 mt-2 flex justify-between">
@@ -1369,7 +1373,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                       onClick={() => setCurrentImgIndex(index)}
                       className={`relative flex-shrink-0 w-16 h-11 rounded-md overflow-hidden border transition-all duration-200 cursor-pointer ${
                         index === currentImgIndex
-                          ? 'border-[#FFBC00] ring-1 ring-[#FFBC00] scale-95 shadow-lg'
+                          ? 'border-[#FF9D00] ring-1 ring-[#FF9D00] scale-95 shadow-lg'
                           : 'border-white/10 opacity-60 hover:opacity-100 hover:scale-95'
                       }`}
                     >

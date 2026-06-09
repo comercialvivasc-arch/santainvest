@@ -138,11 +138,11 @@ export default function SearchPanel({
       className="w-full bg-[#121318] p-6 sm:p-8 relative"
     >
       {/* Subtle Gold top neon border glow */}
-      <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-[#FFBC00] to-transparent"></div>
+      <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-[#FF9D00] to-transparent"></div>
 
       {/* Title inside search block */}
       <div className="mb-6 text-left">
-        <h3 className="text-xs font-bold tracking-widest text-[#FFBC00] uppercase font-mono">
+        <h3 className="text-xs font-bold tracking-widest text-[#FF9D00] uppercase font-mono">
           ⚡ Encontre seu Imóvel Ideal
         </h3>
         <p className="text-xs text-zinc-400 mt-1">
@@ -152,8 +152,8 @@ export default function SearchPanel({
 
           {/* Search Bar Row with integrated suggestions */}
           <div className="relative w-full">
-            <div className="flex items-center rounded-xl bg-black/60 border border-zinc-800 focus-within:border-[#FFBC00]/80 transition-all duration-300 pl-4 pr-2 py-1 shadow-inner">
-              <Search className="h-5 w-5 text-[#FFBC00] shrink-0" />
+            <div className="flex items-center rounded-xl bg-black/60 border border-zinc-800 focus-within:border-[#FF9D00]/80 transition-all duration-300 pl-4 pr-2 py-1 shadow-inner">
+              <Search className="h-5 w-5 text-[#FF9D00] shrink-0" />
               <input
                 type="text"
                 className="w-full bg-transparent px-3 py-3.5 text-sm text-white placeholder-zinc-500 outline-none focus:ring-0"
@@ -167,7 +167,7 @@ export default function SearchPanel({
                 <button
                   type="button"
                   onClick={() => handleQueryChange('')}
-                  className="text-xs text-zinc-300 hover:text-[#FFBC00] uppercase font-mono tracking-wider px-2 cursor-pointer transition-colors"
+                  className="text-xs text-zinc-300 hover:text-[#FF9D00] uppercase font-mono tracking-wider px-2 cursor-pointer transition-colors"
                 >
                   Limpar
                 </button>
@@ -183,7 +183,7 @@ export default function SearchPanel({
                   exit={{ opacity: 0, y: 10 }}
                   className="absolute left-0 mt-2 w-full rounded-xl border border-zinc-850 bg-black p-2 shadow-2xl z-50 text-left"
                 >
-                  <p className="text-[10px] font-bold tracking-widest text-[#FFBC00] uppercase px-3 py-1 font-mono border-b border-zinc-900 w-full mb-1">
+                  <p className="text-[10px] font-bold tracking-widest text-[#FF9D00] uppercase px-3 py-1 font-mono border-b border-zinc-900 w-full mb-1">
                     Sugestões encontradas
                   </p>
                   {suggestions.map((item, idx) => (
@@ -194,10 +194,10 @@ export default function SearchPanel({
                       className="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white transition-all text-left cursor-pointer"
                     >
                       <span className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-[#FFBC00] shrink-0" />
+                        <MapPin className="h-4 w-4 text-[#FF9D00] shrink-0" />
                         <span className="font-semibold text-white">{item.text}</span>
                       </span>
-                      <span className="text-[10px] uppercase tracking-wider font-mono bg-[#FFBC00]/10 border border-[#FFBC00]/25 px-2 py-0.5 rounded text-[#FFBC00]">
+                      <span className="text-[10px] uppercase tracking-wider font-mono bg-[#FF9D00]/10 border border-[#FF9D00]/25 px-2 py-0.5 rounded text-[#FF9D00]">
                         {item.type}
                       </span>
                     </button>
@@ -224,8 +224,8 @@ export default function SearchPanel({
                     type="button"
                     className={`px-3 py-2 rounded-lg text-xs tracking-wider uppercase font-semibold transition-all duration-300 border cursor-pointer mr-1.5 mb-1.5 ${
                       selectedBedrooms === null
-                        ? 'bg-[#FFBC00] text-black border-[#FFBC00] font-bold shadow-lg shadow-[#FFBC00]/20'
-                        : 'bg-zinc-900 text-zinc-300 border-zinc-800 hover:bg-[#FFBC00] hover:text-black hover:border-[#FFBC00]'
+                        ? 'bg-[#FF9D00] text-black border-[#FF9D00] font-bold shadow-lg shadow-[#FF9D00]/20'
+                        : 'bg-zinc-900 text-zinc-300 border-zinc-800 hover:bg-[#FF9D00] hover:text-black hover:border-[#FF9D00]'
                     }`}
                   >
                     Todos
@@ -237,8 +237,8 @@ export default function SearchPanel({
                       type="button"
                       className={`px-3 py-2 rounded-lg text-xs tracking-wider uppercase font-semibold transition-all duration-300 border cursor-pointer mr-1.5 mb-1.5 ${
                         selectedBedrooms === beds
-                          ? 'bg-[#FFBC00] text-black border-[#FFBC00] font-bold shadow-lg shadow-[#FFBC00]/20'
-                          : 'bg-zinc-900 text-zinc-300 border-zinc-800 hover:bg-[#FFBC00] hover:text-black hover:border-[#FFBC00]'
+                          ? 'bg-[#FF9D00] text-black border-[#FF9D00] font-bold shadow-lg shadow-[#FF9D00]/20'
+                          : 'bg-zinc-900 text-zinc-300 border-zinc-800 hover:bg-[#FF9D00] hover:text-black hover:border-[#FF9D00]'
                       }`}
                     >
                       {beds === 1 ? `1 Dorm` : `${beds} Dorms`}
@@ -258,8 +258,8 @@ export default function SearchPanel({
                     type="button"
                     className={`px-3 py-2 rounded-lg text-xs tracking-wider uppercase font-semibold transition-all duration-300 border cursor-pointer mr-1.5 mb-1.5 ${
                       selectedStatus === null
-                        ? 'bg-[#FFBC00] text-black border-[#FFBC00] font-bold shadow-lg shadow-[#FFBC00]/20'
-                        : 'bg-zinc-900 text-zinc-300 border-zinc-800 hover:bg-[#FFBC00] hover:text-black hover:border-[#FFBC00]'
+                        ? 'bg-[#FF9D00] text-black border-[#FF9D00] font-bold shadow-lg shadow-[#FF9D00]/20'
+                        : 'bg-zinc-900 text-zinc-300 border-zinc-800 hover:bg-[#FF9D00] hover:text-black hover:border-[#FF9D00]'
                     }`}
                   >
                     Todos
@@ -271,8 +271,8 @@ export default function SearchPanel({
                       type="button"
                       className={`px-3 py-2 rounded-lg text-xs tracking-wider uppercase font-semibold transition-all duration-300 border cursor-pointer mr-1.5 mb-1.5 ${
                         selectedStatus === st
-                          ? 'bg-[#FFBC00] text-black border-[#FFBC00] font-bold shadow-lg shadow-[#FFBC00]/20'
-                          : 'bg-zinc-900 text-zinc-300 border-zinc-800 hover:bg-[#FFBC00] hover:text-black hover:border-[#FFBC00]'
+                          ? 'bg-[#FF9D00] text-black border-[#FF9D00] font-bold shadow-lg shadow-[#FF9D00]/20'
+                          : 'bg-zinc-900 text-zinc-300 border-zinc-800 hover:bg-[#FF9D00] hover:text-black hover:border-[#FF9D00]'
                       }`}
                     >
                       {st}
@@ -304,7 +304,7 @@ export default function SearchPanel({
                     step="50000"
                     value={maxPrice}
                     onChange={handlePriceChange}
-                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#FFBC00]"
+                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#FF9D00]"
                   />
                   <div className="flex justify-between text-[9px] text-zinc-500 font-mono mt-1">
                     <span>R$ 350 mil</span>
@@ -320,7 +320,7 @@ export default function SearchPanel({
                   <label className="text-[11px] font-bold tracking-widest text-zinc-300 uppercase font-mono block">
                     ✦ Entrada de que Dispõe?
                   </label>
-                  <span className="text-xs font-bold text-[#FFBC00] font-mono bg-black/60 px-2.5 py-0.5 rounded-md border border-zinc-800">
+                  <span className="text-xs font-bold text-[#FF9D00] font-mono bg-black/60 px-2.5 py-0.5 rounded-md border border-zinc-800">
                     {maxDownpayment === 0 ? 'Qualquer valor' : formatBRL(maxDownpayment)}
                   </span>
                 </div>
@@ -332,7 +332,7 @@ export default function SearchPanel({
                     step="10000"
                     value={maxDownpayment}
                     onChange={handleDownpaymentChange}
-                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#FFBC00]"
+                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#FF9D00]"
                   />
                   <div className="flex justify-between text-[9px] text-zinc-500 font-mono mt-1">
                     <span>Qualquer valor</span>
@@ -355,7 +355,7 @@ export default function SearchPanel({
                 onClose?.();
               }}
               type="button"
-              className="w-full sm:w-auto px-10 py-4 rounded-xl bg-[#FFBC00] text-black font-extrabold text-xs uppercase tracking-widest hover:bg-[#E0A500] hover:shadow-lg hover:shadow-[#FFBC00]/25 active:scale-98 flex items-center justify-center gap-2 cursor-pointer transition-all duration-300"
+              className="w-full sm:w-auto px-10 py-4 rounded-xl bg-[#FF9D00] text-black font-extrabold text-xs uppercase tracking-widest hover:bg-[#E08A00] hover:shadow-lg hover:shadow-[#FF9D00]/25 active:scale-98 flex items-center justify-center gap-2 cursor-pointer transition-all duration-300"
             >
               <Search className="h-4 w-4 stroke-[3]" />
               Buscar Lançamentos
