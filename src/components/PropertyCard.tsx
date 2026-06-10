@@ -1,26 +1,18 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, ChevronLeft, ChevronRight, X, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BrandSettings } from '../types';
 import { saveLeadToFirestore, saveMessageToFirestore } from '../services/firestoreService';
 import Footer from './Footer';
-import { useLanguage } from '../context/LanguageContext';
 
 // Helper formatters supporting flexible raw text/integers inside properties
-const formatBedroomsLabel = (val: string | number, suffix: string = 'Qts', language: string = 'pt') => {
+const formatBedroomsLabel = (val: string | number, suffix: string = 'Qts') => {
   const s = String(val).trim();
   const lower = s.toLowerCase();
-  if (lower.includes('qt') || lower.includes('quart') || lower.includes('dorm') || lower.includes('bed')) {
+  if (lower.includes('qt') || lower.includes('quart') || lower.includes('dorm')) {
     return s;
   }
-  let transSuffix = suffix;
-  if (suffix === 'Quartos' || suffix === 'Qts') {
-    transSuffix = language === 'en' ? 'Beds' : language === 'es' ? 'Dorm.' : 'Qts';
-  } else if (suffix === 'Suítes' || suffix === 'Suítes') {
-    transSuffix = language === 'en' ? 'Suites' : language === 'es' ? 'Suites' : 'Suítes';
-  }
-  return `${s} ${transSuffix}`;
+  return `${s} ${suffix}`;
 };
 
 const formatAreaLabel = (val: string | number) => {
@@ -32,31 +24,28 @@ const formatAreaLabel = (val: string | number) => {
   return `${s} m²`;
 };
 
-const formatParkingLabel = (val: string | number, isShort: boolean = true, language: string = 'pt') => {
+const formatParkingLabel = (val: string | number, isShort: boolean = true) => {
   const s = String(val).trim();
   const lower = s.toLowerCase();
   if (lower.includes('opcion') || lower === 'opcional') {
-    return language === 'en' ? 'Optional Garage' : language === 'es' ? 'Garaje Opcional' : 'Vaga Opcional';
+    return 'Vaga Opcional';
   }
-  if (lower.includes('vag') || lower.includes('vg') || lower.includes('spac') || lower.includes('garag')) {
+  if (lower.includes('vag') || lower.includes('vg')) {
     return s;
   }
-  const suffix = s === '1' 
-    ? (isShort ? (language === 'en' ? 'Pkg.' : language === 'es' ? 'Coch.' : 'Vag.') : (language === 'en' ? 'Space' : language === 'es' ? 'Cochera' : 'Vaga')) 
-    : (isShort ? (language === 'en' ? 'Pkgs.' : language === 'es' ? 'Cochs.' : 'Vags.') : (language === 'en' ? 'Spaces' : language === 'es' ? 'Cocheras' : 'Vagas'));
+  const suffix = s === '1' ? (isShort ? 'Vag.' : 'Vaga') : (isShort ? 'Vags.' : 'Vagas');
   return `${s} ${suffix}`;
 };
 
-const formatBathroomsLabel = (bedrooms: string | number, language: string = 'pt') => {
+const formatBathroomsLabel = (bedrooms: string | number) => {
   const numVal = Number(bedrooms);
-  const suffix = language === 'en' ? 'Bath.' : language === 'es' ? 'Baños' : 'Banh.';
   if (!isNaN(numVal)) {
-    return `${numVal + 1} ${suffix}`;
+    return `${numVal + 1} Banh.`;
   }
   const s = String(bedrooms).trim();
-  const changed = s.replace(/qts|qt|quartos|quarto|dormitórios|dormitório|beds|bed/gi, suffix).trim();
+  const changed = s.replace(/qts|qt|quartos|quarto|dormitórios|dormitório/gi, 'Banh.').trim();
   if (changed !== s) return changed;
-  return `${s} ${suffix}`;
+  return `${s} Banh.`;
 };
 
 interface PropertyCardProps {
@@ -81,7 +70,6 @@ export default function PropertyCard({
   onNavigateToProperty,
   onNavigateToAdmin
 }: PropertyCardProps) {
-  const { language, t } = useLanguage();
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [internalModalOpen, setInternalModalOpen] = useState(false);
   const isModalOpen = isOpen !== undefined ? isOpen : internalModalOpen;
@@ -333,8 +321,10 @@ export default function PropertyCard({
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
   };
 
-  const cardContent = !isModalOnly && (
-    <motion.div
+  return (
+    <>
+      {!isModalOnly && (
+        <motion.div
           layout
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -460,7 +450,7 @@ export default function PropertyCard({
             <div className="my-4 pt-4 border-t border-zinc-200/80 flex justify-between items-center text-xs text-zinc-700 font-mono">
               <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
                 <Bed className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{formatBedroomsLabel(property.bedrooms, 'Qts', language)}</span>
+                <span>{formatBedroomsLabel(property.bedrooms)}</span>
               </span>
               <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
                 <Maximize className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -468,7 +458,7 @@ export default function PropertyCard({
               </span>
               <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
                 <Car className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{formatParkingLabel(property.parkingSpaces, true, language)}</span>
+                <span>{formatParkingLabel(property.parkingSpaces)}</span>
               </span>
             </div>
           </div>
@@ -476,11 +466,11 @@ export default function PropertyCard({
           <div className="border-t border-zinc-200/80 pt-4 mt-auto">
             {/* Valor A partir R$ */}
             <div className="mb-3">
-              <span className="text-[10px] tracking-widest font-bold text-zinc-550 uppercase font-mono block">
-                {language === 'en' ? 'Estimated Investment' : language === 'es' ? 'Inversión Estimada' : 'Investimento Estimado'}
+              <span className="text-[10px] tracking-widest font-bold text-zinc-500 uppercase font-mono block">
+                Investimento Estimado
               </span>
               <div className="text-xl font-extrabold text-zinc-900">
-                <span className="text-xs font-semibold text-primary mr-1 font-mono">{t('prop.from')}</span>
+                <span className="text-xs font-semibold text-primary mr-1 font-mono">A partir</span>
                 {formatBRL(property.price)}
               </div>
             </div>
@@ -489,7 +479,7 @@ export default function PropertyCard({
             <div className="grid grid-cols-2 gap-3 mb-4 rounded-xl bg-zinc-50 border border-zinc-250 p-3 text-xs font-mono">
               <div>
                 <span className="text-[9px] font-bold tracking-wider text-zinc-500 uppercase block mb-0.5">
-                  {language === 'en' ? 'Downpayment R$' : language === 'es' ? 'Entrada R$' : 'Entrada R$'}
+                  Entrada R$
                 </span>
                 <span className="font-extrabold text-zinc-900 text-[13px] block">
                   {formatBRL(property.downpayment)}
@@ -497,7 +487,7 @@ export default function PropertyCard({
               </div>
               <div className="border-l border-zinc-200 pl-3">
                 <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5">
-                  {language === 'en' ? 'Monthly R$' : language === 'es' ? 'Mensuales R$' : 'Mensais R$'}
+                  Mensais R$
                 </span>
                 <span className="font-extrabold text-[#FF9D00] text-[13px] block">
                   {formatBRL(property.installments)}
@@ -512,15 +502,13 @@ export default function PropertyCard({
               style={{ color: '#203366' }}
             >
               <Sparkles className="h-4 w-4 shrink-0 stroke-[2.5]" />
-              {language === 'en' ? 'View Offer' : language === 'es' ? 'Ver Oferta' : 'Ver Oferta'}
+              Ver Oferta
             </button>
           </div>
         </div>
       </motion.div>
-  );
+      )}
 
-  const modalAndLightboxContent = (
-    <>
       {/* RENDER MODAL OVERLAY ON CLICK (IMMERSE FULL-SCREEN DETAIL PAGE) */}
       <AnimatePresence>
         {isModalOpen && (
@@ -588,6 +576,90 @@ export default function PropertyCard({
             {/* SCROLLABLE INNER CONTAINER (Perfect scroll viewport without jittering fixed bottom navigation) */}
             <div className="flex-1 w-full overflow-y-auto scroll-smooth flex flex-col items-center pb-24">
 
+              {/* 2. IMMERSIVE BLEEDING HERO IMAGE AT THE VERY TOP (EDGE-TO-EDGE) */}
+            <div className="w-full h-[50vh] sm:h-[60vh] lg:h-[70vh] relative bg-black flex items-center justify-center flex-shrink-0">
+              <div 
+                className="w-full h-full relative"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
+                {property.images.length > 0 ? (
+                  <img
+                    src={property.images[currentImgIndex]}
+                    alt={property.name}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover select-none cursor-zoom-in"
+                    onClick={() => setIsLightboxOpen(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-zinc-500 font-mono text-xs">Sem Imagens Cadastradas</div>
+                )}
+
+                {/* Overlaid share/favorites at top-right of image */}
+                <div className="absolute top-4 right-4 z-20 flex gap-2">
+                  <button 
+                    onClick={handleShare}
+                    className="h-10 w-10 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-zinc-200 hover:text-primary hover:border-primary transition-all cursor-pointer"
+                    title="Compartilhar"
+                  >
+                    <Share2 className="h-4.5 w-4.5" />
+                  </button>
+                  <button 
+                    onClick={toggleFavorite}
+                    className={`h-10 w-10 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md border transition-all cursor-pointer ${
+                      isFavorited 
+                        ? 'text-red-500 border-red-500/40 bg-red-950/20' 
+                        : 'text-zinc-200 border-white/15 hover:text-red-500 hover:border-red-500'
+                    }`}
+                    title={isFavorited ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
+                  >
+                    <svg className={`h-4.5 w-4.5 ${isFavorited ? 'fill-red-500 text-red-500' : 'fill-none stroke-current'}`} viewBox="0 0 24 24" strokeWidth="2">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Status indicator Badge */}
+                <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 pointer-events-none">
+                  <span className={`rounded-md bg-gradient-to-r ${getStatusBadge(property.status)} px-2.5 py-1 text-[10px] uppercase tracking-wider shadow-md font-mono font-bold`}>
+                    {property.status}
+                  </span>
+                </div>
+
+                {/* Left and Right navigation Chevrons */}
+                {property.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={handlePrevImage}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-lg bg-black/60 text-white hover:bg-primary hover:text-black border border-white/10 hover:scale-105 active:scale-95 transition-all z-20 cursor-pointer"
+                      aria-label="Anterior"
+                    >
+                      <ChevronLeft className="h-5 w-5 stroke-[2.5]" />
+                    </button>
+                    <button
+                      onClick={handleNextImage}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-lg bg-black/60 text-white hover:bg-primary hover:text-black border border-white/10 hover:scale-105 active:scale-95 transition-all z-20 cursor-pointer"
+                      aria-label="Próximo"
+                    >
+                      <ChevronRight className="h-5 w-5 stroke-[2.5]" />
+                    </button>
+                  </>
+                )}
+
+                {/* Custom Photo count overlay bottom-right (ChavesNamao style) */}
+                {property.images.length > 0 && (
+                  <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md px-3.5 py-1.5 rounded-lg border border-white/15 text-xs text-zinc-100 font-mono flex items-center gap-1.5 shadow-xl select-none">
+                    <svg className="h-3.5 w-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    <span>{currentImgIndex + 1}/{property.images.length}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* 3. SCROLLING PORTRAIT CONTENT WRAPPER */}
             <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6 relative z-10 text-left">
               
@@ -595,17 +667,13 @@ export default function PropertyCard({
               <div className="w-full flex items-center justify-between border-b border-zinc-200 pb-5" id="details-section">
                 <div>
                   <span className="text-[10px] sm:text-xs tracking-widest font-bold text-zinc-550 uppercase font-mono block">
-                    {property.status === 'Pronto' 
-                      ? (language === 'en' ? 'For Sale / Ready to move' : language === 'es' ? 'Venta / Listo' : 'Venda / Pronto')
-                      : t('prop.from').toUpperCase()}
+                    {property.status === 'Pronto' ? 'Venda / Pronto' : 'A PARTIR DE'}
                   </span>
                   <div className="text-3xl sm:text-4xl font-extrabold text-[#FF9D00] tracking-tight font-mono mt-0.5">
                     {formatBRL(property.price)}
                   </div>
                   <p className="mt-1 text-xs text-zinc-650 uppercase font-mono tracking-wider font-semibold">
-                    {property.status === 'Pronto' 
-                      ? (language === 'en' ? 'Ready to move in' : language === 'es' ? 'Listo para habitar' : 'Pronto para morar')
-                      : `${t('prop.delivery')} ${property.deliveryDate}`}
+                    {property.status === 'Pronto' ? 'Pronto para Morar' : `Previsão ${property.deliveryDate}`}
                   </p>
                 </div>
                 <button 
@@ -616,7 +684,7 @@ export default function PropertyCard({
                   className="rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-black font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-[#FF9D00]/10 cursor-pointer uppercase tracking-wider"
                   style={{ backgroundColor: '#FF9D00', color: '#203366' }}
                 >
-                  {language === 'en' ? 'View payments' : language === 'es' ? 'Ver cuotas' : 'Ver parcelas'}
+                  Ver parcelas
                 </button>
               </div>
 
@@ -634,36 +702,26 @@ export default function PropertyCard({
                 return (
                   <div className={`grid grid-cols-2 ${hasSuites ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-3 mt-1.5`}>
                     <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
-                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">
-                        {language === 'en' ? 'Area' : language === 'es' ? 'Área útil' : 'Área útil'}
-                      </span>
+                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Área útil</span>
                       <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatAreaLabel(property.area)}</span>
                     </div>
                     <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
-                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">
-                        {language === 'en' ? 'Bedrooms' : language === 'es' ? 'Dormitorios' : 'Quartos'}
-                      </span>
-                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBedroomsLabel(property.bedrooms, 'Quartos', language)}</span>
+                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Quartos</span>
+                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBedroomsLabel(property.bedrooms, 'Quartos')}</span>
                     </div>
                     {hasSuites && (
                       <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
-                        <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">
-                          {language === 'en' ? 'Suites' : language === 'es' ? 'Suites' : 'Suítes'}
-                        </span>
-                        <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBedroomsLabel(property.suites!, 'Suítes', language)}</span>
+                        <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Suítes</span>
+                        <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBedroomsLabel(property.suites!, 'Suítes')}</span>
                       </div>
                     )}
                     <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
-                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">
-                        {language === 'en' ? 'Bath' : language === 'es' ? 'Baños' : 'Banheiros'}
-                      </span>
-                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBathroomsLabel(property.bedrooms, language)}</span>
+                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Banheiros</span>
+                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBathroomsLabel(property.bedrooms)}</span>
                     </div>
                     <div className={`bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all ${hasSuites ? 'col-span-2 sm:col-span-1' : 'col-span-2 sm:col-span-1'}`}>
-                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">
-                        {language === 'en' ? 'Garages' : language === 'es' ? 'Cocheras' : 'Vagas / Garagem'}
-                      </span>
-                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatParkingLabel(property.parkingSpaces, false, language)}</span>
+                      <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Vagas / Garagem</span>
+                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatParkingLabel(property.parkingSpaces, false)}</span>
                     </div>
                   </div>
                 );
@@ -673,11 +731,7 @@ export default function PropertyCard({
               {property.images.length > 0 && (
                 <div className="w-full text-left mt-1" id="thumb-gallery">
                   <p className="text-[10px] uppercase tracking-widest font-mono text-zinc-500 mb-2 font-semibold">
-                    {language === 'en' 
-                      ? `Full Gallery (${property.images.length} property photos)` 
-                      : language === 'es' 
-                        ? `Galería Completa (${property.images.length} fotos del inmueble)` 
-                        : `Galeria Completa (${property.images.length} fotos do imóvel)`}
+                    Galeria Completa ({property.images.length} fotos do imóvel)
                   </p>
                   <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-zinc-100 scrollbar-thumb-zinc-300">
                     {property.images.map((imgUrl, index) => (
@@ -1063,33 +1117,23 @@ export default function PropertyCard({
               <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5 sm:p-6 text-left space-y-4">
                 <h4 className="text-md sm:text-lg font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
                   <span className="text-primary text-base font-mono">@</span>
-                  {language === 'en' ? 'Contact by E-mail' : language === 'es' ? 'Contacto por Correo' : 'Fale por E-mail'}
+                  Fale por E-mail
                 </h4>
                 <p className="text-xs text-zinc-650 leading-relaxed">
-                  {language === 'en' 
-                    ? 'Want to send a direct message by email? Write below to talk to the advertiser.' 
-                    : language === 'es' 
-                      ? '¿Deseas enviar un mensaje directo por correo electrónico? Escribe abajo para hablar con el anunciante.' 
-                      : 'Deseja enviar uma mensagem direta por e-mail? Escreva abaixo para falar com o anunciante.'}
+                  Deseja enviar uma mensagem direta por e-mail? Escreva abaixo para falar com o anunciante.
                 </p>
 
                 {emailFormStatus === 'success' ? (
                   <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center space-y-2">
-                    <p className="text-xs font-semibold text-emerald-600">
-                      {language === 'en' ? 'Message generated successfully!' : language === 'es' ? '¡Mensaje generado con éxito!' : 'Mensagem gerada com sucesso!'}
-                    </p>
+                    <p className="text-xs font-semibold text-emerald-600">Mensagem gerada com sucesso!</p>
                     <p className="text-[10px] text-zinc-500 leading-relaxed">
-                      {language === 'en' 
-                        ? 'Your email client has been opened for secure sending to: ' 
-                        : language === 'es' 
-                          ? 'Tu cliente de correo se ha abierto para un envío seguro a: ' 
-                          : 'Seu cliente de e-mail foi aberto para envio seguro para: '} <strong className="text-zinc-800">{settings?.email || 'comercial.vivasc@gmail.com'}</strong>.
+                      Seu cliente de e-mail foi aberto para envio seguro para: <strong className="text-zinc-800">{settings?.email || 'comercial.vivasc@gmail.com'}</strong>.
                     </p>
                     <button
                       onClick={() => setEmailFormStatus('idle')}
                       className="px-3 py-1 rounded-lg bg-zinc-200 border border-zinc-300 hover:bg-zinc-250 text-[10px] uppercase font-bold text-zinc-800 transition-all cursor-pointer"
                     >
-                      {language === 'en' ? 'Send another message' : language === 'es' ? 'Enviar otro mensaje' : 'Enviar outra mensagem'}
+                      Enviar outra mensagem
                     </button>
                   </div>
                 ) : (
@@ -1142,7 +1186,7 @@ export default function PropertyCard({
                         required
                         value={emailFormName}
                         onChange={(e) => setEmailFormName(e.target.value)}
-                        placeholder={t('form.name')}
+                        placeholder="Seu Nome Completo"
                         className="w-full bg-white border border-zinc-250 rounded-xl px-4 py-2.5 text-xs text-zinc-850 placeholder-zinc-400 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all"
                       />
                     </div>
@@ -1152,7 +1196,7 @@ export default function PropertyCard({
                         required
                         value={emailFormContact}
                         onChange={(e) => setEmailFormContact(e.target.value)}
-                        placeholder={t('form.phone')}
+                        placeholder="Seu E-mail ou Telefone"
                         className="w-full bg-white border border-zinc-250 rounded-xl px-4 py-2.5 text-xs text-zinc-850 placeholder-zinc-400 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all"
                       />
                     </div>
@@ -1161,7 +1205,7 @@ export default function PropertyCard({
                         required
                         value={emailFormMsg}
                         onChange={(e) => setEmailFormMsg(e.target.value)}
-                        placeholder={t('form.message_placeholder')}
+                        placeholder="Estou interessado neste lançamento, gostaria de receber mais informações e detalhes de financiamento..."
                         className="w-full bg-white border border-zinc-250 rounded-xl p-4 text-xs text-zinc-850 placeholder-zinc-400 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all min-h-[80px] resize-none"
                       />
                     </div>
@@ -1170,7 +1214,7 @@ export default function PropertyCard({
                       type="submit"
                       className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs uppercase tracking-wider py-3.5 transition-all text-center cursor-pointer select-none active:scale-[0.99]"
                     >
-                      {language === 'en' ? 'Send Message by E-mail' : language === 'es' ? 'Enviar Mensaje por Correo' : 'Enviar Mensagem por E-mail'}
+                      Enviar Mensagem por E-mail
                     </button>
                   </form>
                 )}
@@ -1190,9 +1234,7 @@ export default function PropertyCard({
                     <MapPin className="h-5.5 w-5.5 text-red-500" />
                   </div>
                   <div>
-                    <h4 className="text-xs sm:text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
-                      {language === 'en' ? 'Property Location' : language === 'es' ? 'Ubicación del Inmueble' : 'Localização do Imóvel'}
-                    </h4>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Localização do Imóvel</h4>
                     <p className="text-xs text-zinc-600 mt-0.5 font-mono">{property.neighborhood}, {property.region} / SC</p>
                   </div>
                 </div>
@@ -1390,13 +1432,6 @@ export default function PropertyCard({
           </div>
         )}
       </AnimatePresence>
-    </>
-  );
-
-  return (
-    <>
-      {cardContent}
-      {typeof document !== 'undefined' ? createPortal(modalAndLightboxContent, document.body) : modalAndLightboxContent}
     </>
   );
 }
