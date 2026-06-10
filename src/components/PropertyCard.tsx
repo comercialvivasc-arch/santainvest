@@ -467,7 +467,8 @@ export default function PropertyCard({ property, allProperties = [], settings, i
             {/* Botao Ver Oferta */}
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold tracking-wider text-black uppercase cursor-pointer hover:bg-[#e0b92f] hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold tracking-wider uppercase cursor-pointer hover:bg-[#e0b92f] hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
+              style={{ color: '#203366' }}
             >
               <Sparkles className="h-4 w-4 shrink-0 stroke-[2.5]" />
               Ver Oferta
@@ -650,7 +651,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
                   className="rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-black font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-[#FF9D00]/10 cursor-pointer uppercase tracking-wider"
-                  style={{ backgroundColor: '#FF9D00' }}
+                  style={{ backgroundColor: '#FF9D00', color: '#203366' }}
                 >
                   Ver parcelas
                 </button>
@@ -787,6 +788,7 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                               ? 'bg-[#FF9D00] text-black shadow-lg shadow-[#FF9D00]/25 border border-transparent'
                               : 'bg-zinc-200 text-zinc-700 hover:text-zinc-900 hover:bg-zinc-305 border border-zinc-300'
                           }`}
+                          style={isSelected ? { color: '#203366' } : undefined}
                         >
                           {plan.name} {plan.area ? `(${formatAreaLabel(plan.area)})` : ''}
                         </button>

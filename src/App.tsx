@@ -21,6 +21,7 @@ import {
   saveBannerToFirestore, 
   deleteBannerFromFirestore,
   saveSettingsToFirestore,
+  seedInitialDatabase,
   subscribeBrokers,
   saveBrokerToFirestore,
   deleteBrokerFromFirestore,
@@ -202,6 +203,35 @@ export default function App() {
       unsubVisits();
       unsubMessages();
     };
+  }, [isAuthenticatedUser]);
+
+  // Auto-seeding and integration helper for authorized administrators if connected database is empty
+  useEffect(() => {
+    if (!isAuthenticatedUser) return;
+    
+    const userEmail = auth.currentUser?.email;
+    const allowedAdmins = ['comercial.vivasc@gmail.com', 'meuprimeiroimovel.adm@gmail.com'];
+    
+    if (userEmail && allowedAdmins.includes(userEmail)) {
+      const checkAndAutoSeed = async () => {
+        try {
+          console.log('[Auto-Integrator] Logged in as Admin. Checking if Firestore requires auto-seeding...');
+          const res = await seedInitialDatabase();
+          if (res.propertiesSeeded > 0 || res.bannersSeeded > 0 || res.settingsSeeded) {
+            console.log('[Auto-Integrator] Database was empty! Successfully integrated and auto-seeded:', res);
+          } else {
+            console.log('[Auto-Integrator] Database is already populated or updated.');
+          }
+        } catch (err) {
+          console.warn('[Auto-Integrator] Auto-seed skip or permissions pending:', err);
+        }
+      };
+      // Allow general render to finish and then perform the automatic check
+      const timer = setTimeout(() => {
+        checkAndAutoSeed();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
   }, [isAuthenticatedUser]);
 
   // Sync state to localStorage on modification as offline cache fallback
@@ -628,7 +658,7 @@ export default function App() {
                 <>VIVA<span className="text-primary font-black">SC</span></>
               )}
             </span>
-            <span className="text-[9px] font-mono tracking-wider text-zinc-500">
+            <span className="text-[10px] font-mono tracking-wider text-zinc-500" style={{ fontSize: '10px' }}>
               © 2026 {settings?.brandName || 'VIVASC'} Lançamentos Imobiliários. Todos os direitos reservados.
             </span>
           </div>
@@ -642,6 +672,7 @@ export default function App() {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }} 
               className="hover:text-primary text-primary transition-colors cursor-pointer font-extrabold"
+              style={{ fontSize: '11px' }}
             >
               {currentView === 'admin' ? 'View Área Pública' : 'Painel Admin'}
             </button>

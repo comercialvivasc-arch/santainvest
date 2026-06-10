@@ -157,11 +157,12 @@ export default function AdminPanel({
     getRedirectResult(auth)
       .then((result) => {
         if (result?.user) {
-          if (result.user.email === 'comercial.vivasc@gmail.com') {
+          const allowedAdmins = ['comercial.vivasc@gmail.com', 'meuprimeiroimovel.adm@gmail.com'];
+          if (result.user.email && allowedAdmins.includes(result.user.email)) {
             setIsAuthenticated(true);
             setAuthError('');
           } else {
-            setAuthError(`Usuário logado (${result.user.email}) não possui as permissões do administrador oficial (comercial.vivasc@gmail.com).`);
+            setAuthError(`Usuário logado (${result.user.email}) não possui as permissões de um administrador oficial.`);
             fbSignOut(auth);
           }
         }
@@ -180,13 +181,14 @@ export default function AdminPanel({
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUser(user);
       if (user) {
-        if (user.email === 'comercial.vivasc@gmail.com') {
+        const allowedAdmins = ['comercial.vivasc@gmail.com', 'meuprimeiroimovel.adm@gmail.com'];
+        if (user.email && allowedAdmins.includes(user.email)) {
           setIsAuthenticated(true);
           setAuthError('');
         } else {
           // Deny if logged in but email is wrong
           setIsAuthenticated(false);
-          setAuthError(`Usuário logado (${user.email}) não possui as permissões do administrador oficial (comercial.vivasc@gmail.com).`);
+          setAuthError(`Usuário logado (${user.email}) não possui as permissões de um administrador oficial.`);
         }
       } else {
         // Fallback to local admin code if firebase auth session is disconnected
@@ -200,8 +202,9 @@ export default function AdminPanel({
     try {
       setAuthError('');
       const result = await signInWithPopup(auth, googleProvider);
-      if (result.user.email !== 'comercial.vivasc@gmail.com') {
-        setAuthError(`Usuário logado (${result.user.email}) não possui permissões administrativas. Por favor, entre com a conta comercial.vivasc@gmail.com.`);
+      const allowedAdmins = ['comercial.vivasc@gmail.com', 'meuprimeiroimovel.adm@gmail.com'];
+      if (!result.user.email || !allowedAdmins.includes(result.user.email)) {
+        setAuthError(`Usuário logado (${result.user.email}) não possui permissões administrativas. Por favor, entre com uma conta de administrador autorizada.`);
         await fbSignOut(auth);
       } else {
         setIsAuthenticated(true);
@@ -241,8 +244,9 @@ export default function AdminPanel({
     setIsEmailLoggingIn(true);
     try {
       const result = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      if (result.user.email !== 'comercial.vivasc@gmail.com') {
-        setAuthError(`O e-mail (${result.user.email}) não é o do administrador oficial (comercial.vivasc@gmail.com).`);
+      const allowedAdmins = ['comercial.vivasc@gmail.com', 'meuprimeiroimovel.adm@gmail.com'];
+      if (!result.user.email || !allowedAdmins.includes(result.user.email)) {
+        setAuthError(`O e-mail (${result.user.email}) não é o de um administrador oficial.`);
         await fbSignOut(auth);
       } else {
         setIsAuthenticated(true);
@@ -833,8 +837,8 @@ export default function AdminPanel({
                 </button>
 
                 <span className="block text-[9px] font-mono text-zinc-500 text-center leading-normal">
-                  Apenas contas autorizadas. Administrador oficial:<br />
-                  <strong className="text-zinc-400 font-mono">comercial.vivasc@gmail.com</strong>
+                  Apenas contas autorizadas. Administradores oficiais:<br />
+                  <strong className="text-zinc-400 font-mono block text-center">comercial.vivasc@gmail.com<br />meuprimeiroimovel.adm@gmail.com</strong>
                 </span>
 
                 <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-[10px] text-zinc-400 font-sans leading-relaxed">
@@ -885,7 +889,7 @@ export default function AdminPanel({
 
                 <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-[10px] text-zinc-400 font-sans leading-relaxed">
                   <span className="font-bold text-zinc-300 block mb-1">💡 Como funciona:</span> 
-                  O login por E-mail e Senha é executado totalmente dentro da página sem abrir nenhuma aba extra. Ative o provedor "E-mail/Senha" no seu console Firebase Auth e cadastre a conta <strong className="text-orange-400 font-mono">comercial.vivasc@gmail.com</strong> para utilizá-lo.
+                  O login por E-mail e Senha é executado totalmente dentro da página sem abrir nenhuma aba extra. Ative o provedor "E-mail/Senha" no seu console Firebase Auth e cadastre as contas autorizadas (ex: <strong className="text-orange-400 font-mono">meuprimeiroimovel.adm@gmail.com</strong> ou <strong className="text-orange-400 font-mono">comercial.vivasc@gmail.com</strong>) para utilizá-lo.
                 </div>
               </form>
             )}

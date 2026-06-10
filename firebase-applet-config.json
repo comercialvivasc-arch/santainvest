@@ -1,10 +1,10 @@
 {
-  "projectId": "micro-cubist-msjh2",
-  "appId": "1:282377838464:web:31a5277fa8144dac446b65",
-  "apiKey": "AIzaSyAMcXoO_LxJdGiMc528hHzlBuRKqZ-BASg",
-  "authDomain": "micro-cubist-msjh2.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-f1b1be7f-6806-403c-b2b4-da4fc33175a2",
-  "storageBucket": "micro-cubist-msjh2.firebasestorage.app",
-  "messagingSenderId": "282377838464",
+  "projectId": "meuprimeiroimovel",
+  "appId": "1:591168269324:web:76fe8686ab3faea50d1229",
+  "apiKey": "AIzaSyDRFFeeXpaC0WORC8PamL2KVWjOIXb27EA",
+  "authDomain": "meuprimeiroimovel.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "meuprimeiroimovel.firebasestorage.app",
+  "messagingSenderId": "591168269324",
   "measurementId": ""
 }

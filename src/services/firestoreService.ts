@@ -482,6 +482,7 @@ export async function seedInitialDatabase(): Promise<{ propertiesSeeded: number;
     return { propertiesSeeded, bannersSeeded, settingsSeeded };
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, 'seed_database');
+    throw error;
   }
 }
 

@@ -13,7 +13,8 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() &&
-             request.auth.token.email == "comercial.vivasc@gmail.com" &&
+             (request.auth.token.email == "comercial.vivasc@gmail.com" ||
+              request.auth.token.email == "meuprimeiroimovel.adm@gmail.com") &&
              request.auth.token.email_verified == true;
     }
 
@@ -21,7 +22,8 @@ service cloud.firestore {
     function isBroker() {
       return isSignedIn() && 
              (exists(/databases/$(database)/documents/corretores/$(request.auth.uid)) || 
-              request.auth.token.email == "comercial.vivasc@gmail.com");
+              request.auth.token.email == "comercial.vivasc@gmail.com" ||
+              request.auth.token.email == "meuprimeiroimovel.adm@gmail.com");
     }
 
     function isValidId(id) {
