@@ -126,6 +126,8 @@ export default function AdminPanel({
   const [settingsLogoUrl, setSettingsLogoUrl] = useState(settings?.logoUrl || '');
   const [settingsBrandName, setSettingsBrandName] = useState(settings?.brandName || '');
   const [settingsTagline, setSettingsTagline] = useState(settings?.tagline || '');
+  const [settingsFaviconUrl, setSettingsFaviconUrl] = useState(settings?.faviconUrl || '');
+  const [settingsShareLogoUrl, setSettingsShareLogoUrl] = useState(settings?.shareLogoUrl || '');
   const [isSettingsUpdating, setIsSettingsUpdating] = useState(false);
   const [settingsUpdateStatus, setSettingsUpdateStatus] = useState<string | null>(null);
 
@@ -149,6 +151,8 @@ export default function AdminPanel({
       setSettingsLogoUrl(settings.logoUrl);
       setSettingsBrandName(settings.brandName);
       setSettingsTagline(settings.tagline);
+      setSettingsFaviconUrl(settings.faviconUrl || '');
+      setSettingsShareLogoUrl(settings.shareLogoUrl || '');
     }
   }, [settings]);
 
@@ -1346,7 +1350,9 @@ export default function AdminPanel({
                     email: settingsEmail,
                     logoUrl: settingsLogoUrl,
                     brandName: settingsBrandName,
-                    tagline: settingsTagline
+                    tagline: settingsTagline,
+                    faviconUrl: settingsFaviconUrl,
+                    shareLogoUrl: settingsShareLogoUrl
                   });
                   setSettingsUpdateStatus('Configurações de marca e contatos salvas no Firebase Firestore com sucesso.');
                 } catch (err: any) {
@@ -1500,6 +1506,161 @@ export default function AdminPanel({
                     placeholder="https://suapraca.com.br/arquivos/logo.png"
                     className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-mono placeholder-zinc-850"
                   />
+                </div>
+              </div>
+
+              {/* Row 4: Favicon Upload/URL */}
+              <div className="space-y-3.5 border-t border-zinc-900 pt-5">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+                    ✦ Favicon do Navegador (.ico, .png, .svg)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+                  {/* File Dropzone/Selector */}
+                  <div className="md:col-span-2 relative rounded-xl border border-dashed border-zinc-850 bg-black hover:bg-zinc-950 hover:border-orange-500/50 transition-all p-4 flex flex-col items-center justify-center text-center gap-1.5 min-h-[110px] cursor-pointer group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 500000) {
+                            alert('Erro: Escolha uma imagem de favicon de até 500KB.');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            if (event.target?.result) {
+                              setSettingsFaviconUrl(event.target.result as string);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
+                    />
+                    <ImageIcon className="h-6 w-6 text-zinc-500 group-hover:text-orange-500 transition-colors" />
+                    <span className="text-[11px] font-bold text-zinc-300">Selecione ou arraste o Favicon</span>
+                    <span className="text-[9px] text-zinc-500 font-mono">Ícone pequeno de aba (Até 500KB)</span>
+                  </div>
+
+                  {/* Favicon Preview box */}
+                  <div className="rounded-xl border border-zinc-900 bg-zinc-950 p-4 flex flex-col justify-center items-center text-center">
+                    <span className="text-[8px] font-mono text-zinc-650 uppercase mb-2 block">Prévia do Favicon</span>
+                    {settingsFaviconUrl ? (
+                      <div className="relative group w-12 h-12 flex items-center justify-center bg-black/40 rounded-lg p-2 border border-zinc-900 animate-fade-in mx-auto">
+                        <img
+                          src={settingsFaviconUrl}
+                          alt="Favicon"
+                          className="max-h-full max-w-full object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSettingsFaviconUrl('')}
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-650 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-[9px] font-bold shadow-lg"
+                        >
+                          x
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-12 w-12 border border-dashed border-zinc-850 rounded-lg flex items-center justify-center text-[10px] text-zinc-600 uppercase font-mono mx-auto">
+                        Vazio
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="block text-[9px] text-zinc-500 uppercase font-mono">Ou informe a URL absoluta diretamente</span>
+                  <input
+                    type="text"
+                    value={settingsFaviconUrl}
+                    onChange={(e) => setSettingsFaviconUrl(e.target.value)}
+                    placeholder="https://suapraca.com.br/favicon.png"
+                    className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-mono placeholder-zinc-850"
+                  />
+                </div>
+              </div>
+
+              {/* Row 5: Share Logo/Preview Upload/URL */}
+              <div className="space-y-3.5 border-t border-zinc-900 pt-5">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+                    ✦ Imagem para Compartilhamento da Home (Social og:image)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+                  {/* File Dropzone/Selector */}
+                  <div className="md:col-span-2 relative rounded-xl border border-dashed border-zinc-850 bg-black hover:bg-zinc-950 hover:border-orange-500/50 transition-all p-4 flex flex-col items-center justify-center text-center gap-1.5 min-h-[110px] cursor-pointer group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 2000000) {
+                            alert('Erro: Escolha uma imagem de compartilhamento de até 2MB.');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            if (event.target?.result) {
+                              setSettingsShareLogoUrl(event.target.result as string);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
+                    />
+                    <ImageIcon className="h-6 w-6 text-zinc-500 group-hover:text-orange-500 transition-colors" />
+                    <span className="text-[11px] font-bold text-zinc-300">Selecione ou arraste a imagem social</span>
+                    <span className="text-[9px] text-zinc-500 font-mono">Recomendado: 1200x630px JPG/PNG (Até 2MB)</span>
+                  </div>
+
+                  {/* Share Preview box */}
+                  <div className="rounded-xl border border-zinc-900 bg-zinc-950 p-4 flex flex-col justify-center items-center text-center">
+                    <span className="text-[8px] font-mono text-zinc-650 uppercase mb-2 block">Prévia da og:image</span>
+                    {settingsShareLogoUrl ? (
+                      <div className="relative group w-full h-12 flex items-center justify-center bg-black/40 rounded-lg p-2 border border-zinc-900 animate-fade-in">
+                        <img
+                          src={settingsShareLogoUrl}
+                          alt="Social Share"
+                          className="max-h-full max-w-full object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSettingsShareLogoUrl('')}
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-650 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-[9px] font-bold shadow-lg"
+                        >
+                          x
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-12 w-full border border-dashed border-zinc-850 rounded-lg flex items-center justify-center text-[10px] text-zinc-600 uppercase font-mono">
+                        Nenhuma imagem
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="block text-[9px] text-zinc-500 uppercase font-mono">Ou informe a URL absoluta diretamente</span>
+                  <input
+                    type="text"
+                    value={settingsShareLogoUrl}
+                    onChange={(e) => setSettingsShareLogoUrl(e.target.value)}
+                    placeholder="https://suapraca.com.br/og-image.png"
+                    className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-mono placeholder-zinc-850"
+                  />
+                  <span className="block text-[9px] text-zinc-500 leading-normal pt-0.5 font-sans">
+                    * Se deixado em branco, o portal usará automaticamente o logotipo principal como imagem de compartilhamento da home.
+                  </span>
                 </div>
               </div>
 

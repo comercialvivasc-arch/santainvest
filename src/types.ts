@@ -64,6 +64,8 @@ export interface BrandSettings {
   logoUrl: string; // brand logo image URL
   brandName: string; // brand headline
   tagline: string; // brand tagline
+  faviconUrl?: string; // custom tab favicon
+  shareLogoUrl?: string; // main/home share preview logo image url
 }
 
 export interface UserProfile {

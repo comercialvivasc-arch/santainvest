@@ -247,6 +247,86 @@ export default function App() {
     localStorage.setItem('vivas_settings', JSON.stringify(settings));
   }, [settings]);
 
+  // Dynamic header metadata injection (Favicon, OG Image, SEO tags)
+  useEffect(() => {
+    // 1. Dynamic Favicon Update
+    const faviconUrl = settings?.faviconUrl || '';
+    if (faviconUrl) {
+      // Find or create rel="icon"
+      let linkIcon = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+      if (!linkIcon) {
+        linkIcon = document.createElement('link');
+        linkIcon.rel = 'icon';
+        document.head.appendChild(linkIcon);
+      }
+      linkIcon.href = faviconUrl;
+
+      // Find or create rel="shortcut icon"
+      let linkShortcut = document.querySelector("link[rel='shortcut icon']") as HTMLLinkElement;
+      if (!linkShortcut) {
+        linkShortcut = document.createElement('link');
+        linkShortcut.rel = 'shortcut icon';
+        document.head.appendChild(linkShortcut);
+      }
+      linkShortcut.href = faviconUrl;
+    }
+
+    // 2. Metadata details selection
+    let shareTitle = settings?.brandName ? `${settings.brandName} | Lançamentos Imobiliários` : 'VIVA SC | Lançamentos Imobiliários';
+    let shareDesc = settings?.tagline || 'Veja os melhores projetos de alto padrão com as melhores condições de pagamento direto com a construtora.';
+    let shareImg = settings?.shareLogoUrl || settings?.logoUrl || '/logo.svg';
+
+    // If an active property is loaded
+    if (globalSelectedPropertyId) {
+      const activeProperty = properties.find(p => p.id === globalSelectedPropertyId);
+      if (activeProperty) {
+        shareTitle = `${activeProperty.name} | ${settings?.brandName || 'VIVA SC'}`;
+        shareDesc = `${activeProperty.projectType || 'Lançamento'} - ${activeProperty.neighborhood}, ${activeProperty.region}. Veja fotos, plantas e plano de parcelas facilitado!`;
+        if (activeProperty.images && activeProperty.images.length > 0) {
+          shareImg = activeProperty.images[0];
+        } else if (activeProperty.mainImage) {
+          shareImg = activeProperty.mainImage;
+        }
+      }
+    }
+
+    // Helper functions to set/update meta tags safely
+    const setMetaTag = (propertyOrName: string, content: string, isPropertyName = true) => {
+      if (!content) return;
+      const selector = isPropertyName ? `meta[property='${propertyOrName}']` : `meta[name='${propertyOrName}']`;
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement('meta');
+        if (isPropertyName) {
+          el.setAttribute('property', propertyOrName);
+        } else {
+          el.setAttribute('name', propertyOrName);
+        }
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+
+    // Update typical OG / Meta Tags
+    setMetaTag('og:title', shareTitle, true);
+    setMetaTag('og:description', shareDesc, true);
+    if (shareImg) {
+      setMetaTag('og:image', shareImg, true);
+    }
+    setMetaTag('og:url', window.location.href, true);
+    setMetaTag('og:type', 'website', true);
+
+    setMetaTag('twitter:card', 'summary_large_image', false);
+    setMetaTag('twitter:title', shareTitle, false);
+    setMetaTag('twitter:description', shareDesc, false);
+    if (shareImg) {
+      setMetaTag('twitter:image', shareImg, false);
+    }
+
+    // Update document title dynamically
+    document.title = shareTitle;
+  }, [globalSelectedPropertyId, properties, settings]);
+
   // Open Admin view automatically if ?admin=true or hash is #admin on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -505,7 +585,13 @@ export default function App() {
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10"
                   >
                     {filteredProperties.map((prop) => (
-                      <PropertyCard key={prop.id} property={prop} allProperties={properties} settings={settings} />
+                      <PropertyCard 
+                        key={prop.id} 
+                        property={prop} 
+                        allProperties={properties} 
+                        settings={settings} 
+                        onNavigateToProperty={setGlobalSelectedPropertyId}
+                      />
                     ))}
                   </motion.div>
 
@@ -712,6 +798,7 @@ export default function App() {
           onOpenChange={(open) => {
             if (!open) setGlobalSelectedPropertyId(null);
           }}
+          onNavigateToProperty={setGlobalSelectedPropertyId}
         />
       )}
     </div>

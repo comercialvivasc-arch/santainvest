@@ -55,9 +55,18 @@ interface PropertyCardProps {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   isModalOnly?: boolean;
+  onNavigateToProperty?: (id: string | null) => void;
 }
 
-export default function PropertyCard({ property, allProperties = [], settings, isOpen, onOpenChange, isModalOnly = false }: PropertyCardProps) {
+export default function PropertyCard({ 
+  property, 
+  allProperties = [], 
+  settings, 
+  isOpen, 
+  onOpenChange, 
+  isModalOnly = false,
+  onNavigateToProperty
+}: PropertyCardProps) {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [internalModalOpen, setInternalModalOpen] = useState(false);
   const isModalOpen = isOpen !== undefined ? isOpen : internalModalOpen;
@@ -78,6 +87,17 @@ export default function PropertyCard({ property, allProperties = [], settings, i
   const [emailFormContact, setEmailFormContact] = useState('');
   const [emailFormMsg, setEmailFormMsg] = useState('');
   const [emailFormStatus, setEmailFormStatus] = useState<'idle' | 'success'>('idle');
+
+  // Reset internal sliding & interaction states when entering another property detail pages
+  React.useEffect(() => {
+    setCurrentImgIndex(0);
+    setActivePlanIdx(0);
+    setQuickQuestion('');
+    setEmailFormName('');
+    setEmailFormContact('');
+    setEmailFormMsg('');
+    setEmailFormStatus('idle');
+  }, [property.id]);
 
   // Favorites state hooks & localStorage sync
   const [isFavorited, setIsFavorited] = useState<boolean>(() => {
@@ -738,7 +758,12 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                   <span className="text-[11px] text-zinc-600 font-mono">Ref do Produto: VIVASC-{property.id}</span>
                 </div>
                 
-                <h3 className="text-xl sm:text-2xl font-black text-zinc-900 uppercase tracking-tight leading-snug">
+                {/* Nome do Empreendimento */}
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#203366] tracking-tight mb-2 uppercase">
+                  {property.name}
+                </h2>
+                
+                <h3 className="text-md sm:text-lg font-bold text-zinc-600 uppercase tracking-tight leading-snug">
                   {property.projectType || 'Imóvel'} à venda com {property.bedrooms} quartos no {property.neighborhood}, {property.region}
                 </h3>
 
@@ -1220,8 +1245,14 @@ export default function PropertyCard({ property, allProperties = [], settings, i
                       <div 
                         key={simProp.id}
                         onClick={() => {
-                          const contactText = `Olá! Vi o anúncio recomendado de "${simProp.name}" na região de ${simProp.neighborhood} e gostaria de simular!`;
-                          window.open(`https://wa.me/5547999999999?text=${encodeURIComponent(contactText)}`, '_blank', 'referrerPolicy=no-referrer');
+                          if (onNavigateToProperty) {
+                            onNavigateToProperty(simProp.id);
+                          } else {
+                            const params = new URLSearchParams(window.location.search);
+                            params.set('imovel', simProp.id);
+                            window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+                            window.dispatchEvent(new Event('popstate'));
+                          }
                         }}
                         className="flex flex-col bg-zinc-50 border border-zinc-250 rounded-2xl overflow-hidden hover:border-primary/40 transition-all cursor-pointer group/sim relative relative"
                       >

@@ -134,5 +134,7 @@ export const DEFAULT_BRAND_SETTINGS: BrandSettings = {
   email: 'comercial.vivasc@gmail.com',
   logoUrl: '',
   brandName: 'VIVA SC',
-  tagline: 'Futuristic Living'
+  tagline: 'Futuristic Living',
+  faviconUrl: '',
+  shareLogoUrl: ''
 };
