@@ -1,7 +1,8 @@
 import React from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Globe } from 'lucide-react';
 import { motion } from 'motion/react';
 import { BrandSettings } from '../types';
+import { useLanguage, Language } from '../context/LanguageContext';
 
 interface HeaderProps {
   currentView: 'home' | 'admin';
@@ -26,6 +27,7 @@ export default function Header({
   const [isVisible, setIsVisible] = React.useState(true);
   const [lastScrollY, setLastScrollY] = React.useState(0);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const { language, setLanguage, t } = useLanguage();
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -53,11 +55,17 @@ export default function Header({
   const headerBgClass = 'bg-transparent border-b border-transparent shadow-none';
 
   const menuItems: { id: typeof currentTab; label: string }[] = [
-    { id: 'lançamentos', label: 'Lançamentos' },
-    { id: 'bairros', label: 'Bairros' },
-    { id: 'sobre', label: 'Sobre Nós' },
-    { id: 'favoritos', label: 'Favoritos' },
-    { id: 'contato', label: 'Contato' }
+    { id: 'lançamentos', label: t('nav.lançamentos') },
+    { id: 'bairros', label: t('nav.bairros') },
+    { id: 'sobre', label: t('nav.sobre') },
+    { id: 'favoritos', label: t('nav.favoritos') },
+    { id: 'contato', label: t('nav.contato') }
+  ];
+
+  const languagesList: { code: Language; label: string; flag: string }[] = [
+    { code: 'pt', label: 'PT', flag: '🇧🇷' },
+    { code: 'en', label: 'EN', flag: '🇺🇸' },
+    { code: 'es', label: 'ES', flag: '🇪🇸' }
   ];
 
   const handleMenuClick = (tabId: typeof currentTab) => {
@@ -106,28 +114,49 @@ export default function Header({
         </div>
 
         {/* Navigation & Actions (DIREITA) */}
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs xl:text-sm font-bold tracking-wide uppercase shrink-0">
-          {menuItems.map((item) => {
-            const isActive = currentView === 'home' && currentTab === item.id;
-            return (
-              <button 
-                key={item.id}
-                onClick={() => handleMenuClick(item.id)}
-                className={`transition-all duration-200 cursor-pointer text-left relative py-1 ${
-                  isActive 
-                    ? 'text-[#FF9D00]' 
-                    : 'text-zinc-100 hover:text-[#FF9D00]'
+        <div className="hidden lg:flex items-center gap-4">
+          {/* Desktop Navigation */}
+          <nav className="flex items-center gap-5 xl:gap-7 text-xs xl:text-sm font-bold tracking-wide uppercase shrink-0">
+            {menuItems.map((item) => {
+              const isActive = currentView === 'home' && currentTab === item.id;
+              return (
+                <button 
+                  key={item.id}
+                  onClick={() => handleMenuClick(item.id)}
+                  className={`transition-all duration-200 cursor-pointer text-left relative py-1 ${
+                    isActive 
+                      ? 'text-[#FF9D00]' 
+                      : 'text-zinc-100 hover:text-[#FF9D00]'
+                  }`}
+                >
+                  {item.label}
+                  {isActive && (
+                    <span className="absolute bottom-[-4px] left-0 right-0 h-[2.5px] bg-[#FF9D00] rounded-full animate-fade-in" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Desktop Language Selector */}
+          <div className="flex items-center gap-1.5 border-l border-zinc-700/60 pl-4 ml-1">
+            {languagesList.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => setLanguage(lang.code)}
+                className={`text-[10px] px-2 py-1.5 rounded-lg transition-all font-mono font-black ${
+                  language === lang.code
+                    ? 'bg-[#FF9D00] text-[#203366] shadow'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/5'
                 }`}
+                aria-label={`Switch to ${lang.label}`}
               >
-                {item.label}
-                {isActive && (
-                  <span className="absolute bottom-[-4px] left-0 right-0 h-[2.5px] bg-[#FF9D00] rounded-full animate-fade-in" />
-                )}
+                <span className="mr-1">{lang.flag}</span>
+                {lang.label}
               </button>
-            );
-          })}
-        </nav>
+            ))}
+          </div>
+        </div>
 
         {/* Mobile Menu Toggle (DIREITA - MOBILE VIEW) */}
         <div className="flex lg:hidden items-center gap-2 shrink-0">
@@ -169,14 +198,38 @@ export default function Header({
             );
           })}
 
+          {/* Mobile Language Selector */}
+          <div className="flex items-center justify-between bg-[#203366]/60 border border-zinc-700/30 rounded-xl px-4 py-2.5 my-2">
+            <span className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-[#FF9D00]" />
+              {t('ui.select_lang')}
+            </span>
+            <div className="flex gap-1.5">
+              {languagesList.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => setLanguage(lang.code)}
+                  className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
+                    language === lang.code
+                      ? 'bg-[#FF9D00] text-[#203366] shadow-md scale-105'
+                      : 'text-zinc-300 bg-[#1d2c55]/80 hover:text-white'
+                  }`}
+                >
+                  <span>{lang.flag}</span>
+                  <span>{lang.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             onClick={() => {
               onNavigate(currentView === 'admin' ? 'home' : 'admin');
               setIsOpen(false);
             }}
-            className="text-xs tracking-widest font-mono uppercase bg-[#FF9D00] text-black font-extrabold py-3.5 px-4 rounded-xl text-center mt-2.5 shadow-lg cursor-pointer"
+            className="text-xs tracking-widest font-mono uppercase bg-[#FF9D00] text-black font-extrabold py-3.5 px-4 rounded-xl text-center mt-2 shadow-lg cursor-pointer"
           >
-            {currentView === 'admin' ? 'Voltar ao Portal' : 'Painel Admin'}
+            {currentView === 'admin' ? t('nav.back') : t('nav.admin')}
           </button>
         </motion.div>
       )}

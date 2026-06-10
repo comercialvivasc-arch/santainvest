@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Search, MapPin, Sparkles, SlidersHorizontal, Home, HelpCircle, X, Building, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SearchPanelProps {
   properties: Property[];
@@ -45,14 +46,16 @@ export default function SearchPanel({
 }: SearchPanelProps) {
   const [searchInput, setSearchInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const { language, t } = useLanguage();
 
   // States to manage input texts for typing manually
   const [minPriceText, setMinPriceText] = useState('');
   const [maxPriceText, setMaxPriceText] = useState('');
 
-  // Format real-time while typing
+  // Format real-time while typing with language-aware locale
   const formatBRLValue = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    const locale = language === 'en' ? 'en-US' : language === 'es' ? 'es-ES' : 'pt-BR';
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'BRL',
       maximumFractionDigits: 0
@@ -61,17 +64,17 @@ export default function SearchPanel({
 
   const parseBRLString = (str: string): number => {
     const clean = str.replace(/\D/g, '');
-    return clean ? parseInt(clean, 10) : 0;
+    return clean ? parseInt(clean, 15) : 0;
   };
 
   // Sync state variables to input fields
   useEffect(() => {
     setMinPriceText(formatBRLValue(minPrice));
-  }, [minPrice]);
+  }, [minPrice, language]);
 
   useEffect(() => {
     setMaxPriceText(formatBRLValue(maxPrice));
-  }, [maxPrice]);
+  }, [maxPrice, language]);
 
   // Suggestions dynamic generator
   const suggestions = useMemo(() => {
@@ -115,22 +118,36 @@ export default function SearchPanel({
   }, [properties]);
 
   const getTypeIcon = (type: string) => {
-    const t = type.toLowerCase();
-    if (t.includes('casa')) return <Home className="h-4.5 w-4.5" />;
-    if (t.includes('apartamento')) return <Building className="h-4.5 w-4.5" />;
-    if (t.includes('studio') || t.includes('loft')) return <Layers className="h-4.5 w-4.5" />;
-    if (t.includes('cobertura') || t.includes('penthouse')) return <Sparkles className="h-4.5 w-4.5" />;
+    const tLower = type.toLowerCase();
+    if (tLower.includes('casa')) return <Home className="h-4.5 w-4.5" />;
+    if (tLower.includes('apartamento')) return <Building className="h-4.5 w-4.5" />;
+    if (tLower.includes('studio') || tLower.includes('loft')) return <Layers className="h-4.5 w-4.5" />;
+    if (tLower.includes('cobertura') || tLower.includes('penthouse')) return <Sparkles className="h-4.5 w-4.5" />;
     return <Building className="h-4.5 w-4.5" />;
   };
 
   const getPluralTypeName = (type: string) => {
-    const t = type.toLowerCase().trim();
-    if (t === 'casa') return 'Casas';
-    if (t === 'apartamento') return 'Apartamentos';
-    if (t === 'studio') return 'Studios';
-    if (t === 'cobertura') return 'Coberturas';
+    const tLower = type.toLowerCase().trim();
+    if (language === 'en') {
+      if (tLower === 'casa') return 'Houses';
+      if (tLower === 'apartamento') return 'Apartments';
+      if (tLower === 'studio') return 'Studios';
+      if (tLower === 'cobertura') return 'Penthouses';
+      return type + 's';
+    }
+    if (language === 'es') {
+      if (tLower === 'casa') return 'Casas';
+      if (tLower === 'apartamento') return 'Apartamentos';
+      if (tLower === 'studio') return 'Studios';
+      if (tLower === 'cobertura') return 'Coberturas';
+      return type + 's';
+    }
+    // default standard PT
+    if (tLower === 'casa') return 'Casas';
+    if (tLower === 'apartamento') return 'Apartamentos';
+    if (tLower === 'studio') return 'Studios';
+    if (tLower === 'cobertura') return 'Coberturas';
     
-    // Default pluralize
     if (type.endsWith('o') || type.endsWith('a') || type.endsWith('e')) {
       return type + 's';
     }
@@ -193,7 +210,7 @@ export default function SearchPanel({
   };
 
   return (
-    <div id="search-filter-box" className="w-full bg-white text-zinc-900 flex flex-col relative">
+    <div id="search-filter-box" className="w-full bg-white text-zinc-900 flex flex-col relative rounded-t-3xl sm:rounded-none">
       
       {/* 1. TOP HEADER: CLOSE BUTTON (X) & CLEAR FILTERS BUTTON ON LEFT */}
       <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 bg-white">
@@ -214,32 +231,32 @@ export default function SearchPanel({
             onClick={handleClearAll}
             className="text-xs font-bold uppercase tracking-wider text-[#203366] hover:text-[#FF9D00] hover:bg-zinc-50 border border-zinc-200 hover:border-zinc-300 py-2.5 px-4 rounded-xl transition-all font-mono cursor-pointer"
           >
-            Limpar filtros
+            {t('search.clear_filters')}
           </button>
         </div>
 
         <div className="flex items-center gap-2 text-zinc-800">
           <SlidersHorizontal className="h-4.5 w-4.5 text-[#FF9D00]" />
           <span className="text-xs sm:text-sm font-extrabold uppercase tracking-widest font-mono text-[#203366]">
-            Filtrar Lançamentos
+            {t('search.title')}
           </span>
         </div>
       </div>
 
       {/* 2. BODY CONTENT */}
-      <div className="p-6 sm:p-8 space-y-8">
+      <div className="p-6 sm:p-8 space-y-8 max-h-[75vh] overflow-y-auto">
         
         {/* Real-time search query box */}
         <div className="relative w-full">
           <label className="text-[11px] font-bold tracking-widest text-[#203366] uppercase font-mono block mb-2">
-            ✈ Busca Rápida
+            ✈ {t('search.quick')}
           </label>
           <div className="flex items-center rounded-xl bg-zinc-50 border border-zinc-200 focus-within:border-[#FF9D00] focus-within:ring-1 focus-within:ring-[#FF9D00]/20 transition-all duration-300 pl-4 pr-2 py-1">
             <Search className="h-5 w-5 text-zinc-400 shrink-0" />
             <input
               type="text"
               className="w-full bg-transparent px-3 py-3 text-sm text-zinc-800 placeholder-zinc-400 outline-none border-none focus:ring-0"
-              placeholder="Busque por Região, Bairro, Empreendimento ou Palavras-chave..."
+              placeholder={t('search.global_placeholder')}
               value={searchInput}
               onChange={(e) => handleQueryChange(e.target.value)}
               onFocus={() => setShowSuggestions(true)}
@@ -251,7 +268,7 @@ export default function SearchPanel({
                 onClick={() => handleQueryChange('')}
                 className="text-[10px] text-zinc-500 hover:text-[#FF9D00] uppercase font-mono tracking-wider px-2 cursor-pointer transition-colors"
               >
-                Limpar
+                {t('search.clear')}
               </button>
             )}
           </div>
@@ -266,24 +283,32 @@ export default function SearchPanel({
                 className="absolute left-0 mt-2 w-full rounded-xl border border-zinc-200 bg-white p-2 shadow-xl z-50 text-left"
               >
                 <p className="text-[9px] font-bold tracking-widest text-[#FF9D00] uppercase px-3 py-1 font-mono border-b border-zinc-100 w-full mb-1">
-                  Sugestões
+                  {t('search.suggestions')}
                 </p>
-                {suggestions.map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => selectSuggestion(item.text)}
-                    className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs text-zinc-700 hover:bg-zinc-50 hover:text-[#203366] transition-all text-left cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <MapPin className="h-3.5 w-3.5 text-[#FF9D00] shrink-0" />
-                      <span className="font-semibold text-zinc-900">{item.text}</span>
-                    </span>
-                    <span className="text-[9px] uppercase tracking-wider font-mono bg-[#FF9D00]/10 px-2 py-0.5 rounded text-[#FF9D00]">
-                      {item.type}
-                    </span>
-                  </button>
-                ))}
+                {suggestions.map((item, idx) => {
+                  const labelType = item.type === 'Bairro'
+                    ? (language === 'en' ? 'Neighborhood' : language === 'es' ? 'Barrio' : 'Bairro')
+                    : item.type === 'Região'
+                      ? (language === 'en' ? 'Region' : language === 'es' ? 'Región' : 'Região')
+                      : (language === 'en' ? 'Type' : language === 'es' ? 'Tipo' : 'Tipo');
+
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => selectSuggestion(item.text)}
+                      className="w-full flex items-center justify-between rounded-lg px-3 py-3 text-xs text-zinc-700 hover:bg-zinc-50 hover:text-[#203366] transition-all text-left cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5 text-[#FF9D00] shrink-0" />
+                        <span className="font-semibold text-zinc-900">{item.text}</span>
+                      </span>
+                      <span className="text-[9px] uppercase tracking-wider font-mono bg-[#FF9D00]/10 px-2 py-0.5 rounded text-[#FF9D00] shrink-0">
+                        {labelType}
+                      </span>
+                    </button>
+                  );
+                })}
               </motion.div>
             )}
           </AnimatePresence>
@@ -291,12 +316,12 @@ export default function SearchPanel({
 
         {/* 3. FAIXA DE PREÇO SECTION */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
             <label className="text-[11px] font-bold tracking-widest text-[#203366] uppercase font-mono block">
-              ✦ Faixa de Preço
+              ✦ {t('search.price_range')}
             </label>
-            <span className="text-xs font-bold text-[#FF9D00] font-mono bg-zinc-50 px-2.5 py-1 rounded-md border border-zinc-200">
-              Valor Máximo: {formatBRLValue(maxPrice)}
+            <span className="text-[11px] font-bold text-[#FF9D00] font-mono bg-zinc-50 px-2.5 py-1 rounded-md border border-zinc-200 self-start sm:self-auto">
+              {t('search.max_price')}: {formatBRLValue(maxPrice)}
             </span>
           </div>
 
@@ -312,7 +337,7 @@ export default function SearchPanel({
               className="w-full h-1.5 bg-zinc-100 rounded-lg appearance-none cursor-pointer accent-[#FF9D00] focus:outline-none"
             />
             <div className="flex justify-between text-[9px] text-zinc-400 font-mono mt-1 px-1">
-              <span>R$ 100 Mil</span>
+              <span>{language === 'en' ? 'R$ 100K' : 'R$ 100 Mil'}</span>
               <span>R$ 5 M</span>
               <span>R$ 10 M</span>
               <span>R$ 15 M</span>
@@ -324,7 +349,7 @@ export default function SearchPanel({
           <div className="grid grid-cols-2 gap-4 pt-1">
             <div className="space-y-1.5 text-left">
               <span className="text-[10px] font-extrabold uppercase tracking-wide text-zinc-500 block font-mono">
-                Preço Mínimo
+                {t('search.min_price_label')}
               </span>
               <div className="relative rounded-xl border border-zinc-200 focus-within:border-[#FF9D00] bg-white px-3.5 py-2.5 transition-all">
                 <input
@@ -339,7 +364,7 @@ export default function SearchPanel({
 
             <div className="space-y-1.5 text-left">
               <span className="text-[10px] font-extrabold uppercase tracking-wide text-zinc-500 block font-mono">
-                Preço Máximo
+                {t('search.max_price_label')}
               </span>
               <div className="relative rounded-xl border border-zinc-200 focus-within:border-[#FF9D00] bg-white px-3.5 py-2.5 transition-all">
                 <input
@@ -357,7 +382,7 @@ export default function SearchPanel({
         {/* 4. TIPO DE IMÓVEL SECTION */}
         <div className="space-y-3 text-left">
           <label className="text-[11px] font-bold tracking-widest text-[#203366] uppercase font-mono block">
-            ✦ Tipo de Imóvel
+            ✦ {t('search.property_type')}
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {availableProjectTypes.map((type) => {
@@ -370,8 +395,8 @@ export default function SearchPanel({
                   onClick={() => handleTypeClick(type)}
                   className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all duration-300 cursor-pointer ${
                     isSelected
-                      ? 'bg-[#203366] text-white border-[#203366] shadow-md shadow-[#203366]/15'
-                      : 'bg-white hover:bg-zinc-50 text-zinc-700 border-zinc-200 hover:border-zinc-300'
+                      ? 'bg-[#203366] text-white border-[#203366] shadow-md'
+                      : 'bg-white hover:bg-zinc-50 text-zinc-700 border-zinc-200'
                   }`}
                 >
                   <div className={`mb-2 p-2 rounded-lg ${isSelected ? 'bg-white/10 text-[#FF9D00]' : 'bg-zinc-50 text-zinc-600'}`}>
@@ -387,7 +412,7 @@ export default function SearchPanel({
         {/* 5. DORMITÓRIOS SECTION: LINE TODOS + CIRCLES */}
         <div className="space-y-3 text-left">
           <label className="text-[11px] font-bold tracking-widest text-[#203366] uppercase font-mono block">
-            ✦ Dormitórios Recomendados
+            ✦ {t('search.bedrooms')}
           </label>
           
           <div className="flex items-center gap-4 py-1.5 flex-wrap">
@@ -395,13 +420,13 @@ export default function SearchPanel({
             <button
               type="button"
               onClick={() => handleBedroomsClick(null)}
-              className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 border cursor-pointer h-10 ${
+              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 border cursor-pointer h-11 ${
                 selectedBedrooms === null
-                  ? 'bg-[#FF9D00] text-black border-[#FF9D00] shadow-md shadow-[#FF9D00]/10'
-                  : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                  ? 'bg-[#FF9D00] text-black border-[#FF9D00] shadow-md'
+                  : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
               }`}
             >
-              Todos
+              {t('search.all')}
             </button>
 
             {/* Individual bedroom circles */}
@@ -414,10 +439,10 @@ export default function SearchPanel({
                     key={beds}
                     type="button"
                     onClick={() => handleBedroomsClick(beds)}
-                    className={`h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border cursor-pointer ${
+                    className={`h-11 w-11 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border cursor-pointer ${
                       isSelected
-                        ? 'bg-[#FF9D00] text-black border-[#FF9D00] shadow-md shadow-[#FF9D00]/15 scale-105'
-                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                        ? 'bg-[#FF9D00] text-black border-[#FF9D00] shadow-md scale-105'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
                     }`}
                   >
                     {displayLabel}
@@ -431,7 +456,7 @@ export default function SearchPanel({
         {/* 6. ESTÁGIO DA OBRA SECTION */}
         <div className="space-y-3 text-left">
           <label className="text-[11px] font-bold tracking-widest text-[#203366] uppercase font-mono block">
-            ✦ Estágio da Obra
+            ✦ {t('search.stage')}
           </label>
           <div className="flex flex-wrap gap-2">
             <button
@@ -443,11 +468,15 @@ export default function SearchPanel({
                   : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 font-semibold'
               }`}
             >
-              Todos
+              {t('search.all')}
             </button>
             {(['Pré-lançamento', 'Lançamento', 'Em construção', 'Pronto'] as const).map((stage) => {
-              const displayLabel = stage === 'Lançamento' ? 'Lançado' : stage;
-              // Normalize stage names
+              let displayLabel = '';
+              if (stage === 'Pré-lançamento') displayLabel = t('stage.pre');
+              else if (stage === 'Lançamento') displayLabel = t('stage.launch');
+              else if (stage === 'Em construção') displayLabel = t('stage.construction');
+              else if (stage === 'Pronto') displayLabel = t('stage.ready');
+
               const isSelected = selectedStatus === stage;
               return (
                 <button
@@ -483,7 +512,7 @@ export default function SearchPanel({
           className="w-full sm:w-auto px-12 py-4 rounded-xl bg-[#203366] text-white font-extrabold text-xs uppercase tracking-widest hover:bg-[#1a2b56] hover:shadow-lg active:scale-98 flex items-center justify-center gap-2 cursor-pointer transition-all duration-300"
         >
           <Search className="h-4.5 w-4.5 text-[#FF9D00]" />
-          Visualizar Resultados
+          {t('search.results')}
         </button>
       </div>
 
