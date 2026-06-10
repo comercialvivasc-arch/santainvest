@@ -1,17 +1,27 @@
 import React from 'react';
-import { ShieldCheck, User, Building2, Menu, X, Landmark, Search } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { BrandSettings } from '../types';
 
 interface HeaderProps {
   currentView: 'home' | 'admin';
   onNavigate: (view: 'home' | 'admin') => void;
+  currentTab: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato';
+  onTabChange: (tab: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato') => void;
   query?: string;
   setQuery?: (q: string) => void;
   settings: BrandSettings;
 }
 
-export default function Header({ currentView, onNavigate, query, setQuery, settings }: HeaderProps) {
+export default function Header({ 
+  currentView, 
+  onNavigate, 
+  currentTab, 
+  onTabChange, 
+  query, 
+  setQuery, 
+  settings 
+}: HeaderProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(true);
   const [lastScrollY, setLastScrollY] = React.useState(0);
@@ -42,18 +52,33 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
 
   const headerBgClass = 'bg-transparent border-b border-transparent shadow-none';
 
+  const menuItems: { id: typeof currentTab; label: string }[] = [
+    { id: 'lançamentos', label: 'Lançamentos' },
+    { id: 'bairros', label: 'Bairros' },
+    { id: 'sobre', label: 'Sobre Nós' },
+    { id: 'favoritos', label: 'Favoritos' },
+    { id: 'contato', label: 'Contato' }
+  ];
+
+  const handleMenuClick = (tabId: typeof currentTab) => {
+    onTabChange(tabId);
+    onNavigate('home');
+    setIsOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <header 
-      style={{ backgroundColor: '#37409A' }}
+      style={{ backgroundColor: '#203366' }}
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${headerBgClass} ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
     >
       <div 
-        style={{ backgroundColor: '#37409A' }}
+        style={{ backgroundColor: '#203366' }}
         className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8"
       >
         {/* Futuristic Logo & Brand (ESQUERDA) */}
         <div 
-          onClick={() => onNavigate('home')} 
+          onClick={() => handleMenuClick('home')} 
           className="flex cursor-pointer items-center gap-2 sm:gap-3 group shrink-0"
           id="brand-logo"
         >
@@ -62,8 +87,7 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
               src={settings.logoUrl} 
               alt={settings.brandName || "Logo"} 
               referrerPolicy="no-referrer"
-              style={{ width: '155px', height: '80px' }}
-              className="object-contain transition-all duration-300 group-hover:scale-105"
+              className="w-[120px] h-[60px] sm:w-[155px] sm:h-[80px] object-contain transition-all duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-primary rotate-45 shadow-lg shadow-primary/20 transition-all duration-300 group-hover:scale-105">
@@ -72,10 +96,10 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
             </div>
           )}
           <div className="flex flex-col">
-            <span className="text-sm font-black tracking-wider text-white uppercase sm:text-lg font-sans leading-none">
+            <span className="text-sm font-black tracking-wider text-white uppercase sm:text-base font-sans leading-none">
               {settings.brandName || 'VIVA SC'}
             </span>
-            <span className="hidden sm:inline text-[8px] font-semibold tracking-widest text-zinc-400 uppercase font-mono mt-0.5">
+            <span className="hidden sm:inline text-[8px] font-semibold tracking-widest text-[#FF9D00] uppercase font-mono mt-0.5">
               {settings.tagline || 'Futuristic Living'}
             </span>
           </div>
@@ -83,36 +107,33 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
 
         {/* Navigation & Actions (DIREITA) */}
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide text-zinc-300 uppercase shrink-0">
-          <button 
-            onClick={() => onNavigate('home')}
-            style={{ color: '#F6CF40' }}
-            className={`transition-colors duration-200 hover:text-primary text-left cursor-pointer ${currentView === 'home' ? 'text-primary border-b-2 border-primary pb-1 mt-1' : ''}`}
-          >
-            Lançamentos
-          </button>
-          <a 
-            href="#projects-showcase" 
-            className="transition-colors duration-200 hover:text-primary cursor-pointer"
-          >
-            Exclusivos
-          </a>
-          <a
-            href={`https://wa.me/${settings.phone || '5547999999999'}?text=${encodeURIComponent("Olá! Gostaria de conhecer os lançamentos imobiliários do portal.")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            referrerPolicy="no-referrer"
-            className="transition-colors duration-200 hover:text-primary cursor-pointer"
-          >
-            Contato
-          </a>
+        <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs xl:text-sm font-bold tracking-wide uppercase shrink-0">
+          {menuItems.map((item) => {
+            const isActive = currentView === 'home' && currentTab === item.id;
+            return (
+              <button 
+                key={item.id}
+                onClick={() => handleMenuClick(item.id)}
+                className={`transition-all duration-200 cursor-pointer text-left relative py-1 ${
+                  isActive 
+                    ? 'text-[#FF9D00]' 
+                    : 'text-zinc-100 hover:text-[#FF9D00]'
+                }`}
+              >
+                {item.label}
+                {isActive && (
+                  <span className="absolute bottom-[-4px] left-0 right-0 h-[2.5px] bg-[#FF9D00] rounded-full animate-fade-in" />
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Mobile Menu Toggle (DIREITA - MOBILE VIEW) */}
-        <div className="flex md:hidden items-center gap-2 shrink-0">
+        <div className="flex lg:hidden items-center gap-2 shrink-0">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="p-1.5 sm:p-2 rounded-lg bg-transparent border border-transparent text-zinc-300 hover:text-white cursor-pointer transition-all focus:outline-none"
+            className="p-1.5 sm:p-2 rounded-lg bg-transparent border border-transparent text-zinc-350 hover:text-white cursor-pointer transition-all focus:outline-none"
           >
             {isOpen ? (
               <X style={{ width: '28px', height: '28px' }} />
@@ -128,31 +149,35 @@ export default function Header({ currentView, onNavigate, query, setQuery, setti
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="md:hidden border-t border-white/10 bg-zinc-950 p-6 flex flex-col gap-4"
+          style={{ backgroundColor: '#1d2c55' }}
+          className="lg:hidden border-t border-zinc-800 p-5 flex flex-col gap-2 shadow-2xl relative z-40"
         >
-          <button 
-            onClick={() => { onNavigate('home'); setIsOpen(false); }}
-            className={`text-sm tracking-widest font-semibold uppercase hover:text-primary text-left py-2 border-b border-zinc-900 ${currentView === 'home' ? 'text-primary' : 'text-zinc-300'}`}
+          {menuItems.map((item) => {
+            const isActive = currentView === 'home' && currentTab === item.id;
+            return (
+              <button 
+                key={item.id}
+                onClick={() => handleMenuClick(item.id)}
+                className={`text-xs tracking-wider font-extrabold uppercase py-3 px-4 rounded-xl text-left transition-all duration-200 ${
+                  isActive 
+                    ? 'bg-[#203366] text-[#FF9D00]' 
+                    : 'text-zinc-200 hover:bg-[#203366]/50 hover:text-white'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() => {
+              onNavigate(currentView === 'admin' ? 'home' : 'admin');
+              setIsOpen(false);
+            }}
+            className="text-xs tracking-widest font-mono uppercase bg-[#FF9D00] text-black font-extrabold py-3.5 px-4 rounded-xl text-center mt-2.5 shadow-lg cursor-pointer"
           >
-            Lançamentos
+            {currentView === 'admin' ? 'Voltar ao Portal' : 'Painel Admin'}
           </button>
-          <a 
-            href="#projects-showcase" 
-            onClick={() => setIsOpen(false)}
-            className="text-sm tracking-widest font-semibold uppercase text-zinc-300 hover:text-primary py-2 border-b border-zinc-900"
-          >
-            Exclusivos
-          </a>
-          <a
-            href={`https://wa.me/${settings.phone || '5547999999999'}?text=${encodeURIComponent("Olá! Gostaria de falar com um consultor sobre os lançamentos activos.")}`}
-            onClick={() => setIsOpen(false)}
-            target="_blank"
-            rel="noopener noreferrer"
-            referrerPolicy="no-referrer"
-            className="text-sm tracking-widest font-semibold uppercase text-zinc-300 hover:text-primary py-2 border-b border-zinc-900"
-          >
-            Contato WhatsApp
-          </a>
         </motion.div>
       )}
     </header>

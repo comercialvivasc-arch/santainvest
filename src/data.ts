@@ -136,5 +136,8 @@ export const DEFAULT_BRAND_SETTINGS: BrandSettings = {
   brandName: 'VIVA SC',
   tagline: 'Futuristic Living',
   faviconUrl: '',
-  shareLogoUrl: ''
+  shareLogoUrl: '',
+  companyName: 'Meu Primeiro Imóvel ME',
+  creci: 'Creci 36847',
+  cnpj: '51.874.234/0001-90'
 };

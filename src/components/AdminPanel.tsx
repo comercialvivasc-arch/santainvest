@@ -128,6 +128,9 @@ export default function AdminPanel({
   const [settingsTagline, setSettingsTagline] = useState(settings?.tagline || '');
   const [settingsFaviconUrl, setSettingsFaviconUrl] = useState(settings?.faviconUrl || '');
   const [settingsShareLogoUrl, setSettingsShareLogoUrl] = useState(settings?.shareLogoUrl || '');
+  const [settingsCompanyName, setSettingsCompanyName] = useState(settings?.companyName || '');
+  const [settingsCreci, setSettingsCreci] = useState(settings?.creci || '');
+  const [settingsCnpj, setSettingsCnpj] = useState(settings?.cnpj || '');
   const [isSettingsUpdating, setIsSettingsUpdating] = useState(false);
   const [settingsUpdateStatus, setSettingsUpdateStatus] = useState<string | null>(null);
 
@@ -153,6 +156,9 @@ export default function AdminPanel({
       setSettingsTagline(settings.tagline);
       setSettingsFaviconUrl(settings.faviconUrl || '');
       setSettingsShareLogoUrl(settings.shareLogoUrl || '');
+      setSettingsCompanyName(settings.companyName || '');
+      setSettingsCreci(settings.creci || '');
+      setSettingsCnpj(settings.cnpj || '');
     }
   }, [settings]);
 
@@ -1352,7 +1358,10 @@ export default function AdminPanel({
                     brandName: settingsBrandName,
                     tagline: settingsTagline,
                     faviconUrl: settingsFaviconUrl,
-                    shareLogoUrl: settingsShareLogoUrl
+                    shareLogoUrl: settingsShareLogoUrl,
+                    companyName: settingsCompanyName,
+                    creci: settingsCreci,
+                    cnpj: settingsCnpj
                   });
                   setSettingsUpdateStatus('Configurações de marca e contatos salvas no Firebase Firestore com sucesso.');
                 } catch (err: any) {
@@ -1661,6 +1670,56 @@ export default function AdminPanel({
                   <span className="block text-[9px] text-zinc-500 leading-normal pt-0.5 font-sans">
                     * Se deixado em branco, o portal usará automaticamente o logotipo principal como imagem de compartilhamento da home.
                   </span>
+                </div>
+              </div>
+
+              {/* Row 6: Dados Cadastrais / Empresa */}
+              <div className="space-y-3.5 border-t border-zinc-900 pt-5">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+                    ✦ Dados Cadastrais / Dados da Empresa (Impressos no Rodapé)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-[9px] uppercase font-mono text-zinc-400 font-bold block">
+                      Nome da Empresa / Razão Social
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsCompanyName}
+                      onChange={(e) => setSettingsCompanyName(e.target.value)}
+                      placeholder="Meu Primeiro Imóvel ME"
+                      className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] uppercase font-mono text-zinc-400 font-bold block">
+                      CRECI (Registro Imobiliário)
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsCreci}
+                      onChange={(e) => setSettingsCreci(e.target.value)}
+                      placeholder="Creci 36847"
+                      className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] uppercase font-mono text-zinc-400 font-bold block">
+                      CNPJ (Cadastro de Pessoa Jurídica)
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsCnpj}
+                      onChange={(e) => setSettingsCnpj(e.target.value)}
+                      placeholder="00.000.000/0001-00"
+                      className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                    />
+                  </div>
                 </div>
               </div>
 

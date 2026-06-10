@@ -66,6 +66,9 @@ export interface BrandSettings {
   tagline: string; // brand tagline
   faviconUrl?: string; // custom tab favicon
   shareLogoUrl?: string; // main/home share preview logo image url
+  companyName?: string; // legal company name e.g. "Meu Primeiro Imóvel ME"
+  creci?: string;       // CRECI number e.g. "36847"
+  cnpj?: string;        // CNPJ number e.g. "00.000.000/0001-00"
 }
 
 export interface UserProfile {

@@ -3,6 +3,7 @@ import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, C
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BrandSettings } from '../types';
 import { saveLeadToFirestore, saveMessageToFirestore } from '../services/firestoreService';
+import Footer from './Footer';
 
 // Helper formatters supporting flexible raw text/integers inside properties
 const formatBedroomsLabel = (val: string | number, suffix: string = 'Qts') => {
@@ -56,6 +57,7 @@ interface PropertyCardProps {
   onOpenChange?: (open: boolean) => void;
   isModalOnly?: boolean;
   onNavigateToProperty?: (id: string | null) => void;
+  onNavigateToAdmin?: () => void;
 }
 
 export default function PropertyCard({ 
@@ -65,7 +67,8 @@ export default function PropertyCard({
   isOpen, 
   onOpenChange, 
   isModalOnly = false,
-  onNavigateToProperty
+  onNavigateToProperty,
+  onNavigateToAdmin
 }: PropertyCardProps) {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [internalModalOpen, setInternalModalOpen] = useState(false);
@@ -1291,6 +1294,19 @@ export default function PropertyCard({
                   </div>
                 </div>
               )}
+
+              {/* Dynamic light-gray footer */}
+              <div className="w-full mt-10">
+                <Footer 
+                  settings={settings} 
+                  onNavigateToAdmin={() => {
+                    setIsModalOpen(false);
+                    if (onNavigateToAdmin) {
+                      onNavigateToAdmin();
+                    }
+                  }}
+                />
+              </div>
 
               {/* Espaçador de segurança para que o conteúdo não fique sob o menu fixo inferior de contato */}
               <div className="h-24 w-full shrink-0" aria-hidden="true" />

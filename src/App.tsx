@@ -4,6 +4,7 @@ import SearchHero from './components/SearchHero';
 import SearchPanel from './components/SearchPanel';
 import PropertyCard from './components/PropertyCard';
 import AdminPanel from './components/AdminPanel';
+import Footer from './components/Footer';
 import { Property, BannerAd, SearchFilters, BrandSettings, Broker, Client, Lead, Visit, Message } from './types';
 import { INITIAL_PROPERTIES, INITIAL_BANNERS, DEFAULT_BRAND_SETTINGS } from './data';
 import { 
@@ -99,13 +100,44 @@ export default function App() {
 
   // Navigation View ('home' or 'admin')
   const [currentView, setCurrentView] = useState<'home' | 'admin'>('home');
+  const [currentTab, setCurrentTab] = useState<'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato'>('home');
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+
+  // Sync favorites with client-side localStorage
+  useEffect(() => {
+    const updateFavorites = () => {
+      try {
+        const favs = localStorage.getItem('vivasc_favorites');
+        if (favs) {
+          const parsed = JSON.parse(favs);
+          if (Array.isArray(parsed)) {
+            setFavoriteIds(parsed);
+          }
+        } else {
+          setFavoriteIds([]);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    updateFavorites();
+    const interval = setInterval(updateFavorites, 1500);
+    window.addEventListener('storage', updateFavorites);
+    return () => {
+      window.removeEventListener('storage', updateFavorites);
+      clearInterval(interval);
+    };
+  }, [currentTab]);
+
   const [globalSelectedPropertyId, setGlobalSelectedPropertyId] = useState<string | null>(null);
 
   // Search filter parameters
   const [query, setQuery] = useState('');
   const [selectedBedrooms, setSelectedBedrooms] = useState<number | null>(null);
-  const [maxPrice, setMaxPrice] = useState<number>(10000000); // Default to R$ 10 M to match slider cap
+  const [minPrice, setMinPrice] = useState<number>(100000);
+  const [maxPrice, setMaxPrice] = useState<number>(20000000);
   const [selectedStatus, setSelectedStatus] = useState<Property['status'] | null>(null);
+  const [selectedProjectType, setSelectedProjectType] = useState<string | null>(null);
   const [maxDownpayment, setMaxDownpayment] = useState<number>(0); // 0 means any
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
 
@@ -456,33 +488,57 @@ export default function App() {
         }
       }
 
-      // 2. Bedrooms filter 
+      // 2. Bedrooms filter (All, 1, 2, 3, 4, +5)
       if (selectedBedrooms !== null) {
-        const bedsStr = String(p.bedrooms);
-        const matchNumberInput = bedsStr.includes(String(selectedBedrooms));
         const numVal = Number(p.bedrooms);
-        const matchNumberStrict = !isNaN(numVal) && numVal === selectedBedrooms;
-        
-        if (!matchNumberInput && !matchNumberStrict) {
-          return false;
+        if (selectedBedrooms === 5) {
+          if (isNaN(numVal) || numVal < 5) {
+            return false;
+          }
+        } else {
+          if (isNaN(numVal) || numVal !== selectedBedrooms) {
+            return false;
+          }
         }
       }
 
-      // 3. Max Price Limit filter
-      if (p.price > maxPrice) {
+      // 3. Price range filter (Min to Max)
+      if (p.price < minPrice || p.price > maxPrice) {
         return false;
       }
 
-      // 4. Construction Stage / Status Filter
+      // 4. Construction Stage / Status Filter ('Pré-lançamento', 'Lançamento', 'Em construção', 'Pronto')
       if (selectedStatus !== null) {
-        if (p.status !== selectedStatus) {
+        const pStatusNorm = (p.status || '').toLowerCase().trim();
+        const selStatusNorm = selectedStatus.toLowerCase().trim();
+        // Handle "lançado" matching with "lançamento"
+        if (selStatusNorm === 'lançado') {
+          if (pStatusNorm !== 'lançamento' && pStatusNorm !== 'lançado') {
+            return false;
+          }
+        } else if (pStatusNorm !== selStatusNorm) {
           return false;
         }
       }
 
-      // 5. Downpayment (Entrada) Budget Filter - "imóveis próximos deste valor"
-      // If user inputs a downpayment value, match features requiring downpurchase <= 1.30 * maxDownpayment
-      // This behaves as an accommodating limit finding options matching or close below/slightly above budget
+      // 5. Project Type Filter
+      if (selectedProjectType !== null) {
+        const pTypeNorm = (p.projectType || '').toLowerCase().trim();
+        const selTypeNorm = selectedProjectType.toLowerCase().trim();
+        // Handle plural/singular matches if any
+        const matchSingularPlural = pTypeNorm === selTypeNorm || 
+                                    pTypeNorm + 's' === selTypeNorm || 
+                                    selTypeNorm + 's' === pTypeNorm ||
+                                    (selTypeNorm === 'casas' && pTypeNorm === 'casa') ||
+                                    (selTypeNorm === 'apartamentos' && pTypeNorm === 'apartamento') ||
+                                    (selTypeNorm === 'studios' && pTypeNorm === 'studio') ||
+                                    (selTypeNorm === 'coberturas' && pTypeNorm === 'cobertura');
+        if (!matchSingularPlural) {
+          return false;
+        }
+      }
+
+      // 6. Downpayment (Entrada) Budget Filter - "imóveis próximos deste valor"
       if (maxDownpayment > 0) {
         if (p.downpayment > maxDownpayment * 1.30) {
           return false;
@@ -491,15 +547,394 @@ export default function App() {
 
       return true;
     });
-  }, [properties, query, selectedBedrooms, maxPrice, selectedStatus, maxDownpayment]);
+  }, [properties, query, selectedBedrooms, minPrice, maxPrice, selectedStatus, selectedProjectType, maxDownpayment]);
 
   // Resets filters to original parameters
   const handleResetFilters = () => {
     setQuery('');
     setSelectedBedrooms(null);
-    setMaxPrice(10000000);
+    setMinPrice(100000);
+    setMaxPrice(20000000);
     setSelectedStatus(null);
+    setSelectedProjectType(null);
     setMaxDownpayment(0);
+  };
+
+  // --- RENDERS FOR EXTRA CUSTOM PAGES ---
+  const renderSobreSection = () => (
+    <div className="w-full bg-white text-zinc-900 py-16 px-6 lg:px-8 mt-1 border-t border-zinc-150 animate-fade-in">
+      <div className="max-w-4xl mx-auto space-y-12">
+        <div className="text-center space-y-4">
+          <span className="text-[11px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+            ✦ Boutique Imobiliária de Lançamentos
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#203366] uppercase tracking-tight">
+            Sobre Nós
+          </h1>
+          <p className="max-w-2xl mx-auto text-sm text-zinc-500 leading-relaxed md:text-base">
+            Conectamos você aos lançamentos mais promissores e de altíssimo padrão das principais construtoras no litoral de Santa Catarina.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch pt-4">
+          <div className="bg-zinc-50 p-6 sm:p-8 rounded-3xl border border-zinc-200 flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-[#203366] uppercase tracking-tight mb-4">
+                História & Propósito
+              </h2>
+              <p className="text-xs text-zinc-650 leading-relaxed space-y-3">
+                Fundada sob os pilares da transparência e inovação tecnológica, a imobiliária <span className="font-bold text-zinc-900">{settings?.companyName || 'Meu Primeiro Imóvel ME'}</span> atua de forma diferenciada no mercado litoral do sul do país. 
+                <br /><br />
+                Acreditamos que a compra do primeiro ou múltiplos investimentos de alto padrão deve ser guiada por análise preditiva de valorização espacial, planos de parcelas adaptados diretamente à sua capacidade e segurança jurídica plena.
+              </p>
+            </div>
+            <div className="mt-6 pt-4 border-t border-zinc-200 text-[10px] font-mono text-zinc-550">
+              Regulado perante: CRECI {settings?.creci || '36847'}
+            </div>
+          </div>
+
+          <div className="bg-[#203366] text-white p-6 sm:p-8 rounded-3xl flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-[#FF9D00] uppercase tracking-tight mb-4">
+                Nossos Diferenciais
+              </h2>
+              <ul className="space-y-4 text-xs text-zinc-200">
+                <li className="flex items-start gap-2.5">
+                  <span className="text-[#FF9D00] text-sm leading-none">✦</span>
+                  <span><strong>Assessoria Exclusiva:</strong> Atendimento individualizado por profissionais cadastrados e especializados em lançamentos imobiliários.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="text-[#FF9D00] text-sm leading-none">✦</span>
+                  <span><strong>Simulação Facilitada:</strong> Tabelas de poupança direto com a construtora com balões, entrada facilitada e planos personalizáveis.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="text-[#FF9D00] text-sm leading-none">✦</span>
+                  <span><strong>Portfólio Seletivo:</strong> Garantia de trabalhar apenas com construtoras com alto padrão construtivo e histórico de incorporações de sucesso.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Legal credentials card */}
+        <div className="bg-zinc-50 border border-zinc-200 p-8 rounded-3xl text-center space-y-4">
+          <h3 className="text-xs font-bold tracking-widest uppercase text-zinc-800 font-mono">✦ Registro e Transparência de Marca ✦</h3>
+          <p className="text-xs text-zinc-550 leading-relaxed max-w-2xl mx-auto">
+            O portal {settings?.brandName || 'VIVASC'} é operado sob a designação social <span className="font-semibold text-zinc-900">{settings?.companyName || 'Meu Primeiro Imóvel ME'}</span>, devidamente registrada sob o CNPJ {settings?.cnpj || '51.874.234/0001-90'} e CRECI nº {settings?.creci || '36847'}. Todas as imagens de maquetes, simulação de parcelamentos e preços são de caráter demonstrativo e sujeitos à reajustes em virtude de variações do CUB/SC.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBairrosSection = () => {
+    const bairrosList = [
+      {
+        name: 'Centro',
+        desc: 'Infraestrutura completa com conveniências à pé, gastronomia rica e excelente localização comercial.',
+        vibe: 'Premium Urbano',
+        count: properties.filter(p => (p.neighborhood || '').toLowerCase().includes('centro')).length
+      },
+      {
+        name: 'Barra Sul',
+        desc: 'Reduto dos arranha-céus mais altos e luxuosos da América Latina, fácil acesso a marinas e teleférico.',
+        vibe: 'Altíssimo Padrão',
+        count: properties.filter(p => (p.neighborhood || '').toLowerCase().includes('barra sul')).length
+      },
+      {
+        name: 'Pontal Norte',
+        desc: 'Belo cinturão verde, passarela de madeira integrada à natureza e atmosfera residencial tranquila.',
+        vibe: 'Sossego & Natureza',
+        count: properties.filter(p => (p.neighborhood || '').toLowerCase().includes('pontal norte') || (p.neighborhood || '').toLowerCase().includes('pioneiros')).length
+      },
+      {
+        name: 'Praia Brava',
+        desc: 'Área extremamente desejada, mar de águas limpas, excelente praia e alta valorização imobiliária anual.',
+        vibe: 'Estilo de Vida & Mar',
+        count: properties.filter(p => (p.neighborhood || '').toLowerCase().includes('brava') || (p.neighborhood || '').toLowerCase().includes('amores')).length
+      },
+      {
+        name: 'Ariribá',
+        desc: 'Bairro nobre eminentemente familiar, ruas tranquilas e arborizadas, próximo a área central.',
+        vibe: 'Residencial Calmo',
+        count: properties.filter(p => (p.neighborhood || '').toLowerCase().includes('ariribá')).length
+      },
+      {
+        name: 'Pioneiros',
+        desc: 'Setor hospitalar conceituado, próximo à big wheel, de fácil locomoção e muito seguro.',
+        vibe: 'Comodidade & Saúde',
+        count: properties.filter(p => (p.neighborhood || '').toLowerCase().includes('pioneiros')).length
+      }
+    ];
+
+    return (
+      <div className="w-full bg-white text-zinc-900 py-16 px-6 lg:px-8 mt-1 border-t border-zinc-150 animate-fade-in">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="text-center space-y-3">
+            <span className="text-[11px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+              ✦ Pesquisa por Localização
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#203366] uppercase tracking-tight">
+              Bairros & Regiões Ativas
+            </h1>
+            <p className="max-w-2xl mx-auto text-sm text-zinc-500 leading-relaxed">
+              Descubra o estilo de cada região de Balneário Camboriú e clique para filtrar instantaneamente os lançamentos imobiliários disponíveis.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+            {bairrosList.map((b) => (
+              <div 
+                key={b.name}
+                onClick={() => {
+                  setQuery(b.name);
+                  setCurrentTab('lançamentos');
+                  window.scrollTo({ top: 380, behavior: 'smooth' });
+                }}
+                className="group rounded-3xl border border-zinc-200 bg-zinc-50 p-6 flex flex-col justify-between hover:border-[#FF9D00] hover:bg-white hover:shadow-xl transition-all duration-300 cursor-pointer select-none"
+              >
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="px-2.5 py-0.5 bg-zinc-150 rounded text-[9px] font-mono uppercase tracking-widest font-black text-zinc-500">
+                      {b.vibe}
+                    </span>
+                    <span className="text-xs bg-orange-100 text-[#E08A00] font-mono px-2 py-0.5 rounded font-extrabold">
+                      {b.count} {b.count === 1 ? 'imóvel' : 'imóveis'}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-extrabold text-[#203366] uppercase tracking-tight">
+                      {b.name}
+                    </h3>
+                    <p className="text-xs text-zinc-500 leading-relaxed mt-2 line-clamp-3">
+                      {b.desc}
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-6 font-mono text-[10px] font-bold text-[#203366] flex items-center gap-1 group-hover:gap-2 transition-all">
+                  <span>Ver imóveis no {b.name}</span>
+                  <span>→</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFavoritosSection = () => {
+    const favoriteProperties = properties.filter(p => favoriteIds.includes(p.id));
+
+    return (
+      <div className="w-full bg-white text-zinc-900 py-16 px-6 lg:px-8 mt-1 border-t border-zinc-150 animate-fade-in">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="text-center space-y-3">
+            <span className="text-[11px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+              ✦ Suas Opções Favoritadas
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#203366] uppercase tracking-tight">
+              Seus Favoritos
+            </h1>
+            <p className="max-w-2xl mx-auto text-sm text-zinc-500 leading-relaxed">
+              Aqui você acompanha rapidamente todos os lançamentos que escolheu enquanto navegava no portal.
+            </p>
+          </div>
+
+          {favoriteProperties.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-4">
+              {favoriteProperties.map((prop) => (
+                <PropertyCard 
+                  key={prop.id} 
+                  property={prop} 
+                  allProperties={properties} 
+                  settings={settings} 
+                  onNavigateToProperty={setGlobalSelectedPropertyId}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="max-w-md mx-auto text-center py-16 border border-zinc-200 rounded-3xl bg-zinc-50 p-8 shadow-sm">
+              <span className="text-[#FF9D00] text-4xl block mb-2">★</span>
+              <h3 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">Nenhum Favorito</h3>
+              <p className="text-xs text-zinc-550 mt-2 leading-relaxed">
+                Você ainda não favoritou nenhum lançamento comercial. Clique nos anúncios e favorite o imóvel de seu interesse!
+              </p>
+              <button
+                onClick={() => setCurrentTab('lançamentos')}
+                className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-[#203366] px-5 py-3 text-xs font-bold text-white uppercase tracking-wider hover:bg-[#111] transition-all duration-300 cursor-pointer"
+              >
+                Explorar Catálogo
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderContatoSection = () => {
+    const [name, setName] = useState('');
+    const [contact, setContact] = useState('');
+    const [subject, setSubject] = useState('Dúvida Geral / Agendar Visita');
+    const [msg, setMsg] = useState('');
+    const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+    const handleFormSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+        const idMsg = 'msg_' + Math.random().toString(36).substring(2, 9);
+        await saveMessageToFirestore({
+          id: idMsg,
+          name: name,
+          contact: contact,
+          message: msg,
+          propertyId: subject,
+          createdAt: new Date().toISOString()
+        });
+        setStatus('success');
+        setName('');
+        setContact('');
+        setMsg('');
+      } catch (err) {
+        console.error(err);
+        setStatus('error');
+      }
+    };
+
+    return (
+      <div className="w-full bg-white text-zinc-900 py-16 px-6 lg:px-8 mt-1 border-t border-zinc-150 animate-fade-in">
+        <div className="max-w-5xl mx-auto space-y-12">
+          <div className="text-center space-y-3">
+            <span className="text-[11px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+              ✦ Atendimento de Boutique Exclusivo
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#203366] uppercase tracking-tight">
+              Entre em Contato
+            </h1>
+            <p className="max-w-2xl mx-auto text-sm text-zinc-550 leading-relaxed">
+              Nossa equipe está capacitada para simular, esclarecer as tabelas de poupança direto com a construtora e agendar sua visita aos decorados.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch pt-4">
+            {/* Contact details */}
+            <div className="bg-[#203366] text-white p-8 rounded-3xl flex flex-col justify-between shadow-lg">
+              <div className="space-y-6">
+                <h2 className="text-lg font-bold uppercase tracking-tight text-[#FF9D00]">
+                  Canais Diretos
+                </h2>
+
+                <div className="space-y-4 text-xs text-zinc-200">
+                  <div className="flex flex-col space-y-1 border-b border-white/10 pb-4">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-[#FF9D00]">WhatsApp Oficial</span>
+                    <a 
+                      href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}?text=Olá! Gostaria de falar com um corretor sobre os lançamentos.`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-base font-black text-white hover:underline hover:text-[#FF9D00] transition-all"
+                    >
+                      +{settings?.phone || '55 47 99999-9999'}
+                    </a>
+                  </div>
+
+                  <div className="flex flex-col space-y-1 border-b border-white/10 pb-4">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-[#FF9D00]">E-mail Corporativo</span>
+                    <a href={`mailto:${settings?.email || 'comercial.vivasc@gmail.com'}`} className="text-sm hover:underline hover:text-[#FF9D00] transition-all">
+                      {settings?.email || 'comercial.vivasc@gmail.com'}
+                    </a>
+                  </div>
+
+                  <div className="flex flex-col space-y-1 pb-2">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-[#FF9D00]">Cidade Sede</span>
+                    <span className="text-sm font-semibold">Balneário Camboriú / SC</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-white/10 text-[10px] font-mono text-zinc-300 leading-relaxed">
+                <strong>{settings?.companyName || 'Meu Primeiro Imóvel ME'}</strong>
+                <br />CRECI: {settings?.creci || '36847'}
+                <br />CNPJ: {settings?.cnpj || '51.874.234/0001-90'}
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="bg-zinc-50 border border-zinc-200 p-8 rounded-3xl shadow-sm">
+              <h2 className="text-lg font-bold text-zinc-950 uppercase tracking-tight mb-4">
+                Envie-nos um e-mail
+              </h2>
+
+              {status === 'success' && (
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-xs text-emerald-800 font-bold mb-4">
+                  ✦ Mensagem enviada com sucesso! Nossos parceiros heróis entrarão em contato no WhatsApp fornecido.
+                </div>
+              )}
+
+              <form onSubmit={handleFormSubmit} className="space-y-4">
+                <div>
+                  <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 font-mono block mb-1">Nome Completo</label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Seu nome completo"
+                    className="w-full rounded-xl bg-white border border-zinc-200 px-4 py-2.5 text-xs text-zinc-900 focus:border-[#203366] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 font-mono block mb-1">Celular / WhatsApp</label>
+                  <input
+                    type="text"
+                    required
+                    value={contact}
+                    onChange={(e) => setContact(e.target.value)}
+                    placeholder="(47) 99999-9999"
+                    className="w-full rounded-xl bg-white border border-zinc-200 px-4 py-2.5 text-xs text-zinc-900 focus:border-[#203366] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 font-mono block mb-1">Referência ou Assunto</label>
+                  <select
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full rounded-xl bg-white border border-zinc-200 px-4 py-2.5 text-xs text-zinc-900 focus:border-[#203366] outline-none"
+                  >
+                    <option value="Dúvida Geral / Agendar Visita">Dúvida Geral / Agendar Visita</option>
+                    <option value="Simulação de Fluxo de Financiamento">Simular Meu Parcelamento</option>
+                    {properties.map(p => (
+                      <option key={p.id} value={`Sobre o Imóvel: ${p.name}`}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 font-mono block mb-1">Sua Mensagem</label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={msg}
+                    onChange={(e) => setMsg(e.target.value)}
+                    placeholder="Olá! Gostaria de receber o plano de parcelas e memorial descritivo..."
+                    className="w-full rounded-xl bg-white border border-zinc-200 p-4 text-xs text-zinc-900 focus:border-[#203366] outline-none resize-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full flex items-center justify-center h-11 rounded-xl bg-[#203366] hover:bg-zinc-900 text-white font-extrabold text-xs uppercase tracking-widest shadow transition-all cursor-pointer"
+                >
+                  Enviar Requisição
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -508,6 +943,8 @@ export default function App() {
       <Header 
         currentView={currentView} 
         onNavigate={setCurrentView} 
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
         query={query} 
         setQuery={setQuery} 
         settings={settings}
@@ -518,28 +955,30 @@ export default function App() {
         <AnimatePresence mode="wait">
           {currentView === 'home' ? (
             <motion.div
-              key="landing-page"
+              key={`landing-page-${currentTab}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
             >
-              {/* Dynamic full-screen Hero Slider */}
-              <SearchHero 
-                properties={properties}
-                banners={banners}
-                query={query}
-                setQuery={setQuery}
-                onOpenProperty={(id) => setGlobalSelectedPropertyId(id)}
-              />
+              {currentTab === 'home' && (
+                <SearchHero 
+                  properties={properties}
+                  banners={banners}
+                  query={query}
+                  setQuery={setQuery}
+                  onOpenProperty={(id) => setGlobalSelectedPropertyId(id)}
+                />
+              )}
 
               {/* Real Estate Suggested Grid Section */}
-              <section id="projects-showcase" className="w-full bg-white text-zinc-900 py-20 relative border-y border-zinc-100">
-                {/* Visual grid accent lines from design guideline */}
-                <div className="absolute top-0 right-[25%] w-[1px] h-full bg-zinc-100 pointer-events-none"></div>
-                <div className="absolute top-0 left-[25%] w-[1px] h-full bg-zinc-100 pointer-events-none"></div>
+              {(currentTab === 'home' || currentTab === 'lançamentos') && (
+                <section id="projects-showcase" className="w-full bg-white text-zinc-900 py-20 relative border-y border-zinc-100">
+                  {/* Visual grid accent lines from design guideline */}
+                  <div className="absolute top-0 right-[25%] w-[1px] h-full bg-zinc-100 pointer-events-none"></div>
+                  <div className="absolute top-0 left-[25%] w-[1px] h-full bg-zinc-100 pointer-events-none"></div>
 
-                <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                  <div className="max-w-7xl mx-auto px-6 lg:px-8">
                   <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6 relative z-10">
                     <div>
                       <span className="text-[11px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block mb-1">
@@ -622,6 +1061,13 @@ export default function App() {
                   )}
                 </div>
               </section>
+              )}
+
+              {/* Conditional sub-page renders */}
+              {currentTab === 'sobre' && renderSobreSection()}
+              {currentTab === 'bairros' && renderBairrosSection()}
+              {currentTab === 'favoritos' && renderFavoritosSection()}
+              {currentTab === 'contato' && renderContatoSection()}
 
               {/* Filters Popup Modal */}
               <AnimatePresence>
@@ -640,43 +1086,32 @@ export default function App() {
                       initial={{ scale: 0.95, opacity: 0, y: 15 }}
                       animate={{ scale: 1, opacity: 1, y: 0 }}
                       exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                      className="relative w-full max-w-4xl bg-zinc-950 rounded-3xl border border-zinc-800 overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
+                      className="relative w-full max-w-4xl bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
                     >
-                      {/* Top Close Bar */}
-                      <div className="flex items-center justify-between px-6 py-4.5 border-b border-zinc-900 bg-[#121318]">
-                        <div className="flex items-center gap-2">
-                          <SlidersHorizontal className="h-4 w-4 text-orange-500 animate-pulse" />
-                          <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-white font-mono">Filtros de Pesquisa</span>
-                        </div>
-                        <button 
-                          onClick={() => setIsFilterPopupOpen(false)}
-                          className="p-1.5 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors"
-                          aria-label="Minimizar filtros"
-                        >
-                          <X className="h-4.5 w-4.5" />
-                        </button>
-                      </div>
-                      
                       {/* Scrollable Filters */}
-                      <div className="overflow-y-auto flex-1 styles-scrollbar-custom">
+                      <div className="overflow-y-auto flex-1 styles-scrollbar-custom bg-white">
                         <SearchPanel 
                           properties={properties}
                           selectedBedrooms={selectedBedrooms}
                           setSelectedBedrooms={setSelectedBedrooms}
+                          minPrice={minPrice}
+                          setMinPrice={setMinPrice}
                           maxPrice={maxPrice}
                           setMaxPrice={setMaxPrice}
                           selectedStatus={selectedStatus}
                           setSelectedStatus={setSelectedStatus}
-                          maxDownpayment={maxDownpayment}
-                          setMaxDownpayment={setMaxDownpayment}
-                          onSearch={({ query: q, bedrooms: b, maxPrice: m, status: s, maxDownpayment: d }) => {
+                          selectedProjectType={selectedProjectType}
+                          setSelectedProjectType={setSelectedProjectType}
+                          onSearch={({ query: q, bedrooms: b, minPrice: minVal, maxPrice: maxVal, status: s, projectType: pt }) => {
                             setQuery(q);
                             if (b !== undefined) setSelectedBedrooms(b);
-                            if (m !== undefined) setMaxPrice(m);
+                            if (minVal !== undefined) setMinPrice(minVal);
+                            if (maxVal !== undefined) setMaxPrice(maxVal);
                             if (s !== undefined) setSelectedStatus(s);
-                            if (d !== undefined) setMaxDownpayment(d);
+                            if (pt !== undefined) setSelectedProjectType(pt);
                           }}
                           onClose={() => setIsFilterPopupOpen(false)}
+                          onClearFilters={handleResetFilters}
                         />
                       </div>
                     </motion.div>
@@ -733,59 +1168,13 @@ export default function App() {
         <div className="absolute inset-0 rounded-full bg-primary/20 blur animate-pulse -z-10"></div>
       </a>
 
-      {/* 4. FUTURISTIC FINE FOOTER */}
-      <footer className="border-t border-white/10 bg-black/60 py-12 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-zinc-500">
-          <div className="flex flex-col items-center md:items-start gap-1">
-            <span className="text-sm font-extrabold text-white tracking-widest uppercase">
-              {settings?.brandName ? (
-                <span>{settings.brandName}</span>
-              ) : (
-                <>VIVA<span className="text-primary font-black">SC</span></>
-              )}
-            </span>
-            <span className="text-[10px] font-mono tracking-wider text-zinc-500" style={{ fontSize: '10px' }}>
-              © 2026 {settings?.brandName || 'VIVASC'} Lançamentos Imobiliários. Todos os direitos reservados.
-            </span>
-          </div>
-
-          <div className="flex gap-6 uppercase font-mono tracking-widest text-[9px] text-zinc-300">
-            <a href="#projects-showcase" onClick={() => setCurrentView('home')} className="hover:text-primary transition-colors">Voltar ao topo</a>
-            <span className="text-white/15">•</span>
-            <button 
-              onClick={() => {
-                setCurrentView(currentView === 'admin' ? 'home' : 'admin');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }} 
-              className="hover:text-primary text-primary transition-colors cursor-pointer font-extrabold"
-              style={{ fontSize: '11px' }}
-            >
-              {currentView === 'admin' ? 'View Área Pública' : 'Painel Admin'}
-            </button>
-            <span className="text-white/15">•</span>
-            <a href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-primary transition-colors">WhatsApp Oficial</a>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-lg bg-white/5 border border-white/10 hover:border-primary/40 text-zinc-400 hover:text-white transition-all"
-            >
-              <Instagram className="h-4 w-4" />
-            </a>
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-lg bg-white/5 border border-white/10 hover:border-primary/40 text-zinc-400 hover:text-white transition-all"
-            >
-              <Facebook className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      </footer>
+      {/* 4. DURABLE BRANDED LIGHT GRAY FOOTER */}
+      <Footer 
+        settings={settings} 
+        onTabChange={setCurrentTab}
+        onNavigateToHome={() => setCurrentView('home')}
+        onNavigateToAdmin={() => setCurrentView('admin')}
+      />
 
       {/* Global Property Detail Modal Host */}
       {globalSelectedProperty && (
@@ -799,6 +1188,7 @@ export default function App() {
             if (!open) setGlobalSelectedPropertyId(null);
           }}
           onNavigateToProperty={setGlobalSelectedPropertyId}
+          onNavigateToAdmin={() => setCurrentView('admin')}
         />
       )}
     </div>
