@@ -139,5 +139,7 @@ export const DEFAULT_BRAND_SETTINGS: BrandSettings = {
   shareLogoUrl: '',
   companyName: 'Meu Primeiro Imóvel ME',
   creci: 'Creci 36847',
-  cnpj: '51.874.234/0001-90'
+  cnpj: '51.874.234/0001-90',
+  footerLogoUrl: '',
+  footerLogoHeight: ''
 };

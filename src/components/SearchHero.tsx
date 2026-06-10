@@ -125,6 +125,101 @@ export default function SearchHero({
 
       {/* Main Container Overly */}
       <div className="relative z-10 w-full max-w-4xl px-6 md:px-8 text-center flex flex-col items-center justify-center">
+        
+        {/* Stable Region Search Bar (Separated from animating title/text slides for absolute focus & layout preservation) */}
+        <div className="w-full max-w-md mx-auto mb-10 relative z-50">
+          <div 
+            style={{ backgroundColor: '#ffffff', borderRadius: '12px', height: '54px', fontSize: '16px' }}
+            className="flex items-center border border-zinc-200/85 focus-within:border-[#203366] transition-all duration-300 pl-4 pr-1.5 py-1.5 shadow-2xl relative"
+          >
+            <MapPin className="h-5 w-5 text-[#FF9D00] shrink-0" />
+            <input
+              type="text"
+              className="w-full bg-transparent px-3 py-1.5 text-zinc-900 placeholder-zinc-500 outline-none focus:ring-0 font-sans font-medium"
+              style={{ fontSize: '16px' }}
+              placeholder="Qual cidade ou bairro você busca?"
+              value={searchInput}
+              onChange={(e) => {
+                setSearchInput(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput('');
+                  setQuery('');
+                }}
+                className="p-1.5 text-zinc-400 hover:text-zinc-800 cursor-pointer mr-1.5"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setQuery(searchInput);
+                setShowSuggestions(false);
+                const el = document.getElementById('projects-showcase');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              style={{ backgroundColor: '#FF9D00', color: '#203366' }}
+              className="hover:scale-110 flex items-center justify-center h-10 w-10 rounded-full transition-all cursor-pointer shrink-0 active:scale-95"
+              aria-label="Buscar"
+            >
+              <Search className="h-5 w-5 stroke-[2.5]" />
+            </button>
+          </div>
+
+          {/* Suggestions Dropdown with elegant white background theme matching the search bar */}
+          <AnimatePresence>
+            {showSuggestions && filteredSuggestions.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                className="absolute left-0 right-0 mt-2 rounded-2xl border border-zinc-200 bg-white/95 backdrop-blur-md p-1.5 shadow-3xl z-50 text-left overflow-hidden max-h-72 overflow-y-auto"
+              >
+                <div className="text-[9px] font-mono font-bold text-zinc-400 tracking-wider px-3 py-2 border-b border-zinc-100 uppercase">
+                  Regiões Encontradas
+                </div>
+                {filteredSuggestions.map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onMouseDown={() => {
+                      setSearchInput(item.name);
+                      setQuery(item.name);
+                      setShowSuggestions(false);
+                      const el = document.getElementById('projects-showcase');
+                      setTimeout(() => {
+                        el?.scrollIntoView({ behavior: 'smooth' });
+                      }, 80);
+                    }}
+                    className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-zinc-50 border-b border-zinc-100/50 text-left transition-all cursor-pointer group"
+                  >
+                    <span className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 text-[#FF9D00] shrink-0" />
+                      <span className="text-xs font-bold text-zinc-800 group-hover:text-zinc-950">{item.name}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[9px] leading-none uppercase tracking-wider font-mono bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded">
+                        {item.type}
+                      </span>
+                      <span className="text-[10px] leading-none font-bold text-[#203366] font-mono bg-[#FF9D00]/10 border border-[#FF9D00]/25 px-2 py-0.5 rounded-full">
+                        {item.count} {item.count === 1 ? 'imóvel' : 'imóveis'}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Dynamic Banner Advert Titles */}
         <motion.div
           key={'content-' + currentBanner.id}
@@ -133,98 +228,6 @@ export default function SearchHero({
           transition={{ duration: 0.8, delay: 0.2 }}
           className="max-w-2xl flex flex-col items-center justify-center w-full"
         >
-          {/* Region Search Bar above banner texts */}
-          <div className="w-full max-w-md mx-auto mb-10 relative z-50">
-            <div 
-              style={{ backgroundColor: '#ffffff', borderRadius: '10px', height: '52px', fontSize: '16px' }}
-              className="flex items-center border border-zinc-200 focus-within:border-primary/80 transition-all duration-300 pl-4 pr-1.5 py-1.5 shadow-2xl backdrop-blur-md"
-            >
-              <Search className="h-4 w-4 text-zinc-500 shrink-0 animate-pulse" />
-              <input
-                type="text"
-                className="w-full bg-transparent px-3 py-1.5 text-zinc-900 placeholder-zinc-500 outline-none focus:ring-0 font-sans font-medium"
-                style={{ fontSize: '16px' }}
-                placeholder="Qual cidade ou bairro você busca?"
-                value={searchInput}
-                onChange={(e) => {
-                  setSearchInput(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchInput('');
-                    setQuery('');
-                  }}
-                  className="p-1 text-zinc-400 hover:text-zinc-800 cursor-pointer mr-1.5"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery(searchInput);
-                  setShowSuggestions(false);
-                  const el = document.getElementById('projects-showcase');
-                  el?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                style={{ backgroundColor: '#FF9D00', color: '#203366' }}
-                className="hover:scale-105 px-4.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shrink-0"
-              >
-                Buscar
-              </button>
-            </div>
-
-            {/* Suggestions Overlay with actual statistics counts */}
-            <AnimatePresence>
-              {showSuggestions && filteredSuggestions.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  className="absolute left-0 right-0 mt-2 rounded-2xl border border-zinc-800 bg-black/95 backdrop-blur-md p-1.5 shadow-3xl z-50 text-left overflow-hidden max-h-72 overflow-y-auto"
-                >
-                  <div className="text-[9px] font-mono font-bold text-zinc-500 tracking-wider px-3 py-1.5 border-b border-zinc-900 uppercase">
-                    Regiões Encontradas
-                  </div>
-                  {filteredSuggestions.map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setSearchInput(item.name);
-                        setQuery(item.name);
-                        setShowSuggestions(false);
-                        const el = document.getElementById('projects-showcase');
-                        setTimeout(() => {
-                          el?.scrollIntoView({ behavior: 'smooth' });
-                        }, 80);
-                      }}
-                      className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-zinc-900 border-b border-zinc-950/20 text-left transition-all cursor-pointer group"
-                    >
-                      <span className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <span className="text-xs font-bold text-zinc-100 group-hover:text-white">{item.name}</span>
-                      </span>
-                      <span className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[9px] leading-none uppercase tracking-wider font-mono bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">
-                          {item.type}
-                        </span>
-                        <span className="text-[10px] leading-none font-bold text-primary font-mono bg-primary/10 border border-primary/25 px-2 py-0.5 rounded-full">
-                          {item.count} {item.count === 1 ? 'imóvel' : 'imóveis'}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
           <span 
             style={{ color: '#FF9D00' }}
             className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3.5 py-1 text-xs font-semibold tracking-widest uppercase border border-orange-500/20 mb-4 backdrop-blur-sm"

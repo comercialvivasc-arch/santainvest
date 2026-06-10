@@ -123,8 +123,10 @@ export default function App() {
     updateFavorites();
     const interval = setInterval(updateFavorites, 1500);
     window.addEventListener('storage', updateFavorites);
+    window.addEventListener('favorites-updated', updateFavorites);
     return () => {
       window.removeEventListener('storage', updateFavorites);
+      window.removeEventListener('favorites-updated', updateFavorites);
       clearInterval(interval);
     };
   }, [currentTab]);

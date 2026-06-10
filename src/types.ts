@@ -69,6 +69,8 @@ export interface BrandSettings {
   companyName?: string; // legal company name e.g. "Meu Primeiro Imóvel ME"
   creci?: string;       // CRECI number e.g. "36847"
   cnpj?: string;        // CNPJ number e.g. "00.000.000/0001-00"
+  footerLogoUrl?: string; // alternative brand logo URL for dark or light backgrounds (e.g., footer)
+  footerLogoHeight?: string; // custom footer logo height (e.g. "40px" or "10")
 }
 
 export interface UserProfile {

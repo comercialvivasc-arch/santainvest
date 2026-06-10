@@ -131,6 +131,8 @@ export default function AdminPanel({
   const [settingsCompanyName, setSettingsCompanyName] = useState(settings?.companyName || '');
   const [settingsCreci, setSettingsCreci] = useState(settings?.creci || '');
   const [settingsCnpj, setSettingsCnpj] = useState(settings?.cnpj || '');
+  const [settingsFooterLogoUrl, setSettingsFooterLogoUrl] = useState(settings?.footerLogoUrl || '');
+  const [settingsFooterLogoHeight, setSettingsFooterLogoHeight] = useState(settings?.footerLogoHeight || '');
   const [isSettingsUpdating, setIsSettingsUpdating] = useState(false);
   const [settingsUpdateStatus, setSettingsUpdateStatus] = useState<string | null>(null);
 
@@ -159,6 +161,8 @@ export default function AdminPanel({
       setSettingsCompanyName(settings.companyName || '');
       setSettingsCreci(settings.creci || '');
       setSettingsCnpj(settings.cnpj || '');
+      setSettingsFooterLogoUrl(settings.footerLogoUrl || '');
+      setSettingsFooterLogoHeight(settings.footerLogoHeight || '');
     }
   }, [settings]);
 
@@ -1361,7 +1365,9 @@ export default function AdminPanel({
                     shareLogoUrl: settingsShareLogoUrl,
                     companyName: settingsCompanyName,
                     creci: settingsCreci,
-                    cnpj: settingsCnpj
+                    cnpj: settingsCnpj,
+                    footerLogoUrl: settingsFooterLogoUrl,
+                    footerLogoHeight: settingsFooterLogoHeight
                   });
                   setSettingsUpdateStatus('Configurações de marca e contatos salvas no Firebase Firestore com sucesso.');
                 } catch (err: any) {
@@ -1515,6 +1521,96 @@ export default function AdminPanel({
                     placeholder="https://suapraca.com.br/arquivos/logo.png"
                     className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-mono placeholder-zinc-850"
                   />
+                </div>
+              </div>
+
+              {/* Row 3.5: Footer Logo URL or Drag and Drop base64 upload and Size */}
+              <div className="space-y-3.5 border-t border-zinc-900 pt-5">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+                    ✦ Logotipo Alternativo para o Rodapé (Outra cor/tamanho)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+                  {/* File Dropzone/Selector */}
+                  <div className="md:col-span-2 relative rounded-xl border border-dashed border-zinc-850 bg-black hover:bg-zinc-950 hover:border-orange-500/50 transition-all p-4 flex flex-col items-center justify-center text-center gap-1.5 min-h-[110px] cursor-pointer group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 2000000) {
+                            alert('Erro: Escolha uma imagem de logotipo de até 2MB.');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            if (event.target?.result) {
+                              setSettingsFooterLogoUrl(event.target.result as string);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
+                    />
+                    <ImageIcon className="h-6 w-6 text-zinc-500 group-hover:text-orange-500 transition-colors" />
+                    <span className="text-[11px] font-bold text-zinc-300">Selecione ou arraste o logo do rodapé</span>
+                    <span className="text-[9px] text-zinc-500 font-mono">PNG, SVG ou JPG (ideal cor escura para fundo claro)</span>
+                  </div>
+
+                  {/* Footer Logo Preview box - rendered with light-gray background to simulate footer! */}
+                  <div className="rounded-xl border border-zinc-900 bg-zinc-100 p-4 flex flex-col justify-center items-center text-center">
+                    <span className="text-[8px] font-mono text-zinc-500 uppercase mb-2 block">Prévia no Rodapé</span>
+                    {settingsFooterLogoUrl ? (
+                      <div className="relative group w-full h-12 flex items-center justify-center bg-white rounded-lg p-2 border border-zinc-200 animate-fade-in">
+                        <img
+                          src={settingsFooterLogoUrl}
+                          alt="Footer Brand Logo"
+                          className="max-h-full max-w-full object-contain"
+                          style={{ height: settingsFooterLogoHeight || 'auto' }}
+                          referrerPolicy="no-referrer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSettingsFooterLogoUrl('')}
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-[9px] font-bold shadow-lg"
+                        >
+                          x
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-12 w-full border border-dashed border-zinc-300 rounded-lg flex items-center justify-center text-[10px] text-zinc-500 uppercase font-mono bg-white">
+                        Nenhuma logo
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Text input fallback & height adjustment */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2 space-y-2">
+                    <span className="block text-[9px] text-zinc-500 uppercase font-mono text-left">Ou informe a URL absoluta diretamente</span>
+                    <input
+                      type="text"
+                      value={settingsFooterLogoUrl}
+                      onChange={(e) => setSettingsFooterLogoUrl(e.target.value)}
+                      placeholder="https://suapraca.com.br/arquivos/logo-footer.png"
+                      className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-mono placeholder-zinc-850"
+                    />
+                  </div>
+                  <div className="space-y-2 text-left">
+                    <span className="block text-[9px] text-zinc-500 uppercase font-mono">Altura Personalizada (ex: 40px)</span>
+                    <input
+                      type="text"
+                      value={settingsFooterLogoHeight}
+                      onChange={(e) => setSettingsFooterLogoHeight(e.target.value)}
+                      placeholder="Ex: 40px, 48px, auto"
+                      className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-mono placeholder-zinc-850"
+                    />
+                  </div>
                 </div>
               </div>
 

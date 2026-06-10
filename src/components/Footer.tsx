@@ -39,12 +39,13 @@ export default function Footer({ settings, onTabChange, onNavigateToHome, onNavi
           
           {/* Left column: Logo & Menus one below the other */}
           <div className="flex flex-col items-start space-y-6">
-            {settings?.logoUrl ? (
+            {settings?.footerLogoUrl || settings?.logoUrl ? (
               <img
-                src={settings.logoUrl}
+                src={settings.footerLogoUrl || settings.logoUrl}
                 alt={settings.brandName || "Logo"}
                 referrerPolicy="no-referrer"
-                className="max-h-[60px] object-contain cursor-pointer h-auto"
+                style={{ height: settings?.footerLogoHeight || '45px', maxHeight: '100px' }}
+                className="object-contain cursor-pointer"
                 onClick={() => handleMenuClick('home')}
               />
             ) : (

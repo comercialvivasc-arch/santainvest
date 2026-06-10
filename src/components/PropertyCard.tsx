@@ -105,7 +105,15 @@ export default function PropertyCard({
   // Favorites state hooks & localStorage sync
   const [isFavorited, setIsFavorited] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem('vivas_favorites');
+      // Migrate legacy favorites if they exist for continuous support
+      let saved = localStorage.getItem('vivasc_favorites');
+      if (!saved) {
+        const legacy = localStorage.getItem('vivas_favorites');
+        if (legacy) {
+          localStorage.setItem('vivasc_favorites', legacy);
+          saved = legacy;
+        }
+      }
       if (saved) {
         const list = JSON.parse(saved);
         return Array.isArray(list) && list.includes(property.id);
@@ -122,7 +130,7 @@ export default function PropertyCard({
       e.preventDefault();
     }
     try {
-      const saved = localStorage.getItem('vivas_favorites');
+      const saved = localStorage.getItem('vivasc_favorites');
       let list: string[] = [];
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -140,7 +148,7 @@ export default function PropertyCard({
         nextState = true;
       }
       
-      localStorage.setItem('vivas_favorites', JSON.stringify(list));
+      localStorage.setItem('vivasc_favorites', JSON.stringify(list));
       setIsFavorited(nextState);
       
       // Notify other instances immediately
@@ -153,7 +161,7 @@ export default function PropertyCard({
   React.useEffect(() => {
     const handleUpdate = () => {
       try {
-        const saved = localStorage.getItem('vivas_favorites');
+        const saved = localStorage.getItem('vivasc_favorites');
         if (saved) {
           const list = JSON.parse(saved);
           setIsFavorited(Array.isArray(list) && list.includes(property.id));
