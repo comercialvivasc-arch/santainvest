@@ -55,10 +55,10 @@ async function startServer() {
       // Check query parameters for product/property ID
       const imovelId = String(req.query.imovel || req.query.id || '');
       
-      let title = 'VIVASC - Lançamentos Imobiliários';
-      let description = 'Encontre o imóvel dos seus sonhos em Santa Catarina. Lançamentos com fluxo de pagamento sob medida!';
+      let title = 'Santa Invest Imóveis';
+      let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
       let imageUrl = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80';
-      let siteName = 'VIVASC Lançamentos Imobiliários';
+      let siteName = 'Santa Invest Imóveis';
 
       const settings = await fetchBrandSettings();
       if (settings) {
@@ -75,7 +75,7 @@ async function startServer() {
 
       // Determine the dynamic canonical URL context & properties
       const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
-      let host: string = 'ais-pre-wiffv4jkprcwv6spmkf2oj-178679523613.us-east1.run.app';
+      let host: string = 'santainvest.vercel.app';
       const rawHost = req.headers['x-forwarded-host'] || req.get('host');
       if (rawHost) {
         if (Array.isArray(rawHost)) {
