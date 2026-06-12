@@ -1357,17 +1357,6 @@ export default function PropertyCard({
                   </svg>
                 </a>
 
-                {/* center Contatar trigger scrolling to simulator table */}
-                <button
-                  onClick={() => {
-                    const el = document.getElementById('simulador-box');
-                    el?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="flex-1 flex h-12 items-center justify-center rounded-xl bg-zinc-200 hover:bg-zinc-300 text-zinc-800 font-extrabold text-xs uppercase tracking-wider shrink-0 cursor-pointer shadow-md active:scale-[0.98] transition-all"
-                >
-                  Contatar
-                </button>
-
                 {/* right Green WhatsApp direct item containing WhatsApp SVG/icon */}
                 <a
                   href={getWhatsAppLink(false)}
