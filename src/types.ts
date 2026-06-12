@@ -73,6 +73,10 @@ export interface BrandSettings {
   cnpj?: string;        // CNPJ number e.g. "00.000.000/0001-00"
   footerLogoUrl?: string; // alternative brand logo URL for dark or light backgrounds (e.g., footer)
   footerLogoHeight?: string; // custom footer logo height (e.g. "40px" or "10")
+  termsOfUse?: string;      // custom terms of use and privacy text
+  privacyPolicy?: string;   // custom privacy policy text
+  cookieText?: string;      // custom cookie text description
+  enableCookieConsent?: boolean; // configuration to enable or disable the cookie consent banner
 }
 
 export interface UserProfile {

@@ -58,52 +58,98 @@ async function startServer() {
       let title = 'VIVASC - Lançamentos Imobiliários';
       let description = 'Encontre o imóvel dos seus sonhos em Santa Catarina. Lançamentos com fluxo de pagamento sob medida!';
       let imageUrl = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80';
-      const canonicalUrl = `https://${req.get('host') || 'ais-pre-wiffv4jkprcwv6spmkf2oj-178679523613.us-east1.run.app'}${req.originalUrl}`;
+      let siteName = 'VIVASC Lançamentos Imobiliários';
+
+      const settings = await fetchBrandSettings();
+      if (settings) {
+        if (settings.companyName) {
+          siteName = settings.companyName;
+        }
+        if (settings.companyName && settings.slogan) {
+          title = `${settings.companyName} - ${settings.slogan}`;
+        }
+        if (settings.shareLogoUrl) {
+          imageUrl = settings.shareLogoUrl;
+        }
+      }
+
+      // Determine the dynamic canonical URL context & properties
+      const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
+      let host: string = 'ais-pre-wiffv4jkprcwv6spmkf2oj-178679523613.us-east1.run.app';
+      const rawHost = req.headers['x-forwarded-host'] || req.get('host');
+      if (rawHost) {
+        if (Array.isArray(rawHost)) {
+          host = rawHost[0];
+        } else {
+          host = rawHost;
+        }
+      }
+
+      let canonicalUrl = `${protocol}://${host}/`;
+      if (imovelId) {
+        canonicalUrl += `?imovel=${imovelId}`;
+      } else {
+        const cleanPath = req.path === '/' ? '' : req.path;
+        canonicalUrl += cleanPath;
+      }
 
       if (imovelId) {
         const prop = await getPropertyInfo(imovelId);
         if (prop) {
-          title = `${prop.name} - Lançamento em ${prop.neighborhood}`;
+          title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
           
-          const roomsLabel = prop.bedrooms === 1 ? '1 quarto' : `${prop.bedrooms} quartos`;
-          const areaLabel = `${prop.area}m²`;
-          const locationLabel = `${prop.neighborhood}, ${prop.region}`;
-          const priceLabel = prop.price ? ` - Preço sugerido: ${formatBRL(prop.price)}` : '';
-          
-          description = `Lançamento Imperdível: ${prop.name}. Apartamento com ${roomsLabel}, área de ${areaLabel} no bairro ${locationLabel}${priceLabel}. Fale conosco pelo WhatsApp!`;
+          if (prop.seoDescription) {
+            description = prop.seoDescription;
+          } else {
+            const pType = prop.projectType || 'Lançamento';
+            const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
+            const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
+            const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
+            const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítes') + ')' : '';
+            const areaLabel = prop.area ? `${prop.area}m²` : '';
+            
+            const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
+            description = `${pType} de Alto Padrão - ${prop.name} em ${locationFormatted}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
+          }
           
           if (prop.images && prop.images.length > 0) {
             imageUrl = prop.images[0];
           }
         }
-      } else {
-        const settings = await fetchBrandSettings();
-        if (settings) {
-          title = `${settings.companyName} - ${settings.slogan}`;
-        }
       }
 
-      // Generate dynamic meta tags
+      const sanitizedImageUrl = sanitizeImageUrl(imageUrl, protocol, host);
+
+      // Generate dynamic meta tags in pristine compliance
       const metaTags = `
     <title>${escapeHtml(title)}</title>
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
-    <meta property="og:image" content="${escapeHtml(imageUrl)}" />
+    <meta property="og:image" content="${escapeHtml(sanitizedImageUrl)}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="${escapeHtml(siteName)}" />
 
-    <!-- Twitter -->
+    <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
+    <meta name="twitter:image" content="${escapeHtml(sanitizedImageUrl)}" />
+
+    <!-- SEO / Canonical Links -->
+    <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
     `;
 
-      // Replace and clean any existing tags
+      // Replace and clean any existing duplicate tags
       let html = template;
       html = html.replace(/<title>.*?<\/title>/gi, '');
+      html = html.replace(/<meta\s+property=["']og:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
+      html = html.replace(/<meta\s+name=["']twitter:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
+      html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/gi, '');
       
       if (html.includes('<head>')) {
         html = html.replace('<head>', `<head>${metaTags}`);
@@ -140,7 +186,23 @@ function formatBRL(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
 }
 
-async function fetchPropertyFromFirestore(propId: string): Promise<Property | null> {
+function sanitizeImageUrl(imgUrl: string, protocol: string, host: string): string {
+  if (!imgUrl) {
+    return 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80';
+  }
+  if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
+    return imgUrl;
+  }
+  if (imgUrl.startsWith('//')) {
+    return `${protocol}:${imgUrl}`;
+  }
+  if (imgUrl.startsWith('/')) {
+    return `${protocol}://${host}${imgUrl}`;
+  }
+  return `${protocol}://${host}/${imgUrl}`;
+}
+
+async function fetchPropertyFromFirestore(propId: string): Promise<any | null> {
   try {
     const url = `https://firestore.googleapis.com/v1/projects/meuprimeiroimovel/databases/(default)/documents/properties/${propId}`;
     const res = await fetch(url);
@@ -153,9 +215,25 @@ async function fetchPropertyFromFirestore(propId: string): Promise<Property | nu
     const status = fields.status?.stringValue || '';
     const neighborhood = fields.neighborhood?.stringValue || '';
     const region = fields.region?.stringValue || '';
-    const bedrooms = fields.bedrooms?.integerValue ? parseInt(fields.bedrooms.integerValue, 10) : 0;
-    const area = fields.area?.integerValue ? parseInt(fields.area.integerValue, 10) : 0;
-    const price = fields.price?.integerValue ? parseInt(fields.price.integerValue, 10) : 0;
+    const projectType = fields.projectType?.stringValue || 'Apartamento';
+    
+    const bedrooms = fields.bedrooms?.integerValue ? parseInt(fields.bedrooms.integerValue, 10) : 
+                     (fields.bedrooms?.doubleValue ? Math.round(fields.bedrooms.doubleValue) : 0);
+                     
+    const suites = fields.suites?.integerValue ? parseInt(fields.suites.integerValue, 10) : 
+                   (fields.suites?.doubleValue ? Math.round(fields.suites.doubleValue) : 0);
+                   
+    const parkingSpaces = fields.parkingSpaces?.integerValue ? parseInt(fields.parkingSpaces.integerValue, 10) : 
+                          (fields.parkingSpaces?.doubleValue ? Math.round(fields.parkingSpaces.doubleValue) : 0);
+                          
+    const area = fields.area?.integerValue ? parseInt(fields.area.integerValue, 10) : 
+                 (fields.area?.doubleValue ? Math.round(fields.area.doubleValue) : 0);
+                 
+    const price = fields.price?.integerValue ? parseInt(fields.price.integerValue, 10) : 
+                  (fields.price?.doubleValue ? Math.round(fields.price.doubleValue) : 0);
+                  
+    const seoTitle = fields.seoTitle?.stringValue || '';
+    const seoDescription = fields.seoDescription?.stringValue || '';
     
     let images: string[] = [];
     if (fields.images?.arrayValue?.values) {
@@ -172,20 +250,25 @@ async function fetchPropertyFromFirestore(propId: string): Promise<Property | nu
       area,
       price,
       images,
+      projectType,
+      suites,
+      parkingSpaces,
+      seoTitle,
+      seoDescription
     };
   } catch (err) {
     return null;
   }
 }
 
-async function getPropertyInfo(propId: string): Promise<Property | null> {
+async function getPropertyInfo(propId: string): Promise<any | null> {
   const firestoreProp = await fetchPropertyFromFirestore(propId);
   if (firestoreProp) {
     return firestoreProp;
   }
   const found = INITIAL_PROPERTIES.find((p) => p.id === propId);
   if (found) {
-    return found as Property;
+    return found;
   }
   return null;
 }
@@ -197,9 +280,13 @@ async function fetchBrandSettings(): Promise<any | null> {
     if (!res.ok) return null;
     const data: any = await res.json();
     if (!data.fields) return null;
+    
+    const fields = data.fields;
     return {
-      companyName: data.fields.companyName?.stringValue || 'VIVASC Lançamentos Imobiliários',
-      slogan: data.fields.slogan?.stringValue || 'Sua Imobiliária de Confiança em Santa Catarina',
+      companyName: fields.companyName?.stringValue || 'VIVASC Lançamentos Imobiliários',
+      slogan: fields.slogan?.stringValue || 'Sua Imobiliária de Confiança em Santa Catarina',
+      shareLogoUrl: fields.shareLogoUrl?.stringValue || fields.logoUrl?.stringValue || '',
+      phone: fields.phone?.stringValue || '',
     };
   } catch {
     return null;

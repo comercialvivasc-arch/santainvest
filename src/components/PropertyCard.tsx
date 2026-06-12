@@ -514,7 +514,7 @@ export default function PropertyCard({
                 <span className="text-[9px] font-bold tracking-wider text-zinc-500 uppercase block mb-0.5">
                   Entrada R$
                 </span>
-                <span className="font-extrabold text-zinc-900 text-[13px] block">
+                <span className="font-extrabold text-zinc-900 text-[14px] block">
                   {formatBRL(property.downpayment)}
                 </span>
               </div>
@@ -522,7 +522,7 @@ export default function PropertyCard({
                 <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5">
                   Mensais R$
                 </span>
-                <span className="font-extrabold text-[#FF9D00] text-[13px] block">
+                <span className="font-extrabold text-[#FF9D00] text-[14px] block">
                   {formatBRL(property.installments)}
                 </span>
               </div>

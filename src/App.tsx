@@ -5,6 +5,8 @@ import SearchPanel from './components/SearchPanel';
 import PropertyCard from './components/PropertyCard';
 import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
+import LegalDocsModal from './components/LegalDocsModal';
+import CookieConsent from './components/CookieConsent';
 import { Property, BannerAd, SearchFilters, BrandSettings, Broker, Client, Lead, Visit, Message } from './types';
 import { INITIAL_PROPERTIES, INITIAL_BANNERS, DEFAULT_BRAND_SETTINGS } from './data';
 import { 
@@ -101,6 +103,7 @@ export default function App() {
   // Navigation View ('home' or 'admin')
   const [currentView, setCurrentView] = useState<'home' | 'admin'>('home');
   const [currentTab, setCurrentTab] = useState<'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato'>('home');
+  const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy' | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   // Sync favorites with client-side localStorage
@@ -1176,6 +1179,23 @@ export default function App() {
         onTabChange={setCurrentTab}
         onNavigateToHome={() => setCurrentView('home')}
         onNavigateToAdmin={() => setCurrentView('admin')}
+        onOpenTerms={() => setLegalModalType('terms')}
+        onOpenPrivacy={() => setLegalModalType('privacy')}
+      />
+
+      {/* Cookie Consent overlay */}
+      <CookieConsent 
+        settings={settings}
+        onOpenTerms={() => setLegalModalType('terms')}
+        onOpenPrivacy={() => setLegalModalType('privacy')}
+      />
+
+      {/* Shared Legal Document Modals */}
+      <LegalDocsModal 
+        isOpen={!!legalModalType}
+        onClose={() => setLegalModalType(null)}
+        type={legalModalType || 'terms'}
+        settings={settings}
       />
 
       {/* Global Property Detail Modal Host */}

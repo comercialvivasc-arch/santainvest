@@ -6,9 +6,11 @@ interface FooterProps {
   onTabChange?: (tab: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato') => void;
   onNavigateToHome?: () => void;
   onNavigateToAdmin?: () => void;
+  onOpenTerms?: () => void;
+  onOpenPrivacy?: () => void;
 }
 
-export default function Footer({ settings, onTabChange, onNavigateToHome, onNavigateToAdmin }: FooterProps) {
+export default function Footer({ settings, onTabChange, onNavigateToHome, onNavigateToAdmin, onOpenTerms, onOpenPrivacy }: FooterProps) {
   const menus: { id: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato'; label: string }[] = [
     { id: 'home', label: 'Início' },
     { id: 'lançamentos', label: 'Lançamentos' },
@@ -100,13 +102,17 @@ export default function Footer({ settings, onTabChange, onNavigateToHome, onNavi
             </span>
             <div className="flex flex-col space-y-2">
               <button
-                onClick={() => alert(`Termos de Uso & Privacidade de ${settings?.brandName || 'Meu Primeiro Imóvel'}:\n\nTodos os logins e dados fornecidos cooperam com as regras da lei geral de proteção de dados (LGPD). Os atendimentos imobiliários são liderados por profissionais corretores inscritos no CRECI.`)}
+                onClick={() => {
+                  if (onOpenTerms) onOpenTerms();
+                }}
                 className="text-left md:text-right text-xs font-semibold text-[#203366] hover:underline cursor-pointer"
               >
                 Termos & Privacidade
               </button>
               <button
-                onClick={() => alert(`Política de Privacidade:\n\nNosso portal armazena temporariamente dados de favoritos localmente e envia de maneira criptografada solicitações de contato ao e-mail institucional e canais de corretores licenciados no WhatsApp.`)}
+                onClick={() => {
+                  if (onOpenPrivacy) onOpenPrivacy();
+                }}
                 className="text-left md:text-right text-xs text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
               >
                 Política de privacidade

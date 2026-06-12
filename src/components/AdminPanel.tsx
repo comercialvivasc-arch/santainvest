@@ -133,6 +133,10 @@ export default function AdminPanel({
   const [settingsCnpj, setSettingsCnpj] = useState(settings?.cnpj || '');
   const [settingsFooterLogoUrl, setSettingsFooterLogoUrl] = useState(settings?.footerLogoUrl || '');
   const [settingsFooterLogoHeight, setSettingsFooterLogoHeight] = useState(settings?.footerLogoHeight || '');
+  const [settingsTermsOfUse, setSettingsTermsOfUse] = useState(settings?.termsOfUse || '');
+  const [settingsPrivacyPolicy, setSettingsPrivacyPolicy] = useState(settings?.privacyPolicy || '');
+  const [settingsCookieText, setSettingsCookieText] = useState(settings?.cookieText || '');
+  const [settingsEnableCookieConsent, setSettingsEnableCookieConsent] = useState(settings?.enableCookieConsent !== false);
   const [isSettingsUpdating, setIsSettingsUpdating] = useState(false);
   const [settingsUpdateStatus, setSettingsUpdateStatus] = useState<string | null>(null);
 
@@ -163,6 +167,10 @@ export default function AdminPanel({
       setSettingsCnpj(settings.cnpj || '');
       setSettingsFooterLogoUrl(settings.footerLogoUrl || '');
       setSettingsFooterLogoHeight(settings.footerLogoHeight || '');
+      setSettingsTermsOfUse(settings.termsOfUse || '');
+      setSettingsPrivacyPolicy(settings.privacyPolicy || '');
+      setSettingsCookieText(settings.cookieText || '');
+      setSettingsEnableCookieConsent(settings.enableCookieConsent !== false);
     }
   }, [settings]);
 
@@ -1417,7 +1425,11 @@ export default function AdminPanel({
                     creci: settingsCreci,
                     cnpj: settingsCnpj,
                     footerLogoUrl: settingsFooterLogoUrl,
-                    footerLogoHeight: settingsFooterLogoHeight
+                    footerLogoHeight: settingsFooterLogoHeight,
+                    termsOfUse: settingsTermsOfUse,
+                    privacyPolicy: settingsPrivacyPolicy,
+                    cookieText: settingsCookieText,
+                    enableCookieConsent: settingsEnableCookieConsent
                   });
                   setSettingsUpdateStatus('Configurações de marca e contatos salvas no Firebase Firestore com sucesso.');
                 } catch (err: any) {
@@ -1864,6 +1876,85 @@ export default function AdminPanel({
                       onChange={(e) => setSettingsCnpj(e.target.value)}
                       placeholder="00.000.000/0001-00"
                       className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 7: LGPD, Terms of Use, Privacy Policy & Cookie Banner */}
+              <div className="space-y-4 border-t border-zinc-900 pt-5">
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest text-[#FF9D00] font-mono uppercase block mb-1">
+                    ✦ Compliance, Cookies & LGPD
+                  </span>
+                  <p className="text-[11px] text-zinc-400 leading-normal">
+                    Customize o comportamento e os textos dos termos legais, política de privacidade e aviso de cookies em conformidade com a LGPD.
+                  </p>
+                </div>
+
+                {/* Cookie banner config */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
+                  <div className="space-y-2">
+                    <label className="text-[9px] uppercase font-mono text-zinc-400 font-bold block">
+                      Cookie Consent
+                    </label>
+                    <div className="flex items-center gap-3 bg-black border border-zinc-900 rounded-xl px-4 py-3 cursor-pointer select-none" onClick={() => setSettingsEnableCookieConsent(!settingsEnableCookieConsent)}>
+                      <input
+                        type="checkbox"
+                        checked={settingsEnableCookieConsent}
+                        onChange={(e) => setSettingsEnableCookieConsent(e.target.checked)}
+                        className="h-4 w-4 rounded bg-zinc-900 border-zinc-950 text-orange-500 focus:ring-0 focus:ring-offset-0 focus:outline-none accent-orange-500 cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <span className="text-xs text-white font-medium select-none">Habilitar Banner de Cookies</span>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[9px] uppercase font-mono text-zinc-400 font-bold block">
+                      Texto do Banner de Consentimento
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={settingsCookieText}
+                      onChange={(e) => setSettingsCookieText(e.target.value)}
+                      placeholder="Este site utiliza cookies de navegação para personalizar anúncios e analisar o tráfego do site de forma segura, conforme nossas políticas. Ao prosseguir, você consente com seu uso."
+                      className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans resize-none placeholder-zinc-800"
+                    />
+                  </div>
+                </div>
+
+                {/* Terms of Use and Privacy Policy Multi-line Rich Text areas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <label className="text-[9px] uppercase font-mono text-[#FF9D00] font-bold block">
+                      Termos de Uso e Consentimento de Cadastro
+                    </label>
+                    <p className="text-[10px] text-zinc-500 leading-normal">
+                      Insira os termos que são mostrados ao usuário na aba correspondente do site ou nos formulários de interesse.
+                    </p>
+                    <textarea
+                      rows={6}
+                      value={settingsTermsOfUse}
+                      onChange={(e) => setSettingsTermsOfUse(e.target.value)}
+                      placeholder="Insira os termos de uso legais da sua imobiliária de forma estruturada..."
+                      className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans placeholder-zinc-800"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] uppercase font-mono text-[#FF9D00] font-bold block">
+                      Política de Privacidade e Proteção de Dados (LGPD)
+                    </label>
+                    <p className="text-[10px] text-zinc-500 leading-normal">
+                      Insira as diretrizes de privacidade sobre como você processará os dados fornecidos no formulário.
+                    </p>
+                    <textarea
+                      rows={6}
+                      value={settingsPrivacyPolicy}
+                      onChange={(e) => setSettingsPrivacyPolicy(e.target.value)}
+                      placeholder="Insira as regras e políticas de privacidade conforme a LGPD..."
+                      className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans placeholder-zinc-800"
                     />
                   </div>
                 </div>
