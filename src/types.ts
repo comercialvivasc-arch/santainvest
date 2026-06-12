@@ -40,6 +40,8 @@ export interface Property {
   reintegrationValue?: number;
   keysPct?: number;
   keysValue?: number;
+  isMcmv?: boolean;
+  mcmvLogoUrl?: string;
 }
 
 export interface BannerAd {

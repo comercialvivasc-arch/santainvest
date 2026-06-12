@@ -48,6 +48,34 @@ const formatBathroomsLabel = (bedrooms: string | number) => {
   return `${s} Banh.`;
 };
 
+const McmvBadge = ({ customLogoUrl, className = "h-8" }: { customLogoUrl?: string; className?: string }) => {
+  if (customLogoUrl) {
+    return (
+      <img 
+        src={customLogoUrl} 
+        alt="Selo Minha Casa Minha Vida" 
+        className="object-contain shrink-0" 
+        style={{ width: "105px", height: "52px" }}
+      />
+    );
+  }
+  
+  return (
+    <div className="inline-flex items-center gap-2 bg-white border border-zinc-200 shadow-sm px-3 py-1.5 rounded-lg shrink-0 select-none">
+      <svg className="h-6 w-6 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="12,4 3,12 6,12 6,21 18,21 18,12 21,12" fill="#004797" />
+        <polygon points="12,4 3,12 12,12" fill="#0D9F4F" />
+        <polygon points="12,4 21,12 12,12" fill="#FFCC00" />
+        <rect x="10.5" y="15" width="3" height="6" fill="#FFFFFF" />
+      </svg>
+      <div className="flex flex-col leading-[1.1] text-[8.5px] font-black tracking-tight uppercase select-none text-left font-sans">
+        <span className="text-emerald-600 font-extrabold">Minha Casa</span>
+        <span className="text-blue-700 font-extrabold">Minha Vida</span>
+      </div>
+    </div>
+  );
+};
+
 interface PropertyCardProps {
   property: Property;
   allProperties?: Property[];
@@ -425,13 +453,18 @@ export default function PropertyCard({
         <div className="p-5 flex-1 flex flex-col justify-between">
           <div>
             {/* Project template / type & location subheaders */}
-            <div className="flex items-center gap-1 text-[12px] font-bold tracking-wider text-primary uppercase font-mono mb-1">
-              <Compass className="h-3 w-3" />
-              {property.projectType}
+            <div className="flex items-center justify-between text-[12px] mb-1">
+              <div className="flex items-center gap-1 font-bold tracking-wider text-primary uppercase font-mono">
+                <Compass className="h-3 w-3" />
+                {property.projectType}
+              </div>
+              {property.isMcmv && (
+                <McmvBadge customLogoUrl={property.mcmvLogoUrl} className="h-6" />
+              )}
             </div>
 
             {/* Nome do Projeto */}
-            <h3 className="text-xl font-bold text-zinc-900 tracking-tight leading-snug group-hover:text-primary transition-colors">
+            <h3 className="text-xl font-bold text-zinc-900 tracking-tight leading-[1.15] mt-1 group-hover:text-primary transition-colors">
               {property.name}
             </h3>
 
@@ -761,16 +794,19 @@ export default function PropertyCard({
 
               {/* MAIN TITLE, BADGE CATEGORY, AND LONG DESCRIPTION */}
               <div className="text-left py-4 border-t border-zinc-200">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <span className="bg-[#FF9D00]/10 border border-[#FF9D00]/20 text-[#FF9D00] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md font-mono">
                     {property.projectType || 'Lançamento'}
                   </span>
+                  {property.isMcmv && (
+                    <McmvBadge customLogoUrl={property.mcmvLogoUrl} className="h-7" />
+                  )}
                   <span className="text-zinc-400">•</span>
                   <span className="text-[11px] text-zinc-600 font-mono">Ref do Produto: VIVASC-{property.id}</span>
                 </div>
                 
                 {/* Nome do Empreendimento */}
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#203366] tracking-tight mb-2 uppercase">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#203366] tracking-tight mb-2 uppercase leading-[1.1]">
                   {property.name}
                 </h2>
                 
@@ -905,7 +941,7 @@ export default function PropertyCard({
               <div id="simulador-box" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
                 <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
                   <Compass className="h-4.5 w-4.5 text-[#FF9D00]" />
-                  <h3 className="text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
+                  <h3 translate="no" className="notranslate text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
                     Plano de Pagamento Facilitado
                   </h3>
                 </div>
@@ -913,7 +949,7 @@ export default function PropertyCard({
                 <div className="space-y-4 pt-1 font-mono">
                   {/* Valor Fina */}
                   <div className="flex items-center justify-between border-b border-zinc-200 pb-2.5">
-                    <span className="text-xs text-zinc-550 uppercase tracking-wide">Valor de Lista</span>
+                    <span className="text-xs text-zinc-550 uppercase tracking-wide">UNIDADES A PARTIR DE</span>
                     <span className="text-xl sm:text-2xl font-black text-zinc-900 font-mono">
                       {formatBRL(property.price)}
                     </span>
@@ -971,7 +1007,7 @@ export default function PropertyCard({
                 </div>
 
                 <div className="bg-orange-500/5 border border-orange-500/20 p-3 rounded-lg text-[10px] text-zinc-800 leading-normal font-sans block">
-                  💡 <strong>Condição Facilitada VivaSC:</strong> Fluxo calculado de forma integrada ({((property.downpaymentPct || 10) + (property.installmentsPct || 60) + (property.reintegrationPct || 20) + (property.keysPct || 10))}%). Fluxo e parcelamento direto com a incorporadora altamente maleável conforme sua necessidade de liquidez.
+                  💡 <strong>Condição de tabela:</strong> Monte uma condição de pagamento flexível conforme sua capacidade financeira, sujeita à análise da construtora. Valores, disponibilidade e condições podem ser alterados sem aviso prévio. Consulte e confirme as informações no momento da proposta.
                 </div>
 
                 {/* Simulated Payment WhatsApp redirection button */}

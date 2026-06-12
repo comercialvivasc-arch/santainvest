@@ -104,6 +104,7 @@ export const INITIAL_PROPERTIES: Property[] = [
     price: 490000,
     downpayment: 49000,
     installments: 1800,
+    isMcmv: true,
     images: [
       'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=800&q=80'

@@ -114,7 +114,7 @@ export default function AdminPanel({
   const [loginPassword, setLoginPassword] = useState('');
   const [isEmailLoginOpen, setIsEmailLoginOpen] = useState(false);
   const [isEmailLoggingIn, setIsEmailLoggingIn] = useState(false);
-  const [loginTab, setLoginTab] = useState<'google' | 'email' | 'local'>('google');
+  const [loginTab, setLoginTab] = useState<'google' | 'email'>('google');
   
   // Seeding status tracker
   const [isSeeding, setIsSeeding] = useState(false);
@@ -182,10 +182,19 @@ export default function AdminPanel({
         }
       })
       .catch((error: any) => {
-        console.error("Erro no retorno de redirecionamento do Google:", error);
-        if (error.code === 'auth/unauthorized-domain') {
-          setAuthError(`Domínio não autorizado no Firebase Auth! Adicione este domínio (${window.location.hostname}) nas configurações de Autenticação do Console Firebase.`);
+        const errStr = String(error?.code || error?.message || error || '');
+        if (errStr.includes('unauthorized-domain') || error?.code === 'auth/unauthorized-domain') {
+          setAuthError('auth/unauthorized-domain');
+          console.warn("Domínio atual não está autorizado na autenticação do Firebase. Isso é normal no ambiente de desenvolvimento/preview.");
+        } else if (
+          errStr.includes('cancelled-popup-request') || 
+          errStr.includes('popup-closed-by-user') || 
+          error?.code === 'auth/cancelled-popup-request' || 
+          error?.code === 'auth/popup-closed-by-user'
+        ) {
+          console.log("Fluxo de login de redirecionamento cancelado ou interrompido pelo usuário/navegador.");
         } else {
+          console.error("Erro no retorno de redirecionamento do Google:", error);
           setAuthError(`Erro no redirecionamento do Google: ${error.message || error}`);
         }
       });
@@ -225,10 +234,19 @@ export default function AdminPanel({
         setAuthError('');
       }
     } catch (e: any) {
-      console.error(e);
-      if (e.code === 'auth/unauthorized-domain') {
-        setAuthError(`Domínio não autorizado no Firebase Auth! Vá no Console Firebase > Autenticação > Configurações > Domínios Autorizados e adicione o domínio atual (${window.location.hostname}) para permitir logins.`);
+      const errStr = String(e?.code || e?.message || e || '');
+      if (errStr.includes('unauthorized-domain') || e?.code === 'auth/unauthorized-domain') {
+        setAuthError('auth/unauthorized-domain');
+        console.warn("Domínio atual não está autorizado na autenticação do Firebase. Isso é normal no ambiente de desenvolvimento/preview.");
+      } else if (
+        errStr.includes('cancelled-popup-request') || 
+        errStr.includes('popup-closed-by-user') || 
+        e?.code === 'auth/cancelled-popup-request' || 
+        e?.code === 'auth/popup-closed-by-user'
+      ) {
+        console.log("Fluxo de login de pop-up cancelado ou interrompido.");
       } else {
+        console.error("Erro ao autenticar com o Google:", e);
         setAuthError(`Erro ao autenticar com o Google: ${e.message || e}`);
       }
     }
@@ -239,10 +257,19 @@ export default function AdminPanel({
       setAuthError('');
       await signInWithRedirect(auth, googleProvider);
     } catch (e: any) {
-      console.error(e);
-      if (e.code === 'auth/unauthorized-domain') {
-        setAuthError(`Domínio não autorizado no Firebase Auth! Vá no Console Firebase > Autenticação > Configurações > Domínios Autorizados e adicione o domínio atual (${window.location.hostname}) para permitir logins.`);
+      const errStr = String(e?.code || e?.message || e || '');
+      if (errStr.includes('unauthorized-domain') || e?.code === 'auth/unauthorized-domain') {
+        setAuthError('auth/unauthorized-domain');
+        console.warn("Domínio atual não está autorizado na autenticação do Firebase. Isso é normal no ambiente de desenvolvimento/preview.");
+      } else if (
+        errStr.includes('cancelled-popup-request') || 
+        errStr.includes('popup-closed-by-user') || 
+        e?.code === 'auth/cancelled-popup-request' || 
+        e?.code === 'auth/popup-closed-by-user'
+      ) {
+        console.log("Fluxo de login por redirecionamento cancelado ou interrompido.");
       } else {
+        console.error("Erro ao redirecionar para o Google:", e);
         setAuthError(`Erro ao redirecionar para o Google: ${e.message || e}`);
       }
     }
@@ -340,6 +367,8 @@ export default function AdminPanel({
   const [propNeighborhood, setPropNeighborhood] = useState('');
   const [propRegion, setPropRegion] = useState('');
   const [propAddress, setPropAddress] = useState('');
+  const [propIsMcmv, setPropIsMcmv] = useState(false);
+  const [propMcmvLogoUrl, setPropMcmvLogoUrl] = useState('');
   const [propType, setPropType] = useState('Apartamento');
   const [propBedrooms, setPropBedrooms] = useState<string | number>(2);
   const [propSuites, setPropSuites] = useState<string | number>('');
@@ -447,6 +476,8 @@ export default function AdminPanel({
     setPropNeighborhood('');
     setPropRegion('');
     setPropAddress('');
+    setPropIsMcmv(false);
+    setPropMcmvLogoUrl('');
     setPropType('Apartamento');
     setPropBedrooms(2);
     setPropSuites('');
@@ -479,6 +510,8 @@ export default function AdminPanel({
     setPropNeighborhood(p.neighborhood);
     setPropRegion(p.region);
     setPropAddress(p.address);
+    setPropIsMcmv(p.isMcmv || false);
+    setPropMcmvLogoUrl(p.mcmvLogoUrl || '');
     setPropType(p.projectType);
     setPropBedrooms(p.bedrooms);
     setPropSuites(p.suites !== undefined && p.suites !== null ? p.suites : '');
@@ -712,7 +745,9 @@ export default function AdminPanel({
       schemaMarkup: calculatedSchema,
       privateNotes: propPrivateNotes,
       detailedDescription: propDetailedDescription,
-      floorPlans: propFloorPlans
+      floorPlans: propFloorPlans,
+      isMcmv: propIsMcmv,
+      mcmvLogoUrl: propMcmvLogoUrl
     };
 
     if (editingPropertyId) {
@@ -814,16 +849,9 @@ export default function AdminPanel({
             >
               E-mail e Senha
             </button>
-            <button
-              type="button"
-              onClick={() => { setLoginTab('local'); setAuthError(''); }}
-              className={`flex-1 py-2.5 text-center transition-all border-b-2 ${loginTab === 'local' ? 'text-orange-500 border-orange-500 font-bold' : 'text-zinc-500 border-transparent hover:text-zinc-300'}`}
-            >
-              Chave Local
-            </button>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-5 flex-1">
             {/* TAB 1: GOOGLE AUTH */}
             {loginTab === 'google' && (
               <div className="space-y-4">
@@ -838,27 +866,17 @@ export default function AdminPanel({
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                   </svg>
-                  Seguir com Login Pop-up
+                  Login com Google (Pop-up)
                 </button>
 
                 <button
                   type="button"
                   onClick={handleGoogleRedirect}
-                  className="w-full py-3.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold tracking-wider uppercase transition-all duration-300 border border-zinc-800 cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                  className="w-full py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border border-zinc-800 cursor-pointer flex items-center justify-center gap-2 active:scale-98"
                 >
-                  <Globe className="h-4.5 w-4.5 text-orange-400 shrink-0" />
-                  Login via Redirecionamento (Alt)
+                  <Globe className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+                  Entrar via Redirecionamento (Alt)
                 </button>
-
-                <span className="block text-[9px] font-mono text-zinc-500 text-center leading-normal">
-                  Apenas contas autorizadas. Administradores oficiais:<br />
-                  <strong className="text-zinc-400 font-mono block text-center">comercial.vivasc@gmail.com<br />meuprimeiroimovel.adm@gmail.com</strong>
-                </span>
-
-                <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-[10px] text-zinc-400 font-sans leading-relaxed">
-                  <HelpCircle className="h-4 w-4 text-orange-500 inline mr-1 shrink-0 align-text-bottom" />
-                  <span className="font-bold text-zinc-300">Aviso Vercel/Popups:</span> Se o pop-up for rejeitado, utilize o botão de redirecionamento ou a aba <span className="text-orange-400">E-mail e Senha</span> para autenticação rápida sem popups. Certifique-se também de autorizar o domínio atual (<code className="text-orange-400 font-mono">{window.location.hostname}</code>) no painel Firebase Auth se houver erros de domínio.
-                </div>
               </div>
             )}
 
@@ -896,63 +914,95 @@ export default function AdminPanel({
                 <button
                   type="submit"
                   disabled={isEmailLoggingIn}
-                  className="w-full py-3 px-4 rounded-xl bg-orange-500 text-black hover:bg-orange-600 disabled:opacity-55 text-xs font-black tracking-widest uppercase transition-all duration-300 cursor-pointer shadow-lg shadow-orange-500/10"
+                  className="w-full py-3 px-4 rounded-xl bg-orange-500 text-black hover:bg-orange-600 disabled:opacity-55 text-xs font-black tracking-widest uppercase transition-all duration-300 cursor-pointer shadow-lg shadow-orange-500/10 animate-transition"
                 >
                   {isEmailLoggingIn ? 'Autenticando...' : 'Entrar com E-mail'}
                 </button>
-
-                <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-[10px] text-zinc-400 font-sans leading-relaxed">
-                  <span className="font-bold text-zinc-300 block mb-1">💡 Como funciona:</span> 
-                  O login por E-mail e Senha é executado totalmente dentro da página sem abrir nenhuma aba extra. Ative o provedor "E-mail/Senha" no seu console Firebase Auth e cadastre as contas autorizadas (ex: <strong className="text-orange-400 font-mono">meuprimeiroimovel.adm@gmail.com</strong> ou <strong className="text-orange-400 font-mono">comercial.vivasc@gmail.com</strong>) para utilizá-lo.
-                </div>
-              </form>
-            )}
-
-            {/* TAB 3: LOCAL BYPASS CHAVE */}
-            {loginTab === 'local' && (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-2">
-                    Chave Secundária (Apenas Visualização)
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    className="w-full rounded-xl bg-black px-4 py-3 text-sm text-white placeholder-zinc-700 border border-zinc-800 focus:border-orange-500/60 outline-none text-center font-mono tracking-widest"
-                    placeholder="••••••••••••"
-                    value={passcode}
-                    onChange={(e) => setPasscode(e.target.value)}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 px-4 rounded-xl bg-orange-500/10 hover:bg-orange-500 hover:text-black hover:shadow-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-extrabold tracking-widest uppercase transition-all duration-300 cursor-pointer shadow-lg"
-                >
-                  Liberar Localmente
-                </button>
-
-                <div className="mt-4 pt-4 border-t border-zinc-900 text-center">
-                  <span className="text-[10px] font-mono text-zinc-500 block uppercase">
-                    🔑 Chave Local de Teste
-                  </span>
-                  <span className="text-sm font-bold text-orange-500 font-mono tracking-wider mt-1 block">
-                    admin2026
-                  </span>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-orange-950/25 border border-orange-900/20 text-[10px] text-orange-300 font-sans leading-relaxed">
-                  <ShieldAlert className="h-4 w-4 text-orange-400 inline mr-1 shrink-0 align-text-bottom" />
-                  <span className="font-bold text-orange-200">Atenção:</span> A visualização local com chave secundária funciona offline, mantendo suas alterações salvas apenas no seu navegador. Os salvamentos reais no banco Firestore exigem um login de administrador ativo por Google ou E-mail.
-                </div>
               </form>
             )}
 
             {authError && (
-              <div className="rounded-xl bg-red-950/20 border border-red-900/40 p-3.5 text-xs text-red-400 flex items-start gap-2.5 font-mono">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <span className="leading-normal">{authError}</span>
-              </div>
+              authError === 'auth/unauthorized-domain' ? (
+                <div className="rounded-xl bg-red-950/20 border border-red-900/40 p-4 text-xs text-red-200 mt-2 space-y-3 font-sans">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-bold text-red-400 text-sm mb-1 uppercase font-mono tracking-wider">
+                        Domínio não Autorizado!
+                      </h4>
+                      <p className="text-zinc-300 leading-relaxed">
+                        O Firebase bloqueou este login com Google porque o domínio desta página não está registrado na lista de segurança do seu projeto.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-black/40 border border-zinc-800 rounded-lg p-3 space-y-2 mt-2 font-mono text-[11px] leading-relaxed">
+                    <p className="text-zinc-400">Copie este domínio de desenvolvimento:</p>
+                    <div className="flex items-center gap-2 bg-zinc-950 px-2 py-1.5 rounded border border-zinc-900 group">
+                      <span className="text-orange-400 flex-1 break-all select-all font-semibold font-mono">
+                        {window.location.hostname}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.hostname);
+                          alert('Domínio copiado para a área de transferência!');
+                        }}
+                        className="text-zinc-500 hover:text-white transition-colors"
+                        title="Copiar link"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {window.location.hostname !== "ais-pre-wiffv4jkprcwv6spmkf2oj-178679523613.us-east1.run.app" && (
+                      <>
+                        <p className="text-zinc-400 pt-1">Copie o domínio de compartilhamento:</p>
+                        <div className="flex items-center gap-2 bg-zinc-950 px-2 py-1.5 rounded border border-zinc-900 group">
+                          <span className="text-orange-400 flex-1 break-all select-all font-semibold font-mono">
+                            ais-pre-wiffv4jkprcwv6spmkf2oj-178679523613.us-east1.run.app
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText("ais-pre-wiffv4jkprcwv6spmkf2oj-178679523613.us-east1.run.app");
+                              alert('Domínio de compartilhamento copiado!');
+                            }}
+                            className="text-zinc-500 hover:text-white transition-colors"
+                            title="Copiar link"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="pt-1.5">
+                    <a
+                      href="https://console.firebase.google.com/project/meuprimeiroimovel/authentication/settings"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 w-full justify-center bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-[11px] uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all font-mono shadow-md"
+                    >
+                      <Globe className="h-4 w-4 shrink-0" />
+                      Abrir Console do Firebase
+                    </a>
+                  </div>
+
+                  <div className="text-[10px] text-zinc-400 leading-relaxed bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-800">
+                    <span className="font-bold text-zinc-300 block mb-0.5">Como autorizar:</span>
+                    1. No Console Firebase, clique na aba <strong className="text-orange-400">Settings</strong> (Configurações).<br />
+                    2. Selecione <strong className="text-orange-400">Authorized domains</strong> (Domínios autorizados).<br />
+                    3. Clique em <strong className="text-white">Add domain</strong> (Adicionar domínio) e cole o domínio copiado acima.
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-red-950/20 border border-red-900/40 p-3.5 text-xs text-red-400 flex items-start gap-2.5 font-mono">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span className="leading-normal whitespace-pre-line">{authError}</span>
+                </div>
+              )
             )}
           </div>
         </div>
@@ -3302,6 +3352,77 @@ export default function AdminPanel({
                     value={propAddress}
                     onChange={(e) => setPropAddress(e.target.value)}
                   />
+                </div>
+
+                {/* Marca MCMV */}
+                <div className="bg-zinc-900/40 border border-zinc-900 p-4 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="pr-4">
+                      <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">PROGRAMA MINHA CASA MINHA VIDA (MCMV)</label>
+                      <span className="text-xs text-zinc-500">Marque para exibir o selo "Minha Casa Minha Vida" no topo do card do imóvel.</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={propIsMcmv}
+                        onChange={(e) => setPropIsMcmv(e.target.checked)}
+                      />
+                      <div className="w-11 h-6 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-500 after:border-none after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                  </div>
+
+                  {propIsMcmv && (
+                    <div className="pt-3 border-t border-zinc-800 space-y-2">
+                      <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">Marca / Selo MCMV Personalizado (Opcional)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          className="flex-1 rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-orange-500 outline-none"
+                          placeholder="Link da imagem ou faça upload ao lado..."
+                          value={propMcmvLogoUrl}
+                          onChange={(e) => setPropMcmvLogoUrl(e.target.value)}
+                        />
+                        <label className="bg-zinc-805 hover:bg-zinc-700 text-zinc-300 text-xs px-3.5 py-2.5 rounded-lg font-bold font-mono tracking-wide cursor-pointer transition-colors border border-zinc-700/50 shrink-0 select-none">
+                          Selecionar Arquivo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                if (!file.type.startsWith('image/')) {
+                                  alert('Selecione apenas arquivos de imagem!');
+                                  return;
+                                }
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  if (event.target?.result) {
+                                    setPropMcmvLogoUrl(event.target.result as string);
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <span className="text-[11px] text-zinc-500 block">Deixe vazio para usar a marca/logo padrão super bonita e colorida do Minha Casa Minha Vida.</span>
+                      {propMcmvLogoUrl && (
+                        <div className="relative inline-block mt-1">
+                          <img src={propMcmvLogoUrl} alt="Logo MCMV" className="h-10 w-auto object-contain rounded border border-zinc-800 bg-white/5 p-1" />
+                          <button
+                            type="button"
+                            onClick={() => setPropMcmvLogoUrl('')}
+                            className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-red-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold hover:bg-red-700 shadow-lg"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* technical metrics details */}

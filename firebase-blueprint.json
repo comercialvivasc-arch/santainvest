@@ -62,7 +62,9 @@
         "price": { "type": "number" },
         "downpayment": { "type": "number" },
         "installments": { "type": "number" },
-        "images": { "type": "array" }
+        "images": { "type": "array" },
+        "isMcmv": { "type": "boolean" },
+        "mcmvLogoUrl": { "type": "string" }
       },
       "required": ["id", "name", "status", "deliveryDate", "neighborhood", "address", "region", "projectType", "bedrooms", "area", "parkingSpaces", "price"]
     },
