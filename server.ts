@@ -55,10 +55,10 @@ async function startServer() {
       // Check query parameters for product/property ID
       const imovelId = String(req.query.imovel || req.query.id || '');
       
-      let title = 'Santa Invest Imóveis';
+      let title = 'Meu Primeiro Imóvel';
       let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
       let imageUrl = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80';
-      let siteName = 'Santa Invest Imóveis';
+      let siteName = 'Meu Primeiro Imóvel';
 
       const settings = await fetchBrandSettings();
       if (settings) {
