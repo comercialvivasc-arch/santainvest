@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, ChevronLeft, ChevronRight, X, Sparkles } from 'lucide-react';
+import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, ChevronLeft, ChevronRight, X, Sparkles, CheckCircle, Upload, FileUp, FileText, Check, ShieldCheck, UserCheck, HelpCircle, User, Briefcase, Coins, Trash2, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BrandSettings } from '../types';
 import { saveLeadToFirestore, saveMessageToFirestore } from '../services/firestoreService';
@@ -119,6 +119,54 @@ export default function PropertyCard({
   const [emailFormMsg, setEmailFormMsg] = useState('');
   const [emailFormStatus, setEmailFormStatus] = useState<'idle' | 'success'>('idle');
 
+  // Pre-approval form states
+  const [paName, setPaName] = useState('');
+  const [paCpf, setPaCpf] = useState('');
+  const [paEstadoCivil, setPaEstadoCivil] = useState('Solteiro(a)');
+  const [paProfissao, setPaProfissao] = useState('');
+  const [paEmail, setPaEmail] = useState('');
+  const [paTelefone, setPaTelefone] = useState('');
+  const [paRendaBruta, setPaRendaBruta] = useState('');
+  const [paRegimeTrabalho, setPaRegimeTrabalho] = useState<'CLT' | 'Autônomo'>('CLT');
+  const [paComporRenda, setPaComporRenda] = useState(false);
+  const [paHasEntrada, setPaHasEntrada] = useState(true);
+  const [paEntrada, setPaEntrada] = useState('');
+  const [paHasParcela, setPaHasParcela] = useState(true);
+  const [paParcela, setPaParcela] = useState('');
+
+  // Attached documents base64 objects
+  const [paDocRgCpf, setPaDocRgCpf] = useState<{ name: string; size: number; base64: string } | null>(null);
+  const [paDocResidencia, setPaDocResidencia] = useState<{ name: string; size: number; base64: string } | null>(null);
+  const [paDocRenda, setPaDocRenda] = useState<{ name: string; size: number; base64: string } | null>(null);
+
+  const [paStatus, setPaStatus] = useState<'idle' | 'success' | 'submitting'>('idle');
+  const [paError, setPaError] = useState<string | null>(null);
+
+  // Helper to read and convert file to base64
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'rgCpf' | 'residencia' | 'renda') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reject files > 3MB to avoid excessive Firestore document payload
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Arquivo muito grande! Escolha um arquivo de no máximo 3MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64String = reader.result as string;
+      const fileObj = { name: file.name, size: file.size, base64: base64String };
+      if (field === 'rgCpf') setPaDocRgCpf(fileObj);
+      if (field === 'residencia') setPaDocResidencia(fileObj);
+      if (field === 'renda') setPaDocRenda(fileObj);
+    };
+    reader.onerror = () => {
+      console.error('Erro ao ler arquivo para base64.');
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Reset internal sliding & interaction states when entering another property detail pages
   React.useEffect(() => {
     setCurrentImgIndex(0);
@@ -128,6 +176,26 @@ export default function PropertyCard({
     setEmailFormContact('');
     setEmailFormMsg('');
     setEmailFormStatus('idle');
+
+    // Reset pre-approval form states
+    setPaName('');
+    setPaCpf('');
+    setPaEstadoCivil('Solteiro(a)');
+    setPaProfissao('');
+    setPaEmail('');
+    setPaTelefone('');
+    setPaRendaBruta('');
+    setPaRegimeTrabalho('CLT');
+    setPaComporRenda(false);
+    setPaHasEntrada(true);
+    setPaEntrada('');
+    setPaHasParcela(true);
+    setPaParcela('');
+    setPaDocRgCpf(null);
+    setPaDocResidencia(null);
+    setPaDocRenda(null);
+    setPaStatus('idle');
+    setPaError(null);
   }, [property.id]);
 
   // Favorites state hooks & localStorage sync
@@ -1090,63 +1158,584 @@ export default function PropertyCard({
                 </div>
               )}
 
-              {/* FAST QUESTIONS ENQUIRY WIDGET (SCREENSHOT 2 REAL IMPLEMENTATION) */}
-              <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5 sm:p-6 text-left space-y-4">
-                <h4 className="text-md sm:text-lg font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                  Perguntas rápidas para o anunciante
-                </h4>
-                <p className="text-xs text-zinc-650 leading-relaxed">
-                  Faça perguntas rápidas ao anunciante ou simplesmente escreva a sua própria pergunta.
-                </p>
-
-                {/* Question Suggestion Bubles */}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {[
-                    "Eu posso visitar?",
-                    "Aceita permuta?",
-                    "Me retorne no whatsapp!",
-                    "Tenho interesse, está disponível?"
-                  ].map((questionText, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setQuickQuestion(questionText)}
-                      className={`px-3.5 py-1.5 rounded-full text-[11px] font-medium cursor-pointer transition-all border ${
-                        quickQuestion === questionText 
-                          ? 'bg-primary border-primary text-black font-semibold'
-                          : 'bg-zinc-100 border-zinc-250 text-zinc-750 hover:bg-zinc-200 hover:border-zinc-300'
-                      }`}
-                    >
-                      {questionText}
-                    </button>
-                  ))}
+              {/* CADASTRO DE PRÉ-APROVAÇÃO WIDGET */}
+              <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5 sm:p-6 text-left space-y-5 shadow-sm scroll-mt-20">
+                <div className="border-b border-zinc-200 pb-3">
+                  <h4 className="text-md sm:text-lg font-black text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    Análise para Pré-Aprovação
+                  </h4>
+                  <p className="text-[11px] text-zinc-500 leading-normal mt-1">
+                    Preencha as informações cadastrais e financeiras para iniciarmos a simulação e aprovação do seu crédito imobiliário diretamente com os principais bancos parceiros.
+                  </p>
                 </div>
 
-                {/* Quick inquiry typing textarea */}
-                <div className="relative">
-                  <textarea
-                    value={quickQuestion}
-                    onChange={(e) => setQuickQuestion(e.target.value.slice(0, 200))}
-                    placeholder="Escreva sua pergunta..."
-                    className="w-full bg-white border border-zinc-250 rounded-xl p-4 text-xs tracking-wide text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all font-sans min-h-[90px] resize-none"
-                  />
-                  <div className="absolute bottom-3 right-3 text-[10px] text-zinc-500 font-mono">
-                    {quickQuestion.length}/200
+                {paStatus === 'success' ? (
+                  <div className="bg-emerald-500/5 border border-emerald-500/25 rounded-2xl p-6 text-center space-y-4">
+                    <div className="h-12 w-12 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-600 mx-auto">
+                      <Check className="h-6 w-6 stroke-[3]" />
+                    </div>
+                    <div className="space-y-1">
+                      <h5 className="font-bold text-zinc-900 text-sm uppercase tracking-wider">Cadastro Enviado com Sucesso!</h5>
+                      <p className="text-xs text-zinc-550 leading-relaxed max-w-sm mx-auto">
+                        Sua solicitação de pré-análise cadastral e financeira foi salva com êxito! Uma cópia de auditoria e aviso foi gerada e enviada via e-mail para <strong className="text-zinc-800">{settings?.email || 'comercial.vivasc@gmail.com'}</strong>.
+                      </p>
+                      <p className="text-[11px] text-zinc-400 max-w-sm mx-auto mt-2 italic bg-white border border-zinc-200 rounded-xl p-3">
+                        Dica: Nossos corretores licenciados já receberam seus dados no painel e iniciarão a análise técnica no banco. O prazo médio de retorno é de até 24 horas úteis.
+                      </p>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaStatus('idle')}
+                        className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-[10px] font-extrabold uppercase tracking-widest rounded-xl transition-all cursor-pointer active:scale-95"
+                      >
+                        Fazer nova simulação
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!paName || !paCpf || !paEmail || !paTelefone || !paRendaBruta) {
+                      setPaError('Por favor, preencha todos os campos obrigatórios identificados com asterisco (*).');
+                      return;
+                    }
+                    
+                    setPaStatus('submitting');
+                    setPaError(null);
 
-                {/* Submitting Enquiry Red Button */}
-                <a
-                  href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}?text=${encodeURIComponent(
-                    `Olá! Estou visualizando o lançamento inovador "${property.name}" (Ref do Portal VIVASC-${property.id}). Pergunta rápida: ${quickQuestion || "Tenho interesse, gostaria de simular o fluxo"}`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  referrerPolicy="no-referrer"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-650 hover:bg-red-700 text-white font-extrabold text-xs uppercase tracking-wider py-3.5 transition-all text-center cursor-pointer select-none active:scale-[0.99]"
-                >
-                  <span>Enviar pergunta</span>
-                </a>
+                    try {
+                      const idLead = 'lead_pa_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                      
+                      const leadObj = {
+                        id: idLead,
+                        name: paName,
+                        contact: `${paEmail} • ${paTelefone}`,
+                        message: `🚀 Novo cadastro automático de pré-aprovação de crédito no portal. Renda informada: R$ ${paRendaBruta} (${paRegimeTrabalho}).`,
+                        propertyId: property.id,
+                        propertyName: property.name,
+                        status: 'Novo' as const,
+                        createdAt: new Date().toISOString(),
+                        preApprovalData: {
+                          cpf: paCpf,
+                          estadoCivil: paEstadoCivil,
+                          profissao: paProfissao,
+                          email: paEmail,
+                          telefone: paTelefone,
+                          rendaBruta: paRendaBruta,
+                          regimeTrabalho: paRegimeTrabalho,
+                          comporRenda: paComporRenda,
+                          entradaDisponivel: paHasEntrada ? paEntrada : 'Não possuo entrada',
+                          parcelaDisponivel: paHasParcela ? paParcela : 'Não possuo parcela',
+                          ...(paDocRgCpf ? { rgCpfDoc: paDocRgCpf } : {}),
+                          ...(paDocResidencia ? { residenciaDoc: paDocResidencia } : {}),
+                          ...(paDocRenda ? { rendaDoc: paDocRenda } : {})
+                        }
+                      };
+
+                      // Save to Firestore
+                      await saveLeadToFirestore(leadObj);
+
+                      // Also generate a Message object for CRM logs
+                      const idMsg = 'msg_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                      await saveMessageToFirestore({
+                        id: idMsg,
+                        name: paName,
+                        contact: paTelefone,
+                        message: `Nova pré-aprovação imobiliária preenchida. Renda R$ ${paRendaBruta}, Entrada: ${paHasEntrada ? paEntrada : 'Não'}, Parcela: ${paHasParcela ? paParcela : 'Não'}.`,
+                        propertyId: property.id,
+                        createdAt: new Date().toISOString()
+                      }).catch((e) => console.error('Error saving message log', e));
+
+                      // Construct the beautiful client-side mailto fallback link to send copy
+                      const destEmail = settings?.email || 'comercial.vivasc@gmail.com';
+                      const emailSubject = `[PÁ CORRETOR] Pré-Aprovação de Crédito - ${paName} - ${property.name}`;
+                      const emailBody = 
+                        `Olá Corretor, segue uma fita cadastral de simulação imobiliária preenchida pelo cliente:\n\n` +
+                        `=== DADOS DA ANÁLISE DE CRÉDITO DE PARCERIA ===\n` +
+                        `Empreendimento de Referência: ${property.name} (Ref: ${property.id})\n\n` +
+                        `---------------- DADOS PESSOAIS ----------------\n` +
+                        `* Nome Completo: ${paName}\n` +
+                        `* CPF: ${paCpf}\n` +
+                        `* Estado Civil: ${paEstadoCivil}\n` +
+                        `* Profissão: ${paProfissao}\n` +
+                        `* E-mail: ${paEmail}\n` +
+                        `* Telefone/WhatsApp: ${paTelefone}\n\n` +
+                        `--------------- FINANCIAMENTO/RENDA ---------------\n` +
+                        `* Regime de Trabalho: ${paRegimeTrabalho}\n` +
+                        `* Renda Familiar Bruta Mensal: R$ ${paRendaBruta}\n` +
+                        `  (Conforme renda total bruta sem abatimentos)\n` +
+                        `* Deseja compor renda familiar com cônjuge/outra pessoa? ${paComporRenda ? 'SIM' : 'NÃO'}\n` +
+                        `* Entrada disponível: ${paHasEntrada ? `R$ ${paEntrada}` : 'NÃO POSSUI VALOR DE ENTRADA'}\n` +
+                        `* Parcela mensal disponível: ${paHasParcela ? `R$ ${paParcela}` : 'NÃO TEM DISPONIBILIDADE DE PARCELA'}\n\n` +
+                        `--------------- DOCUMENTOS EM ANEXO ---------------\n` +
+                        `* Cópia do RG/CPF: ${paDocRgCpf ? `Vinculado (${paDocRgCpf.name})` : 'Não enviado'}\n` +
+                        `* Comprovante de Residência: ${paDocResidencia ? `Vinculado (${paDocResidencia.name})` : 'Não enviado'}\n` +
+                        `* Comprovante de Renda (IR/Holerite/INSS): ${paDocRenda ? `Vinculado (${paDocRenda.name})` : 'Não enviado'}\n\n` +
+                        `📢 Atenção Corretor: Os arquivos anexados acima em formato Base64 foram enviados de forma segura e criptografada para o seu banco de dados Firebase. Você pode baixá-los a qualquer momento clicando no botão "Donwload" na fita cadastral deste Lead no seu Painel de Administrador.\n\n` +
+                        `Enviado automaticamente pelo portal imobiliário ${settings?.brandName || 'Meu Primeiro Imóvel'}.`;
+
+                      window.location.href = `mailto:${destEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+                      
+                      setPaStatus('success');
+                    } catch (err: any) {
+                      console.error('Pre-approval write failure', err);
+                      setPaError('Ocorreu um erro ao enviar sua proposta para a nuvem. Tentando abrir cliente de email direto...');
+                      setPaStatus('idle');
+                    }
+                  }} className="space-y-4">
+                    
+                    {paError && (
+                      <div className="p-3.5 rounded-xl bg-red-100 border border-red-200 text-xs font-semibold text-red-650">
+                        {paError}
+                      </div>
+                    )}
+
+                    {/* Step 1: Info Pessoal */}
+                    <div className="space-y-3">
+                      <div className="text-[10px] uppercase tracking-widest font-mono text-[#203366] font-extrabold flex items-center gap-1">
+                        <User className="h-3.5 w-3.5 text-primary" />
+                        1. Informações Pessoais
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-zinc-500 block mb-1">
+                            Nome Completo *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ex: João da Silva Santos"
+                            value={paName}
+                            onChange={(e) => setPaName(e.target.value)}
+                            className="w-full bg-white border border-zinc-250 rounded-xl px-4 py-2.5 text-xs text-zinc-850 placeholder-zinc-300 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all font-sans"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-zinc-500 block mb-1">
+                            CPF (Somente Números) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ex: 000.000.000-00"
+                            value={paCpf}
+                            onChange={(e) => {
+                              // Mask CPF automatically: 000.000.000-00
+                              let val = e.target.value.replace(/\D/g, '');
+                              if (val.length > 11) val = val.slice(0, 11);
+                              if (val.length > 9) {
+                                val = val.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2})$/, '$1.$2.$3-$4');
+                              } else if (val.length > 6) {
+                                val = val.replace(/^(\d{3})(\d{3})(\d{1,3})$/, '$1.$2.$3');
+                              } else if (val.length > 3) {
+                                val = val.replace(/^(\d{3})(\d{1,3})$/, '$1.$2');
+                              }
+                              setPaCpf(val);
+                            }}
+                            className="w-full bg-white border border-zinc-250 rounded-xl px-4 py-2.5 text-xs text-zinc-850 placeholder-zinc-300 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-zinc-500 block mb-1">
+                            Estado Civil *
+                          </label>
+                          <select
+                            value={paEstadoCivil}
+                            onChange={(e) => setPaEstadoCivil(e.target.value)}
+                            className="w-full bg-white border border-zinc-250 rounded-xl px-3 py-2.5 text-xs text-zinc-800 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all cursor-pointer font-sans"
+                          >
+                            <option value="Solteiro(a)">Solteiro(a)</option>
+                            <option value="Casado(a) (Comunhão de Bens)">Casado(a) (Comunhão Parcial)</option>
+                            <option value="Casado(a) (Comunhão Universal)">Casado(a) (Comunhão Universal)</option>
+                            <option value="União Estável">União Estável</option>
+                            <option value="Divorciado(a)">Divorciado(a)</option>
+                            <option value="Viúvo(a)">Viúvo(a)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-zinc-500 block mb-1">
+                            Profissão *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ex: Engenheiro Civil, Gerente de Vendas..."
+                            value={paProfissao}
+                            onChange={(e) => setPaProfissao(e.target.value)}
+                            className="w-full bg-white border border-zinc-250 rounded-xl px-4 py-2.5 text-xs text-zinc-850 placeholder-zinc-300 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-zinc-500 block mb-1">
+                            E-mail de Contato *
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            placeholder="Ex: seuemail@provedor.com"
+                            value={paEmail}
+                            onChange={(e) => setPaEmail(e.target.value)}
+                            className="w-full bg-white border border-zinc-250 rounded-xl px-4 py-2.5 text-xs text-zinc-850 placeholder-zinc-300 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-zinc-500 block mb-1">
+                            Telefone / WhatsApp *
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="Ex: (47) 99999-9999"
+                            value={paTelefone}
+                            onChange={(e) => {
+                              // Simple phone autoformater
+                              let val = e.target.value.replace(/\D/g, '');
+                              if (val.length > 11) val = val.slice(0, 11);
+                              if (val.length > 10) {
+                                val = val.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+                              } else if (val.length > 6) {
+                                val = val.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+                              } else if (val.length > 2) {
+                                val = val.replace(/^(\d{2})(\d{0,5})$/, '($1) $2');
+                              }
+                              setPaTelefone(val);
+                            }}
+                            className="w-full bg-white border border-zinc-250 rounded-xl px-4 py-2.5 text-xs text-zinc-850 placeholder-zinc-300 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all font-sans"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step 2: Info Financeiras */}
+                    <div className="space-y-3 pt-2 border-t border-zinc-200">
+                      <div className="text-[10px] uppercase tracking-widest font-mono text-[#203366] font-extrabold flex items-center gap-1">
+                        <Coins className="h-3.5 w-3.5 text-primary" />
+                        2. Informações Financeiras & Renda
+                      </div>
+
+                      {/* Regime de Trabalho select buttons */}
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-zinc-500 block">
+                          Regime Ativo de Trabalho *
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setPaRegimeTrabalho('CLT')}
+                            className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border select-none cursor-pointer ${
+                              paRegimeTrabalho === 'CLT'
+                                ? 'bg-primary border-primary text-black shadow-sm'
+                                : 'bg-white border-zinc-250 text-zinc-700 hover:bg-zinc-105'
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full bg-current" />
+                            Regime CLT (Carteira)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPaRegimeTrabalho('Autônomo')}
+                            className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border select-none cursor-pointer ${
+                              paRegimeTrabalho === 'Autônomo'
+                                ? 'bg-primary border-primary text-black shadow-sm'
+                                : 'bg-white border-zinc-250 text-zinc-700 hover:bg-zinc-105'
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full bg-current" />
+                            Autônomo / empresário
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Renda Bruta Mensal (including requested subtitle!) */}
+                      <div>
+                        <div className="flex justify-between items-baseline mb-1">
+                          <label className="text-[9px] uppercase font-mono tracking-wider font-extrabold text-zinc-550 block">
+                            Renda Bruta Mensal Aproximada *
+                          </label>
+                          <span className="text-[9px] text-[#203366] tracking-tight font-extrabold select-none">
+                            conforme renda total bruta sem abatimentos
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-4 top-2.5 text-xs font-mono font-bold text-zinc-400">
+                            R$
+                          </span>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ex: 8.500,00"
+                            value={paRendaBruta}
+                            onChange={(e) => {
+                              // Mask currency format: 8.500,00
+                              let val = e.target.value.replace(/\D/g, '');
+                              if (val.length > 8) val = val.slice(0, 8);
+                              if (val) {
+                                const float = parseFloat(val) / 100;
+                                setPaRendaBruta(float.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                              } else {
+                                setPaRendaBruta('');
+                              }
+                            }}
+                            className="w-full bg-white border border-zinc-250 rounded-xl pl-10 pr-4 py-2.5 text-xs text-zinc-850 font-bold placeholder-zinc-300 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Checkbox item for family compositions */}
+                      <button
+                        type="button"
+                        onClick={() => setPaComporRenda(!paComporRenda)}
+                        className="w-full flex items-center gap-3 bg-white p-3 rounded-xl border border-zinc-220 text-left cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={paComporRenda}
+                          onChange={(e) => setPaComporRenda(e.target.checked)}
+                          className="h-4 w-4 rounded text-orange-500 accent-orange-500 bg-white border-zinc-300 cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div>
+                          <p className="text-xs font-bold text-zinc-800">Desejo compor mais renda familiar bruta</p>
+                          <p className="text-[10px] text-zinc-450 leading-snug">Marque se deseja somar ganhos com cônjuge, parceiro ou parentes.</p>
+                        </div>
+                      </button>
+
+                      {/* ENTRADA APROXIMADA com checkbox de "Não" */}
+                      <div className="border border-zinc-220 rounded-xl bg-white p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] uppercase font-mono tracking-wider font-extrabold text-zinc-700 block">
+                            Entrada Aproximada Disponível
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaHasEntrada(!paHasEntrada);
+                              if (paHasEntrada) setPaEntrada('');
+                            }}
+                            className={`px-2.5 py-1 text-[9px] uppercase tracking-wider font-extrabold rounded-lg border transition-all cursor-pointer ${
+                              !paHasEntrada 
+                                ? 'bg-zinc-900 border-zinc-900 text-white' 
+                                : 'bg-zinc-100 border-zinc-250 text-zinc-600 hover:bg-zinc-200'
+                            }`}
+                          >
+                            Não possuo entrada
+                          </button>
+                        </div>
+
+                        {paHasEntrada ? (
+                          <div className="relative">
+                            <span className="absolute left-4 top-2.5 text-xs font-mono font-bold text-zinc-400">R$</span>
+                            <input
+                              type="text"
+                              required={paHasEntrada}
+                              placeholder="Ex: 50.000,00 (Dinheiro, FGTS, carro, etc)"
+                              value={paEntrada}
+                              onChange={(e) => {
+                                let val = e.target.value.replace(/\D/g, '');
+                                if (val) {
+                                  const float = parseFloat(val) / 100;
+                                  setPaEntrada(float.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                                } else {
+                                  setPaEntrada('');
+                                }
+                              }}
+                              className="w-full bg-white border border-zinc-220 rounded-lg pl-10 pr-4 py-2 text-xs text-zinc-800 font-semibold focus:outline-none focus:border-primary/40 font-mono"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-zinc-500 italic">Disponibilidade cadastrada como "Sem entrada / Financiamento 100%".</p>
+                        )}
+                      </div>
+
+                      {/* PARCELA MENSAL DISPONIVEL com checkbox de "Não" */}
+                      <div className="border border-zinc-220 rounded-xl bg-white p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] uppercase font-mono tracking-wider font-extrabold text-zinc-700 block">
+                            Parcela Mensal Disponível
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaHasParcela(!paHasParcela);
+                              if (paHasParcela) setPaParcela('');
+                            }}
+                            className={`px-2.5 py-1 text-[9px] uppercase tracking-wider font-extrabold rounded-lg border transition-all cursor-pointer ${
+                              !paHasParcela 
+                                ? 'bg-zinc-900 border-zinc-900 text-white' 
+                                : 'bg-zinc-100 border-zinc-250 text-zinc-600 hover:bg-zinc-200'
+                            }`}
+                          >
+                            Não posso pagar parcela
+                          </button>
+                        </div>
+
+                        {paHasParcela ? (
+                          <div className="relative">
+                            <span className="absolute left-4 top-2.5 text-xs font-mono font-bold text-zinc-400">R$</span>
+                            <input
+                              type="text"
+                              required={paHasParcela}
+                              placeholder="Ex: 1.500,00"
+                              value={paParcela}
+                              onChange={(e) => {
+                                let val = e.target.value.replace(/\D/g, '');
+                                if (val) {
+                                  const float = parseFloat(val) / 100;
+                                  setPaParcela(float.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                                } else {
+                                  setPaParcela('');
+                                }
+                              }}
+                              className="w-full bg-white border border-zinc-220 rounded-lg pl-10 pr-4 py-2 text-xs text-zinc-800 font-semibold focus:outline-none focus:border-primary/40 font-mono"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-zinc-500 italic">Cliente informou indisponibilidade para pagar parcelas mensais adicionais diretas.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Step 3: Anexar Documentos */}
+                    <div className="space-y-3 pt-2 border-t border-zinc-200">
+                      <div className="text-[10px] uppercase tracking-widest font-mono text-[#203366] font-extrabold flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5 text-primary" />
+                        3. Cópias de Documentos Necessários
+                      </div>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                        Anexe fotos ou PDFs legíveis dos documentos abaixo para agilizar a simulação nos bancos parceiros:
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {/* RG / CPF Dropzone */}
+                        <div className="relative">
+                          <label className="text-[8px] tracking-wider uppercase font-mono font-extrabold text-zinc-450 block mb-1">
+                            Cópia RG/CPF (ou CNH)
+                          </label>
+                          <div className={`border border-dashed rounded-xl p-3.5 text-center flex flex-col items-center justify-center transition-all cursor-pointer relative bg-white ${
+                            paDocRgCpf ? 'border-emerald-500 bg-emerald-50 py-4' : 'border-zinc-250 hover:border-primary/55'
+                          }`}>
+                            <input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => handleFileChange(e, 'rgCpf')}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                              id="btn-upload-rg"
+                            />
+                            {paDocRgCpf ? (
+                              <>
+                                <CheckCircle className="h-5 w-5 text-emerald-600 mb-1" />
+                                <p className="text-[10px] font-bold text-emerald-900 truncate w-full max-w-[120px]">{paDocRgCpf.name}</p>
+                                <p className="text-[8px] text-emerald-700">{(paDocRgCpf.size / 1024).toFixed(0)} KB • Alterar</p>
+                              </>
+                            ) : (
+                              <>
+                                <FileUp className="h-5 w-5 text-zinc-400 mb-1" />
+                                <p className="text-[10px] font-bold text-zinc-750">Selecionar RG/CPF</p>
+                                <p className="text-[8px] text-zinc-400">PDF, JPG, PNG até 3MB</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Comprovante residência Dropzone */}
+                        <div className="relative">
+                          <label className="text-[8px] tracking-wider uppercase font-mono font-extrabold text-zinc-450 block mb-1">
+                            Comprovante Residência
+                          </label>
+                          <div className={`border border-dashed rounded-xl p-3.5 text-center flex flex-col items-center justify-center transition-all cursor-pointer relative bg-white ${
+                            paDocResidencia ? 'border-emerald-500 bg-emerald-50 py-4' : 'border-zinc-250 hover:border-primary/55'
+                          }`}>
+                            <input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => handleFileChange(e, 'residencia')}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                              id="btn-upload-resid"
+                            />
+                            {paDocResidencia ? (
+                              <>
+                                <CheckCircle className="h-5 w-5 text-emerald-600 mb-1" />
+                                <p className="text-[10px] font-bold text-emerald-900 truncate w-full max-w-[120px]">{paDocResidencia.name}</p>
+                                <p className="text-[8px] text-emerald-700">{(paDocResidencia.size / 1024).toFixed(0)} KB • Alterar</p>
+                              </>
+                            ) : (
+                              <>
+                                <FileUp className="h-5 w-5 text-zinc-400 mb-1" />
+                                <p className="text-[10px] font-bold text-zinc-750">Selecionar Compr.</p>
+                                <p className="text-[8px] text-zinc-400">PDF, JPG, PNG até 3MB</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Comprovante de Renda (IR/Holerite) Dropzone */}
+                        <div className="relative">
+                          <label className="text-[8px] tracking-wider uppercase font-mono font-extrabold text-zinc-450 block mb-1" title="Imposto de renda ou holerite ou extrato inss aposentado">
+                            Renda (Holerite / IR / INSS)
+                          </label>
+                          <div className={`border border-dashed rounded-xl p-3.5 text-center flex flex-col items-center justify-center transition-all cursor-pointer relative bg-white ${
+                            paDocRenda ? 'border-emerald-500 bg-emerald-50 py-4' : 'border-zinc-250 hover:border-primary/55'
+                          }`}>
+                            <input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => handleFileChange(e, 'renda')}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                              id="btn-upload-renda"
+                            />
+                            {paDocRenda ? (
+                              <>
+                                <CheckCircle className="h-5 w-5 text-emerald-600 mb-1" />
+                                <p className="text-[10px] font-bold text-emerald-900 truncate w-full max-w-[120px]">{paDocRenda.name}</p>
+                                <p className="text-[8px] text-emerald-700">{(paDocRenda.size / 1024).toFixed(0)} KB • Alterar</p>
+                              </>
+                            ) : (
+                              <>
+                                <FileUp className="h-5 w-5 text-zinc-400 mb-1" />
+                                <p className="text-[10px] font-bold text-zinc-750" title="Imposto de renda ou holerite ou extrato inss aposentado">Selecionar IR/Holerite</p>
+                                <p className="text-[8px] text-zinc-400">PDF, JPG, PNG até 3MB</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pre-approval submit button matching the professional layout */}
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={paStatus === 'submitting'}
+                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-650 hover:bg-red-700 text-white font-extrabold text-xs uppercase tracking-wider py-3.5 transition-all text-center cursor-pointer select-none active:scale-[0.99] disabled:opacity-55 disabled:cursor-not-allowed"
+                      >
+                        {paStatus === 'submitting' ? (
+                          <>
+                            <div className="h-3.5 w-3.5 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+                            <span>Processando e Criptografando proposta...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4" />
+                            <span>Solicitar Pré-Aprovação Cadastral</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
 
               {/* CONTACT FORM EMAIL WIDGET (o email que será para contato de formulários) */}

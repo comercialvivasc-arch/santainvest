@@ -107,6 +107,22 @@ export interface Client {
   createdAt: string;
 }
 
+export interface PreApprovalData {
+  cpf: string;
+  estadoCivil: string;
+  profissao: string;
+  email: string;
+  telefone: string;
+  rendaBruta: string;
+  regimeTrabalho: 'CLT' | 'Autônomo';
+  comporRenda: boolean;
+  entradaDisponivel?: string;
+  parcelaDisponivel?: string;
+  rgCpfDoc?: { name: string; size: number; base64: string };
+  residenciaDoc?: { name: string; size: number; base64: string };
+  rendaDoc?: { name: string; size: number; base64: string };
+}
+
 export interface Lead {
   id: string;
   name: string;
@@ -117,6 +133,7 @@ export interface Lead {
   status: 'Novo' | 'Em Atendimento' | 'Visita Agendada' | 'Finalizado';
   brokerId?: string; // assigned broker ID
   brokerName?: string; // assigned broker name
+  preApprovalData?: PreApprovalData; // custom pre-approval details
   createdAt: string;
 }
 

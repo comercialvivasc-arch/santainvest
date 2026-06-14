@@ -2598,10 +2598,130 @@ export default function AdminPanel({
                 ) : (
                   leads.map(l => (
                     <tr key={l.id} className="border-b border-zinc-900/60 hover:bg-black/30 transition-all duration-150">
-                      <td className="p-4">
+                      <td className="p-4 align-top">
                         <span className="block text-xs font-bold text-white uppercase">{l.name}</span>
                         <span className="block text-[10px] font-mono text-zinc-500 mt-0.5">{l.contact}</span>
                         <p className="text-[10px] text-zinc-400 font-sans italic bg-black/40 border border-zinc-900 p-2 rounded-lg mt-2 max-w-[300px] line-clamp-2" title={l.message}>"{l.message}"</p>
+
+                        {/* Expandable/Interactive Pre-Approval Form Details */}
+                        {l.preApprovalData && (
+                          <div className="mt-3.5 border border-amber-500/25 bg-amber-500/5 p-3 rounded-xl max-w-md space-y-3 text-left">
+                            <div className="flex items-center justify-between border-b border-amber-500/10 pb-1.5">
+                              <span className="text-[9px] uppercase font-black tracking-widest text-amber-500 flex items-center gap-1 font-mono">
+                                ✦ Fita de Pré-Aprovação de Crédito
+                              </span>
+                              <span className="text-[8px] uppercase tracking-wider font-extrabold bg-[#e52521] text-white px-2 py-0.5 rounded-full">
+                                Cadastrado
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[10px] font-mono text-zinc-350">
+                              <div>
+                                <span className="text-zinc-550 uppercase block text-[8px] tracking-wider">CPF</span>
+                                <span className="text-zinc-200 font-bold">{l.preApprovalData.cpf}</span>
+                              </div>
+                              <div>
+                                <span className="text-zinc-550 uppercase block text-[8px] tracking-wider">Estado Civil</span>
+                                <span className="text-zinc-200 font-bold">{l.preApprovalData.estadoCivil}</span>
+                              </div>
+                              <div>
+                                <span className="text-zinc-550 uppercase block text-[8px] tracking-wider">Profissão</span>
+                                <span className="text-zinc-200 font-bold">{l.preApprovalData.profissao}</span>
+                              </div>
+                              <div>
+                                <span className="text-zinc-550 uppercase block text-[8px] tracking-wider">Regime Regime</span>
+                                <span className="text-zinc-200 font-bold uppercase">{l.preApprovalData.regimeTrabalho}</span>
+                              </div>
+                              <div className="col-span-2 border-t border-zinc-900 pt-1.5 mt-0.5">
+                                <span className="text-zinc-550 uppercase block text-[8px] tracking-wider">Renda Total Bruta</span>
+                                <span className="text-amber-400 font-extrabold text-xs">R$ {l.preApprovalData.rendaBruta}</span>
+                                <span className="text-[8px] text-zinc-500 lowercase ml-1.5">(sem abatimentos)</span>
+                              </div>
+                              <div>
+                                <span className="text-zinc-550 uppercase block text-[8px] tracking-wider">Compõe mais Renda?</span>
+                                <span className={l.preApprovalData.comporRenda ? "text-emerald-400 font-bold" : "text-zinc-500"}>
+                                  {l.preApprovalData.comporRenda ? "Sim (Renda Familiar)" : "Não"}
+                                </span>
+                              </div>
+                              <div className="col-span-2 border-t border-zinc-900 pt-1.5">
+                                <span className="text-zinc-550 uppercase block text-[8px] tracking-wider">Entrada Disponível</span>
+                                <span className="text-zinc-100 font-bold text-[11px]">{l.preApprovalData.entradaDisponivel || "Não possui"}</span>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="text-zinc-550 uppercase block text-[8px] tracking-wider">Parcela Mensal Disponível</span>
+                                <span className="text-zinc-100 font-bold text-[11px]">{l.preApprovalData.parcelaDisponivel || "Não possui"}</span>
+                              </div>
+                            </div>
+
+                            {/* Cópia Documentos para Download */}
+                            <div className="border-t border-zinc-900 pt-2.5 mt-2 space-y-2">
+                              <span className="text-[8px] font-mono uppercase tracking-widest text-[#203366] font-extrabold block">
+                                Baixar Cópias de Auditoria:
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {l.preApprovalData.rgCpfDoc ? (
+                                  <button
+                                    onClick={() => {
+                                      const link = document.createElement('a');
+                                      link.href = l.preApprovalData.rgCpfDoc!.base64;
+                                      link.download = `RG_CPF_${l.name.replace(/\s+/g, '_')}_${l.preApprovalData.rgCpfDoc!.name}`;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                    }}
+                                    className="px-2.5 py-1.5 rounded bg-zinc-905 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-[10px] font-bold text-amber-500 flex items-center gap-1 transition-all cursor-pointer select-none active:scale-95"
+                                    title={`Clique para baixar: ${l.preApprovalData.rgCpfDoc.name}`}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span>RG/CPF</span>
+                                  </button>
+                                ) : (
+                                  <span className="px-2 py-1 text-[8px] text-zinc-650 bg-black/40 border border-zinc-900 rounded font-mono">Sem RG/CPF</span>
+                                )}
+
+                                {l.preApprovalData.residenciaDoc ? (
+                                  <button
+                                    onClick={() => {
+                                      const link = document.createElement('a');
+                                      link.href = l.preApprovalData.residenciaDoc!.base64;
+                                      link.download = `RESIDENCIA_${l.name.replace(/\s+/g, '_')}_${l.preApprovalData.residenciaDoc!.name}`;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                    }}
+                                    className="px-2.5 py-1.5 rounded bg-zinc-905 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-[10px] font-bold text-amber-500 flex items-center gap-1 transition-all cursor-pointer select-none active:scale-95"
+                                    title={`Clique para baixar: ${l.preApprovalData.residenciaDoc.name}`}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span>Residência</span>
+                                  </button>
+                                ) : (
+                                  <span className="px-2 py-1 text-[8px] text-zinc-650 bg-black/40 border border-zinc-900 rounded font-mono">Sem Residência</span>
+                                )}
+
+                                {l.preApprovalData.rendaDoc ? (
+                                  <button
+                                    onClick={() => {
+                                      const link = document.createElement('a');
+                                      link.href = l.preApprovalData.rendaDoc!.base64;
+                                      link.download = `RENDA_${l.name.replace(/\s+/g, '_')}_${l.preApprovalData.rendaDoc!.name}`;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                    }}
+                                    className="px-2.5 py-1.5 rounded bg-zinc-905 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-[10px] font-bold text-amber-500 flex items-center gap-1 transition-all cursor-pointer select-none active:scale-95"
+                                    title={`Clique para baixar: ${l.preApprovalData.rendaDoc.name}`}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span>Renda / IR</span>
+                                  </button>
+                                ) : (
+                                  <span className="px-2 py-1 text-[8px] text-zinc-650 bg-black/40 border border-zinc-900 rounded font-mono">Sem Renda</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </td>
                       <td className="p-4 text-xs font-bold text-orange-500 uppercase">
                         {l.propertyName || 'Portal VIVASC'}
