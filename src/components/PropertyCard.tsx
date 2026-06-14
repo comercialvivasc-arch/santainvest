@@ -1719,7 +1719,7 @@ export default function PropertyCard({
                       <button
                         type="submit"
                         disabled={paStatus === 'submitting'}
-                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-650 hover:bg-red-700 text-white font-extrabold text-xs uppercase tracking-wider py-3.5 transition-all text-center cursor-pointer select-none active:scale-[0.99] disabled:opacity-55 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-black border border-[#FF9D00] font-extrabold text-xs uppercase tracking-wider py-3.5 transition-all text-center cursor-pointer select-none active:scale-[0.99] disabled:opacity-55 disabled:cursor-not-allowed"
                       >
                         {paStatus === 'submitting' ? (
                           <>
