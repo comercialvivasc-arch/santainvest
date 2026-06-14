@@ -623,25 +623,25 @@ export default function PropertyCard({
             ></motion.div>
 
             {/* 1. STICKY TOP NAVIGATION TAB BAR (MATCHING SCREENSHOT LAYOUT WITH <- BACK TRIGGER AND TABS) */}
-            <div className="sticky top-0 z-[120] w-full bg-white/95 backdrop-blur-md border-b border-zinc-200 flex items-center justify-between px-4 py-3 sm:px-6 shrink-0">
+            <div className="sticky top-0 z-[120] w-full bg-white/95 backdrop-blur-md border-b border-zinc-200 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+14px)] pb-4 sm:px-6 shrink-0 shadow-sm">
               {/* Left: Close/Back button */}
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="flex items-center gap-1.5 transition-all cursor-pointer font-bold text-xs sm:text-sm uppercase tracking-wide py-1.5"
-                style={{ color: '#b9b7b7' }}
+                className="flex items-center gap-1.5 transition-all cursor-pointer font-black text-xs uppercase tracking-wider py-2 px-3 bg-zinc-100 hover:bg-zinc-200 rounded-xl border border-zinc-350 shadow-sm text-[#203366]"
+                title="Sair e voltar ao portal"
               >
-                <ChevronLeft className="h-4 w-4 stroke-[3]" />
-                <span>Anúncio</span>
+                <ChevronLeft className="h-4 w-4 stroke-[3.5] text-[#e52521]" />
+                <span>SAIR</span>
               </button>
 
               {/* Middle: Custom Navigation Scroll Anchors */}
-              <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm font-semibold">
+              <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm font-bold">
                 <button 
                   onClick={() => {
                     const el = document.getElementById('details-section');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="text-primary border-b-2 border-primary pb-2 px-1 focus:outline-none cursor-pointer"
+                  className="text-primary border-b-2 border-primary pb-1 px-1 focus:outline-none cursor-pointer"
                 >
                   Dados
                 </button>
@@ -650,7 +650,7 @@ export default function PropertyCard({
                     const el = document.getElementById('thumb-gallery');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="text-zinc-550 hover:text-zinc-950 transition-colors pb-2 px-1 focus:outline-none cursor-pointer"
+                  className="text-zinc-550 hover:text-zinc-950 transition-colors pb-1 px-1 focus:outline-none cursor-pointer"
                 >
                   {property.images.length} Fotos
                 </button>
@@ -659,7 +659,7 @@ export default function PropertyCard({
                     const el = document.getElementById('location-section');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="text-zinc-550 hover:text-zinc-950 transition-colors pb-2 px-1 focus:outline-none cursor-pointer"
+                  className="text-zinc-550 hover:text-zinc-950 transition-colors pb-1 px-1 focus:outline-none cursor-pointer"
                 >
                   Mapa
                 </button>
@@ -668,9 +668,11 @@ export default function PropertyCard({
               {/* Right: Close X trigger */}
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="h-8 w-8 flex items-center justify-center rounded-lg bg-zinc-100 border border-zinc-250 text-zinc-650 hover:text-zinc-950 transition-all cursor-pointer"
+                className="h-9 px-3 flex items-center justify-center gap-1 rounded-xl bg-[#e52521] border border-[#e52521] text-white hover:bg-red-700 hover:scale-[1.02] transition-all cursor-pointer shadow-sm font-extrabold text-xs uppercase tracking-wider shrink-0"
+                title="Fechar anúncio"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 stroke-[2.5]" />
+                <span className="hidden xs:inline">FECHAR</span>
               </button>
             </div>
 
@@ -1934,8 +1936,19 @@ export default function PropertyCard({
             </div>
 
             {/* 4. FIXED FOOTER BAR - Pinned perfectly at screen bottom for both Web & Mobile */}
-            <div className="shrink-0 w-full bg-white/95 backdrop-blur-md border-t border-zinc-200 px-3 sm:px-4 py-3 pb-safe z-[130] shadow-2xl">
+            <div className="shrink-0 w-full bg-white/95 backdrop-blur-md border-t border-zinc-200 px-3 sm:px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] z-[130] shadow-2xl">
               <div className="max-w-4xl mx-auto flex items-center gap-2 sm:gap-3">
+                {/* Close/Sair button explicitly requested for easy one-hand smartphone navigation */}
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex h-12 px-4 items-center justify-center gap-1.5 rounded-xl border border-zinc-300 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 active:scale-90 transition-all cursor-pointer font-extrabold text-xs uppercase tracking-wider shrink-0 shadow-md"
+                  title="Sair e voltar ao portal"
+                >
+                  <X className="h-4 w-4 text-[#e52521] stroke-[3]" />
+                  <span>Sair</span>
+                </button>
+
                 {/* Telephone call outline item */}
                 <a
                   href={`tel:${(settings?.phone || '5547999999999').replace(/\D/g, '')}`}
