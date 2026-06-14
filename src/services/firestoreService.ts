@@ -293,6 +293,16 @@ export async function saveLeadToFirestore(lead: Lead): Promise<void> {
   const path = `${LEADS_COLLECTION}/${lead.id}`;
   try {
     await setDoc(doc(db, LEADS_COLLECTION, lead.id), lead);
+
+    // Non-blocking asynchronous trigger for administrator email dispatch
+    fetch('/api/notify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'lead', data: lead })
+    }).catch((err) => {
+      console.warn('[CRM Notification Trigger failed]', err);
+    });
+
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -420,6 +430,16 @@ export async function saveMessageToFirestore(message: Message): Promise<void> {
   const path = `${MESSAGES_COLLECTION}/${message.id}`;
   try {
     await setDoc(doc(db, MESSAGES_COLLECTION, message.id), message);
+
+    // Non-blocking trigger of quick-contact email notifications
+    fetch('/api/notify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'message', data: message })
+    }).catch((err) => {
+      console.warn('[CRM Notification Trigger failed]', err);
+    });
+
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
