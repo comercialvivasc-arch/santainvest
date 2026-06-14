@@ -770,7 +770,7 @@ export default function PropertyCard({
                   <span className="text-[10px] sm:text-xs tracking-widest font-bold text-zinc-550 uppercase font-mono block">
                     {property.status === 'Pronto' ? 'Venda / Pronto' : 'A PARTIR DE'}
                   </span>
-                  <div className="text-3xl sm:text-4xl font-extrabold text-[#FF9D00] tracking-tight font-mono mt-0.5">
+                  <div className="text-3xl sm:text-4xl font-extrabold text-[#FF9D00] tracking-tight font-mono mt-0.5" style={{ fontSize: '33px' }}>
                     {formatBRL(property.price)}
                   </div>
                   <p className="mt-1 text-xs text-zinc-650 uppercase font-mono tracking-wider font-semibold">
@@ -1238,7 +1238,7 @@ export default function PropertyCard({
                       // Save to Firestore
                       await saveLeadToFirestore(leadObj);
 
-                      // Also generate a Message object for CRM logs
+                      // Also generate a Message object for CRM logs (email dispatch turned off to avoid duplication)
                       const idMsg = 'msg_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                       await saveMessageToFirestore({
                         id: idMsg,
@@ -1247,7 +1247,7 @@ export default function PropertyCard({
                         message: `Nova pré-aprovação imobiliária preenchida. Renda R$ ${paRendaBruta}, Entrada: ${paHasEntrada ? paEntrada : 'Não'}, Parcela: ${paHasParcela ? paParcela : 'Não'}.`,
                         propertyId: property.id,
                         createdAt: new Date().toISOString()
-                      }).catch((e) => console.error('Error saving message log', e));
+                      }, false).catch((e) => console.error('Error saving message log', e));
 
                       // Construct the beautiful client-side mailto fallback link to send copy
                       const destEmail = settings?.email || 'comercial.vivasc@gmail.com';
@@ -1781,6 +1781,7 @@ export default function PropertyCard({
                         createdAt: new Date().toISOString()
                       }).catch((err) => console.error('Firestore CRM lead failure', err));
 
+                      // CRM logs (email dispatch deactivated to avoid duplication)
                       saveMessageToFirestore({
                         id: idMsg,
                         name: emailFormName,
@@ -1788,7 +1789,7 @@ export default function PropertyCard({
                         message: emailFormMsg,
                         propertyId: property.id,
                         createdAt: new Date().toISOString()
-                      }).catch((err) => console.error('Firestore CRM msg failure', err));
+                      }, false).catch((err) => console.error('Firestore CRM msg failure', err));
 
                       const subject = encodeURIComponent(`Interesse no Lançamento VIVASC-${property.id}: ${property.name}`);
                       const body = encodeURIComponent(
@@ -1837,7 +1838,7 @@ export default function PropertyCard({
                     
                     <button
                       type="submit"
-                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs uppercase tracking-wider py-3.5 transition-all text-center cursor-pointer select-none active:scale-[0.99]"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-black font-extrabold text-xs uppercase tracking-wider py-3.5 transition-all text-center cursor-pointer select-none active:scale-[0.99]"
                     >
                       Enviar Mensagem por E-mail
                     </button>

@@ -1,260 +1,11 @@
-import express from 'express';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import nodemailer from 'nodemailer';
 import fs from 'fs';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
-import nodemailer from 'nodemailer';
 
-// Fallback properties
-import { INITIAL_PROPERTIES } from './src/data';
-
-interface Property {
-  id: string;
-  name: string;
-  status: string;
-  neighborhood: string;
-  region: string;
-  bedrooms: number;
-  area: number;
-  price: number;
-  images: string[];
-}
-
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
-
-  // Add JSON and URL-encoded body parsing with 25MB limit to support base64 document attachments
-  app.use(express.json({ limit: '25mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '25mb' }));
-
-  // API endpoint for automatic email dispatches when messages/leads enter the portal
-  app.post('/api/notify-email', async (req, res) => {
-    try {
-      const { type, data } = req.body;
-      if (!type || !data) {
-        return res.status(400).json({ error: 'Missing type or data' });
-      }
-
-      console.log(`[Email Notification API] Triggered for type: "${type}", user: "${data.name || 'Anonymous'}"`);
-
-      // 1. Fetch current brand configuration to find dispatch target email
-      const brandSettings = await fetchBrandSettings();
-      const targetEmail = brandSettings?.email || 'comercial.vivasc@gmail.com';
-      const companyName = brandSettings?.companyName || 'VIVASC Lançamentos Imobiliários';
-
-      // 2. Build template & Subject
-      const { subject, html } = buildEmailHtml(type, data, brandSettings);
-
-      // 3. Resolve attachments
-      const attachments: any[] = [];
-      if (type === 'lead' && data.preApprovalData) {
-        const pa = data.preApprovalData;
-        if (pa.rgCpfDoc && pa.rgCpfDoc.base64) {
-          const parsed = parseBase64Attachment(pa.rgCpfDoc);
-          if (parsed) attachments.push(parsed);
-        }
-        if (pa.residenciaDoc && pa.residenciaDoc.base64) {
-          const parsed = parseBase64Attachment(pa.residenciaDoc);
-          if (parsed) attachments.push(parsed);
-        }
-        if (pa.rendaDoc && pa.rendaDoc.base64) {
-          const parsed = parseBase64Attachment(pa.rendaDoc);
-          if (parsed) attachments.push(parsed);
-        }
-      }
-
-      // 4. Set up nodemailer transporter
-      const transporter = getMailTransporter();
-
-      if (transporter) {
-        const sender = process.env.EMAIL_FROM || process.env.SMTP_USER || 'contato@vivasclancamentos.com';
-        const info = await transporter.sendMail({
-          from: `"${companyName} Portal" <${sender}>`,
-          to: targetEmail,
-          subject,
-          html,
-          attachments
-        });
-        console.log(`[Email Notification API] Email sent successfully via SMTP! MessageId: ${info.messageId}`);
-        return res.json({ success: true, message: 'Email sent via SMTP', messageId: info.messageId });
-      } else {
-        // Fallback or development visual debug reporting
-        console.log("======================================================================");
-        console.log(`✉️ [EMAIL WORKSPACE LOG] - SMTP not configured. Printing email content to console.`);
-        console.log(`TO: ${targetEmail}`);
-        console.log(`SUBJECT: ${subject}`);
-        console.log(`ATTACHMENTS: ${attachments.length} file(s) attached.`);
-        console.log("----------------------------------------------------------------------");
-        console.log(`HTML BODY PREVIEW (first 600 chars):\n${html.slice(0, 600)}...`);
-        console.log("======================================================================");
-
-        return res.json({ 
-          success: true, 
-          simulated: true, 
-          message: 'Notification processed! Add SMTP environment variables to transmit live.',
-          target: targetEmail,
-          attachmentsCount: attachments.length
-        });
-      }
-    } catch (err: any) {
-      console.error('[Email Notification API Error]', err);
-      return res.status(500).json({ error: 'Failed to process email dispatch', details: err.message });
-    }
-  });
-
-  let vite: any;
-  if (process.env.NODE_ENV !== 'production') {
-    vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'custom',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath, { index: false }));
-  }
-
-  // Intercept index page / GET route
-  app.get('*', async (req, res, next) => {
-    const url = req.originalUrl;
-    
-    // Pass assets to standard handling
-    if (url.includes('.') && !url.includes('?')) {
-      return next();
-    }
-
-    try {
-      let template: string;
-      if (process.env.NODE_ENV !== 'production') {
-        template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
-        template = await vite.transformIndexHtml(url, template);
-      } else {
-        template = fs.readFileSync(path.resolve(process.cwd(), 'dist/index.html'), 'utf-8');
-      }
-
-      // Check query parameters for product/property ID
-      const imovelId = String(req.query.imovel || req.query.id || '');
-      
-      let title = 'Meu Primeiro Imóvel';
-      let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
-      let imageUrl = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80';
-      let siteName = 'Meu Primeiro Imóvel';
-
-      const settings = await fetchBrandSettings();
-      if (settings) {
-        if (settings.companyName) {
-          siteName = settings.companyName;
-        }
-        if (settings.companyName && settings.slogan) {
-          title = `${settings.companyName} - ${settings.slogan}`;
-        }
-        if (settings.shareLogoUrl) {
-          imageUrl = settings.shareLogoUrl;
-        }
-      }
-
-      // Determine the dynamic canonical URL context & properties
-      const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
-      let host: string = 'santainvest.vercel.app';
-      const rawHost = req.headers['x-forwarded-host'] || req.get('host');
-      if (rawHost) {
-        if (Array.isArray(rawHost)) {
-          host = rawHost[0];
-        } else {
-          host = rawHost;
-        }
-      }
-
-      let canonicalUrl = `${protocol}://${host}/`;
-      if (imovelId) {
-        canonicalUrl += `?imovel=${imovelId}`;
-      } else {
-        const cleanPath = req.path === '/' ? '' : req.path;
-        canonicalUrl += cleanPath;
-      }
-
-      if (imovelId) {
-        const prop = await getPropertyInfo(imovelId);
-        if (prop) {
-          title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
-          
-          if (prop.seoDescription) {
-            description = prop.seoDescription;
-          } else {
-            const pType = prop.projectType || 'Lançamento';
-            const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
-            const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
-            const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
-            const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítes') + ')' : '';
-            const areaLabel = prop.area ? `${prop.area}m²` : '';
-            
-            const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
-            description = `${pType} de Alto Padrão - ${prop.name} em ${locationFormatted}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
-          }
-          
-          if (prop.images && prop.images.length > 0) {
-            imageUrl = prop.images[0];
-          }
-        }
-      }
-
-      const sanitizedImageUrl = sanitizeImageUrl(imageUrl, protocol, host);
-
-      // Generate dynamic meta tags in pristine compliance
-      const metaTags = `
-    <title>${escapeHtml(title)}</title>
-    <!-- Open Graph / Facebook / WhatsApp -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
-    <meta property="og:title" content="${escapeHtml(title)}" />
-    <meta property="og:description" content="${escapeHtml(description)}" />
-    <meta property="og:image" content="${escapeHtml(sanitizedImageUrl)}" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:site_name" content="${escapeHtml(siteName)}" />
-
-    <!-- Twitter / X -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}" />
-    <meta name="twitter:title" content="${escapeHtml(title)}" />
-    <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${escapeHtml(sanitizedImageUrl)}" />
-
-    <!-- SEO / Canonical Links -->
-    <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
-    `;
-
-      // Replace and clean any existing duplicate tags
-      let html = template;
-      html = html.replace(/<title>.*?<\/title>/gi, '');
-      html = html.replace(/<meta\s+property=["']og:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
-      html = html.replace(/<meta\s+name=["']twitter:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
-      html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/gi, '');
-      
-      if (html.includes('<head>')) {
-        html = html.replace('<head>', `<head>${metaTags}`);
-      } else {
-        html = metaTags + html;
-      }
-
-      res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
-    } catch (e: any) {
-      if (process.env.NODE_ENV !== 'production' && vite) {
-        vite.ssrFixStacktrace(e);
-      }
-      console.error('Render error:', e);
-      res.status(500).end(e.stack || 'Server Error');
-    }
-  });
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[VIVASC Server] Running on http://localhost:${PORT}`);
-  });
-}
-
-// Helpers
+// Helper to escape HTML characters
 function escapeHtml(unsafe: string): string {
-  return unsafe
+  return (unsafe || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -262,107 +13,24 @@ function escapeHtml(unsafe: string): string {
     .replace(/'/g, '&#039;');
 }
 
-function formatBRL(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
-}
-
-function sanitizeImageUrl(imgUrl: string, protocol: string, host: string): string {
-  if (!imgUrl) {
-    return 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80';
-  }
-  if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
-    return imgUrl;
-  }
-  if (imgUrl.startsWith('//')) {
-    return `${protocol}:${imgUrl}`;
-  }
-  if (imgUrl.startsWith('/')) {
-    return `${protocol}://${host}${imgUrl}`;
-  }
-  return `${protocol}://${host}/${imgUrl}`;
-}
-
-async function fetchPropertyFromFirestore(propId: string): Promise<any | null> {
+function getFirebaseProjectId(): string {
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/meuprimeiroimovel/databases/(default)/documents/properties/${propId}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data: any = await res.json();
-    if (!data.fields) return null;
-    
-    const fields = data.fields;
-    const name = fields.name?.stringValue || '';
-    const status = fields.status?.stringValue || '';
-    const neighborhood = fields.neighborhood?.stringValue || '';
-    const region = fields.region?.stringValue || '';
-    const projectType = fields.projectType?.stringValue || 'Apartamento';
-    
-    const bedrooms = fields.bedrooms?.integerValue ? parseInt(fields.bedrooms.integerValue, 10) : 
-                     (fields.bedrooms?.doubleValue ? Math.round(fields.bedrooms.doubleValue) : 0);
-                     
-    const suites = fields.suites?.integerValue ? parseInt(fields.suites.integerValue, 10) : 
-                   (fields.suites?.doubleValue ? Math.round(fields.suites.doubleValue) : 0);
-                   
-    const parkingSpaces = fields.parkingSpaces?.integerValue ? parseInt(fields.parkingSpaces.integerValue, 10) : 
-                          (fields.parkingSpaces?.doubleValue ? Math.round(fields.parkingSpaces.doubleValue) : 0);
-                          
-    const area = fields.area?.integerValue ? parseInt(fields.area.integerValue, 10) : 
-                 (fields.area?.doubleValue ? Math.round(fields.area.doubleValue) : 0);
-                 
-    const price = fields.price?.integerValue ? parseInt(fields.price.integerValue, 10) : 
-                  (fields.price?.doubleValue ? Math.round(fields.price.doubleValue) : 0);
-                  
-    const seoTitle = fields.seoTitle?.stringValue || '';
-    const seoDescription = fields.seoDescription?.stringValue || '';
-    
-    let images: string[] = [];
-    if (fields.images?.arrayValue?.values) {
-      images = fields.images.arrayValue.values.map((v: any) => v.stringValue).filter(Boolean);
+    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (config.projectId) {
+        return config.projectId;
+      }
     }
-    
-    return {
-      id: propId,
-      name,
-      status,
-      neighborhood,
-      region,
-      bedrooms,
-      area,
-      price,
-      images,
-      projectType,
-      suites,
-      parkingSpaces,
-      seoTitle,
-      seoDescription
-    };
   } catch (err) {
-    return null;
+    console.error('Failed to read firebase config file in Vercel function', err);
   }
-}
-
-async function getPropertyInfo(propId: string): Promise<any | null> {
-  const firestoreProp = await fetchPropertyFromFirestore(propId);
-  if (firestoreProp) {
-    return firestoreProp;
-  }
-  const found = INITIAL_PROPERTIES.find((p) => p.id === propId);
-  if (found) {
-    return found;
-  }
-  return null;
+  return 'meuprimeiroimovel';
 }
 
 async function fetchBrandSettings(): Promise<any | null> {
   try {
-    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
-    let projectId = 'meuprimeiroimovel';
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      if (config.projectId) {
-        projectId = config.projectId;
-      }
-    }
+    const projectId = getFirebaseProjectId();
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/brand`;
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -382,26 +50,24 @@ async function fetchBrandSettings(): Promise<any | null> {
   }
 }
 
-// Nodemailer SMTP Transporter Generator
 function getMailTransporter() {
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
-      secure: process.env.SMTP_SECURE === 'true', // true to enforce SSL/TLS, false for others
+      secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
       tls: {
-        rejectUnauthorized: false // avoids SSL handshake issues on some providers
+        rejectUnauthorized: false
       }
     });
   }
   return null;
 }
 
-// Converts attached media files back to Buffer for raw file delivery
 function parseBase64Attachment(docObj: { name: string; base64: string }) {
   if (!docObj || !docObj.base64) return null;
   try {
@@ -417,7 +83,6 @@ function parseBase64Attachment(docObj: { name: string; base64: string }) {
   }
 }
 
-// Extracts clean, split email and phone strings from the contact info
 function extractContactDetails(data: any): { email: string; phone: string } {
   let email = '';
   let phone = '';
@@ -440,14 +105,12 @@ function extractContactDetails(data: any): { email: string; phone: string } {
     }
   }
 
-  // Final trim fallbacks
   if (!email) email = 'não informado';
   if (!phone) phone = 'não informado';
 
   return { email, phone };
 }
 
-// Format date into PT-BR (Sao Paulo Timezone)
 function formatLocalTime(isoString: string | undefined): string {
   try {
     const d = isoString ? new Date(isoString) : new Date();
@@ -458,22 +121,18 @@ function formatLocalTime(isoString: string | undefined): string {
   }
 }
 
-// Builds the secure, mobile/browser compatible instant WhatsApp URL
 function buildWhatsAppLink(phoneStr: string): string {
   if (!phoneStr || phoneStr === 'não informado') return '';
-  // Remove spaces, dashes, symbols
   const cleaned = phoneStr.replace(/\D/g, '');
   if (cleaned.length === 0) return '';
   
   let finalNumber = cleaned;
-  // If no country code, prepend Brazil country code (55)
   if (cleaned.length === 10 || cleaned.length === 11) {
     finalNumber = '55' + cleaned;
   }
   return `https://api.whatsapp.com/send?phone=${finalNumber}&text=${encodeURIComponent('Olá! Vi o seu cadastro no Portal da VIVASC Imobiliária. Meu nome é corretor administrador, como posso te ajudar hoje?')}`;
 }
 
-// Build a structured, high-conversion, warm and corporate HTML notification email
 function buildEmailHtml(type: string, data: any, brandSettings: any): { subject: string; html: string } {
   const company = brandSettings?.companyName || 'VIVASC Lançamentos Imobiliários';
   const logoUrl = brandSettings?.shareLogoUrl || '';
@@ -485,7 +144,6 @@ function buildEmailHtml(type: string, data: any, brandSettings: any): { subject:
   const propertyNameStr = data.propertyName || 'Página Principal / Atendimento Geral';
   const propertyIDStr = data.propertyId || 'Institucional';
 
-  // Build beautiful WhatsApp Call-To-Action buttons
   const whatsappButtonHtml = waLink ? `
     <div style="margin-top: 15px; margin-bottom: 20px; text-align: center;">
       <a href="${waLink}" target="_blank" style="background-color: #25d366; color: #ffffff; padding: 12px 24px; font-size: 14px; font-weight: bold; text-decoration: none; border-radius: 12px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37, 211, 102, 0.4); text-transform: uppercase; letter-spacing: 0.05em;">
@@ -536,14 +194,12 @@ function buildEmailHtml(type: string, data: any, brandSettings: any): { subject:
       <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; padding: 40px 10px;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #e5e7eb;">
           
-          <!-- BRAND COLOR TOP BANNER -->
           <div style="background-color: #171717; padding: 30px; text-align: center; border-bottom: 5px solid #e52521;">
             ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height: 55px; margin-bottom: 12px; display: inline-block;" />` : ''}
-            <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;">${isPreApproval ? 'Ficha de Pré-Aprovação de Crédito' : 'Novo Lead Recebido'}</h1>
+            <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800; text-transform: uppercase;">${isPreApproval ? 'Ficha de Pré-Aprovação de Crédito' : 'Novo Lead Recebido'}</h1>
             <p style="margin: 6px 0 0 0; color: #a3a3a3; font-size: 11px; letter-spacing: 0.15em; font-weight: 700; text-transform: uppercase;">CRM VIVASC LANÇAMENTOS IMOBILIÁRIOS</p>
           </div>
 
-          <!-- EMAIL COMPONENT BODY -->
           <div style="padding: 30px;">
             <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin-top: 0;">Olá, equipe <strong>${escapeHtml(company)}</strong>,</p>
             <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">
@@ -577,7 +233,6 @@ function buildEmailHtml(type: string, data: any, brandSettings: any): { subject:
                 ${dataRows}
               </table>
 
-              <!-- LEAVE OBS MESSAGE -->
               <div style="margin-top: 25px; background-color: #fafafa; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px;">
                 <span style="display: block; font-size: 10px; text-transform: uppercase; color: #888888; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 6px;">Mensagem Enviada pelo Portal:</span>
                 <p style="margin: 0; color: #374151; font-size: 13px; font-style: italic; line-height: 1.6;">
@@ -585,13 +240,11 @@ function buildEmailHtml(type: string, data: any, brandSettings: any): { subject:
                 </p>
               </div>
 
-              <!-- Action WhatsApp -->
               ${whatsappButtonHtml}
 
               ${docsSection}
             </div>
 
-            <!-- ACTION CORRETOR TIPS -->
             <div style="margin-top: 30px; border-top: 2px dashed #e5e7eb; padding-top: 20px; font-size: 12px; color: #6b7280; line-height: 1.6;">
               💡 <strong>Dica do Sistema:</strong> Acesse o Painel Administrativo no portal para ver e atribuir esse lead a corretores licenciados ou para fazer o download fácil das cópias anexadas caso o cliente as tenha enviado.
             </div>
@@ -606,7 +259,6 @@ function buildEmailHtml(type: string, data: any, brandSettings: any): { subject:
     `;
     return { subject, html };
   } else {
-    // Standard User Question Form / Message
     const subject = `[CONTATO RÁPIDO] Nova mensagem recebida: ${clientName}`;
     const html = `
       <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; padding: 40px 10px;">
@@ -638,7 +290,6 @@ function buildEmailHtml(type: string, data: any, brandSettings: any): { subject:
                 </p>
               </div>
 
-              <!-- Action WhatsApp Link -->
               ${whatsappButtonHtml}
             </div>
 
@@ -654,5 +305,81 @@ function buildEmailHtml(type: string, data: any, brandSettings: any): { subject:
   }
 }
 
-startServer();
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
+  try {
+    const { type, data } = req.body;
+    if (!type || !data) {
+      return res.status(400).json({ error: 'Missing type or data' });
+    }
+
+    console.log(`[Vercel Serverless Email] Processing: type="${type}"`);
+
+    // 1. Fetch settings
+    const brandSettings = await fetchBrandSettings();
+    const targetEmail = brandSettings?.email || 'comercial.vivasc@gmail.com';
+
+    // 2. Build email template
+    const { subject, html } = buildEmailHtml(type, data, brandSettings);
+
+    // 3. Resolve attachments
+    const attachments: any[] = [];
+    if (type === 'lead' && data.preApprovalData) {
+      const pa = data.preApprovalData;
+      if (pa.rgCpfDoc) {
+        const att = parseBase64Attachment(pa.rgCpfDoc);
+        if (att) attachments.push(att);
+      }
+      if (pa.residenciaDoc) {
+        const att = parseBase64Attachment(pa.residenciaDoc);
+        if (att) attachments.push(att);
+      }
+      if (pa.rendaDoc) {
+        const att = parseBase64Attachment(pa.rendaDoc);
+        if (att) attachments.push(att);
+      }
+    }
+
+    // 4. Create mail transporter
+    const transporter = getMailTransporter();
+    if (!transporter) {
+      console.warn('[Vercel SMTP Warn] SMTP credentials are not fully defined in environment. Simulating dispatch logs.');
+      return res.status(200).json({
+        success: true,
+        message: 'Lead processed. SMTP is simulated (local server-only).',
+        simulatedLogs: {
+          recipient: targetEmail,
+          subject,
+          attachmentsCount: attachments.length
+        }
+      });
+    }
+
+    // 5. Send actual email
+    const fromAddress = process.env.EMAIL_FROM || process.env.SMTP_USER || 'comercial.vivasc@gmail.com';
+    const info = await transporter.sendMail({
+      from: `"CRM Portal VIVASC" <${fromAddress}>`,
+      to: targetEmail,
+      subject,
+      html,
+      attachments
+    });
+
+    console.log('[Vercel SMTP Success] Email sent safely, MsgID:', info.messageId);
+    return res.status(200).json({
+      success: true,
+      message: 'Email dispatched successfully via Vercel Serverless Function.',
+      messageId: info.messageId
+    });
+
+  } catch (error: any) {
+    console.error('[Vercel Serverless Email Error]', error);
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Internal Server Error'
+    });
+  }
+}
