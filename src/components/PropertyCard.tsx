@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, ChevronLeft, ChevronRight, X, Sparkles, CheckCircle, Upload, FileUp, FileText, Check, ShieldCheck, UserCheck, HelpCircle, User, Briefcase, Coins, Trash2, Eye } from 'lucide-react';
+import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, ChevronLeft, ChevronRight, X, Sparkles, CheckCircle, Upload, FileUp, FileText, Check, ShieldCheck, UserCheck, HelpCircle, User, Briefcase, Coins, Trash2, Eye, Phone, BookOpen, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BrandSettings } from '../types';
 import { saveLeadToFirestore, saveMessageToFirestore } from '../services/firestoreService';
@@ -414,6 +414,12 @@ export default function PropertyCard({
       ? `Olá! Gostaria de consultar mais detalhes e condições exclusivas sobre o lançamento imobiliário "${property.name}" localizado no bairro ${property.neighborhood} (${property.region}).`
       : `Olá! Tenho interesse no lançamento "${property.name}" em ${property.neighborhood}. Valor sugerido: ${formatBRL(property.price)}. Gostaria de maiores informações sobre a Entrada de ${formatBRL(property.downpayment)} e parcelas de ${formatBRL(property.installments)}.`;
     
+    const cleanPhone = (settings?.phone || '5547999999999').replace(/\D/g, '');
+    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+  };
+
+  const getCatalogWhatsAppLink = () => {
+    const text = `Olá, me interessou este projeto e gostaria de receber o Catálogo do empreendimento ${property.name} (Ref: ${property.id}). Aguardo contato.`;
     const cleanPhone = (settings?.phone || '5547999999999').replace(/\D/g, '');
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
   };
@@ -1400,38 +1406,49 @@ export default function PropertyCard({
             {/* 4. FIXED FOOTER BAR - Pinned perfectly at screen bottom for both Web & Mobile */}
             <div className="shrink-0 w-full bg-white/95 backdrop-blur-md border-t border-zinc-200 px-3 sm:px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] z-[130] shadow-2xl">
               <div className="max-w-4xl mx-auto flex items-center gap-2 sm:gap-3">
-                {/* Close/Sair button explicitly requested for easy one-hand smartphone navigation */}
+                {/* Close/Sair button with new back icon and elegant layout */}
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex h-12 px-4 items-center justify-center gap-1.5 rounded-xl border border-zinc-300 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 active:scale-90 transition-all cursor-pointer font-extrabold text-xs uppercase tracking-wider shrink-0 shadow-md"
+                  className="flex h-12 px-3 sm:px-4 items-center justify-center gap-1.5 rounded-xl border border-zinc-300 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 active:scale-90 transition-all cursor-pointer font-extrabold text-xs uppercase tracking-wider shrink-0 shadow-md"
                   title="Sair e voltar ao portal"
                 >
-                  <X className="h-4 w-4 text-[#e52521] stroke-[3]" />
-                  <span>Sair</span>
+                  <ArrowLeft className="h-4 w-4 text-zinc-700 stroke-[3]" />
+                  <span className="hidden xs:inline">Voltar</span>
                 </button>
 
-                {/* Telephone call outline item */}
+                {/* Telephone call items with updated Lucide Phone icon */}
                 <a
                   href={`tel:${(settings?.phone || '5547999999999').replace(/\D/g, '')}`}
-                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-250 bg-zinc-100 text-zinc-750 hover:text-zinc-950 hover:border-primary active:scale-90 transition-all cursor-pointer shadow-lg shrink-0"
+                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-250 bg-zinc-100 text-zinc-700 hover:text-zinc-950 hover:border-primary active:scale-90 transition-all cursor-pointer shadow-lg shrink-0"
                   title="Ligar para consultor"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.622c0-1.272.83-2.36 2.05-2.822.67-.253 1.417-.22 2.05.1l3.528 1.764c.67.336.985 1.092.774 1.76l-.772 2.47a1.125 1.125 0 00.316 1.086l4.636 4.636a1.125 1.125 0 001.086.316l2.47-.772a1.125 1.125 0 011.76.774l1.764 3.528c.32.633.32 1.38-.1 2.05-1.01 1.6-2.87 2.25-4.63 1.5l-2.05-.85a18.335 18.335 0 01-8.586-8.586l-.85-2.05c-.75-1.76-.1-3.63 1.5-4.63z" />
-                  </svg>
+                  <Phone className="h-5 w-5 text-zinc-800 stroke-[2.5]" />
                 </a>
 
-                {/* right Green WhatsApp direct item containing WhatsApp SVG/icon */}
+                {/* New Catálogo Button with WhatsApp Link and requested customized text */}
+                <a
+                  href={getCatalogWhatsAppLink()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  referrerPolicy="no-referrer"
+                  className="flex-1 flex h-12 items-center justify-center gap-1.5 rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] font-extrabold text-xs uppercase tracking-wider text-black shrink-0 cursor-pointer shadow-md shadow-[#FF9D00]/10 active:scale-[0.98] transition-all px-2 text-center"
+                  title="Solicitar Catálogo Completo"
+                >
+                  <BookOpen className="h-4 w-4 stroke-[3]" />
+                  <span>Catálogo</span>
+                </a>
+
+                {/* Green WhatsApp direct item containing WhatsApp icon */}
                 <a
                   href={getWhatsAppLink(false)}
                   target="_blank"
                   rel="noopener noreferrer"
                   referrerPolicy="no-referrer"
-                  className="flex-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs uppercase tracking-wider text-white shrink-0 cursor-pointer shadow-md shadow-emerald-600/10 active:scale-[0.98] transition-all"
+                  className="flex-1 flex h-12 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs uppercase tracking-wider text-white shrink-0 cursor-pointer shadow-md shadow-emerald-600/10 active:scale-[0.98] transition-all px-2 text-center"
                 >
                   <MessageSquare className="h-4 w-4 stroke-[2.5]" />
-                  WhatsApp
+                  <span>WhatsApp</span>
                 </a>
               </div>
             </div>
