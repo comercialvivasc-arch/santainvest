@@ -1414,7 +1414,7 @@ export default function PropertyCard({
                   title="Sair e voltar ao portal"
                 >
                   <ArrowLeft className="h-4 w-4 text-zinc-700 stroke-[3]" />
-                  <span className="hidden xs:inline">Voltar</span>
+                  <span>Voltar</span>
                 </button>
 
                 {/* Telephone call items with updated Lucide Phone icon */}
