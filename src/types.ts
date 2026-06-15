@@ -33,6 +33,7 @@ export interface Property {
   videoUrl?: string;
   floorPlans?: FloorPlan[];
   downpaymentPct?: number;
+  downpaymentInstallmentsCount?: number;
   installmentsPct?: number;
   installmentsCount?: number;
   reintegrationPct?: number;
@@ -42,6 +43,7 @@ export interface Property {
   keysValue?: number;
   isMcmv?: boolean;
   mcmvLogoUrl?: string;
+  cefContractFee?: number;
 }
 
 export interface BannerAd {

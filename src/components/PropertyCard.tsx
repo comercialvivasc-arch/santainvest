@@ -1038,9 +1038,16 @@ export default function PropertyCard({
                       <span className="text-xs text-zinc-800 uppercase font-bold block">1. Entrada</span>
                       <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Ato ou sinal facilitado ({property.downpaymentPct !== undefined ? property.downpaymentPct : 10}%)</span>
                     </div>
-                    <span className="text-sm font-extrabold text-zinc-900">
-                      {formatBRL(property.downpayment)}
-                    </span>
+                    <div className="text-right">
+                      <span className="text-sm font-extrabold text-zinc-900 block">
+                        {formatBRL(property.downpayment)}
+                      </span>
+                      {property.downpaymentInstallmentsCount !== undefined && property.downpaymentInstallmentsCount > 1 && (
+                        <span className="text-[12px] text-zinc-550 block font-bold mt-0.5">
+                          {property.downpaymentInstallmentsCount}x de {formatBRL(Math.round(property.downpayment / property.downpaymentInstallmentsCount))}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* 2. Mensais */}
@@ -1053,7 +1060,7 @@ export default function PropertyCard({
                       <span className="text-sm font-extrabold text-[#FF9D00] block">
                         {formatBRL(property.installments)}
                       </span>
-                      <span className="text-[9px] text-zinc-500 block uppercase font-bold mt-0.5">Por mês</span>
+                      <span className="text-[11px] text-zinc-500 block uppercase font-bold mt-0.5">Por mês</span>
                     </div>
                   </div>
 
@@ -1067,12 +1074,12 @@ export default function PropertyCard({
                       <span className="text-sm font-extrabold text-zinc-900 block">
                         {formatBRL(property.reintegrationValue !== undefined ? property.reintegrationValue : Math.round(property.price * 0.2 / (property.reintegrationCount || 5)))}
                       </span>
-                      <span className="text-[9px] text-zinc-500 block font-bold mt-0.5">{property.reintegrationCount || 5}x Anuais</span>
+                      <span className="text-[11px] text-zinc-500 block font-bold mt-0.5">{property.reintegrationCount || 5}x Anuais</span>
                     </div>
                   </div>
 
                   {/* 4. Entrega das Chaves */}
-                  <div className="flex items-start justify-between pb-1.5">
+                  <div className={`flex items-start justify-between pb-1.5 ${property.cefContractFee !== undefined && property.cefContractFee > 0 ? 'border-b border-zinc-200 pb-2.5' : ''}`}>
                     <div>
                       <span className="text-xs text-zinc-800 uppercase block font-bold">4. Nas Chaves ({property.keysPct !== undefined ? property.keysPct : 10}%)</span>
                       <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Entrega efetiva do imóvel ou financiamento bancário</span>
@@ -1081,6 +1088,19 @@ export default function PropertyCard({
                       {formatBRL(property.keysValue !== undefined ? property.keysValue : Math.round(property.price * 0.1))}
                     </span>
                   </div>
+
+                  {/* 5. Adesão de contrato CEF (only shown if configured) */}
+                  {property.cefContractFee !== undefined && property.cefContractFee > 0 && (
+                    <div className="flex items-start justify-between pb-1.5 pt-1">
+                      <div>
+                        <span className="text-xs text-zinc-800 uppercase block font-bold">5. Adesão Contrato CEF</span>
+                        <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Taxa de adesão do contrato CEF</span>
+                      </div>
+                      <span className="text-sm font-extrabold text-zinc-900">
+                        {formatBRL(property.cefContractFee)}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-orange-500/5 border border-orange-500/20 p-3 rounded-lg text-[10px] text-zinc-800 leading-normal font-sans block">
@@ -1090,7 +1110,7 @@ export default function PropertyCard({
                 {/* Simulated Payment WhatsApp redirection button */}
                 <a
                   href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}?text=${encodeURIComponent(
-                    `Olá! Estou visualizando o lançamento "${property.name}" (Ref: ${property.id}) e gostaria de receber uma simulação de pagamento personalizada.\n\nValor: ${formatBRL(property.price)}\nEntrada de: ${formatBRL(property.downpayment)}\nParcelas de: ${formatBRL(property.installments)}/mês`
+                    `Olá! Estou visualizando o lançamento "${property.name}" (Ref: ${property.id}) e gostaria de receber uma simulação de pagamento personalizada.\n\nValor: ${formatBRL(property.price)}\nEntrada de: ${formatBRL(property.downpayment)}${property.downpaymentInstallmentsCount !== undefined && property.downpaymentInstallmentsCount > 1 ? ` (parcelada em ${property.downpaymentInstallmentsCount}x de ${formatBRL(Math.round(property.downpayment / property.downpaymentInstallmentsCount))})` : ''}\nParcelas de: ${formatBRL(property.installments)}/mês${property.cefContractFee !== undefined && property.cefContractFee > 0 ? `\nAdesão Conta CEF: ${formatBRL(property.cefContractFee)}` : ''}`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1406,17 +1426,6 @@ export default function PropertyCard({
             {/* 4. FIXED FOOTER BAR - Pinned perfectly at screen bottom for both Web & Mobile */}
             <div className="shrink-0 w-full bg-white/95 backdrop-blur-md border-t border-zinc-200 px-3 sm:px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] z-[130] shadow-2xl">
               <div className="max-w-4xl mx-auto flex items-center gap-2 sm:gap-3">
-                {/* Close/Sair button with new back icon and elegant layout */}
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex h-12 px-3 sm:px-4 items-center justify-center gap-1.5 rounded-xl border border-zinc-300 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 active:scale-90 transition-all cursor-pointer font-extrabold text-xs uppercase tracking-wider shrink-0 shadow-md"
-                  title="Sair e voltar ao portal"
-                >
-                  <ArrowLeft className="h-4 w-4 text-zinc-700 stroke-[3]" />
-                  <span>Voltar</span>
-                </button>
-
                 {/* Telephone call items with updated Lucide Phone icon */}
                 <a
                   href={`tel:${(settings?.phone || '5547999999999').replace(/\D/g, '')}`}

@@ -393,6 +393,7 @@ export default function AdminPanel({
   
   // Financing Percentages and Count settings
   const [propDownpaymentPct, setPropDownpaymentPct] = useState(10);
+  const [propDownpaymentInstallmentsCount, setPropDownpaymentInstallmentsCount] = useState(1);
   const [propInstallmentsPct, setPropInstallmentsPct] = useState(60);
   const [propInstallmentsCount, setPropInstallmentsCount] = useState(60);
   const [propReintegrationPct, setPropReintegrationPct] = useState(20);
@@ -400,6 +401,7 @@ export default function AdminPanel({
   const [propReintegrationValue, setPropReintegrationValue] = useState(24000);
   const [propKeysPct, setPropKeysPct] = useState(10);
   const [propKeysValue, setPropKeysValue] = useState(60000);
+  const [propCefContractFee, setPropCefContractFee] = useState<number | undefined>(undefined);
 
   // Auto-calculation of downpayment, installments, reinforcements (balloon), and keys
   useEffect(() => {
@@ -495,6 +497,7 @@ export default function AdminPanel({
     setPropDownpayment(65000);
     setPropInstallments(2600);
     setPropDownpaymentPct(10);
+    setPropDownpaymentInstallmentsCount(1);
     setPropInstallmentsPct(60);
     setPropInstallmentsCount(60);
     setPropReintegrationPct(20);
@@ -502,6 +505,7 @@ export default function AdminPanel({
     setPropReintegrationValue(26000);
     setPropKeysPct(10);
     setPropKeysValue(65000);
+    setPropCefContractFee(undefined);
     setPropImageInput('');
     setPropImagesList([IMAGE_PRESETS[0]]);
     setPropPrivateNotes('');
@@ -529,6 +533,7 @@ export default function AdminPanel({
     setPropDownpayment(p.downpayment);
     setPropInstallments(p.installments);
     setPropDownpaymentPct(p.downpaymentPct !== undefined ? p.downpaymentPct : 10);
+    setPropDownpaymentInstallmentsCount(p.downpaymentInstallmentsCount !== undefined ? p.downpaymentInstallmentsCount : 1);
     setPropInstallmentsPct(p.installmentsPct !== undefined ? p.installmentsPct : 60);
     setPropInstallmentsCount(p.installmentsCount !== undefined ? p.installmentsCount : 60);
     setPropReintegrationPct(p.reintegrationPct !== undefined ? p.reintegrationPct : 20);
@@ -536,6 +541,7 @@ export default function AdminPanel({
     setPropReintegrationValue(p.reintegrationValue !== undefined ? p.reintegrationValue : Math.round(p.price * 0.2 / 5));
     setPropKeysPct(p.keysPct !== undefined ? p.keysPct : 10);
     setPropKeysValue(p.keysValue !== undefined ? p.keysValue : Math.round(p.price * 0.1));
+    setPropCefContractFee(p.cefContractFee !== undefined ? p.cefContractFee : undefined);
     setPropImageInput('');
     setPropImagesList(p.images);
     setPropPrivateNotes(p.privateNotes || '');
@@ -738,6 +744,7 @@ export default function AdminPanel({
       downpayment: Number(propDownpayment),
       installments: Number(propInstallments),
       downpaymentPct: Number(propDownpaymentPct),
+      downpaymentInstallmentsCount: Number(propDownpaymentInstallmentsCount),
       installmentsPct: Number(propInstallmentsPct),
       installmentsCount: Number(propInstallmentsCount),
       reintegrationPct: Number(propReintegrationPct),
@@ -755,7 +762,8 @@ export default function AdminPanel({
       detailedDescription: propDetailedDescription,
       floorPlans: propFloorPlans,
       isMcmv: propIsMcmv,
-      mcmvLogoUrl: propMcmvLogoUrl
+      mcmvLogoUrl: propMcmvLogoUrl,
+      cefContractFee: propCefContractFee !== undefined && propCefContractFee > 0 ? Number(propCefContractFee) : undefined
     };
 
     if (editingPropertyId) {
@@ -3721,20 +3729,33 @@ export default function AdminPanel({
                     
                     {/* ENTRADA CARD */}
                     <div className="bg-black/30 border border-zinc-850/60 p-4 rounded-xl space-y-3">
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center gap-3">
                         <span className="text-[10px] font-mono tracking-wider font-bold text-zinc-400 uppercase">
                           1️⃣ Entrada
                         </span>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            className="w-14 rounded bg-zinc-900 border border-zinc-800 px-1.5 py-1 text-xs text-center text-white font-mono font-bold focus:border-orange-500 outline-none"
-                            value={propDownpaymentPct}
-                            onChange={(e) => setPropDownpaymentPct(Math.min(100, Math.max(0, Number(e.target.value))))}
-                          />
-                          <span className="text-xs text-zinc-500 font-mono">%</span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="w-14 rounded bg-zinc-900 border border-zinc-800 px-1.5 py-1 text-xs text-center text-white font-mono font-bold focus:border-orange-500 outline-none"
+                              value={propDownpaymentPct}
+                              onChange={(e) => setPropDownpaymentPct(Math.min(100, Math.max(0, Number(e.target.value))))}
+                            />
+                            <span className="text-xs text-zinc-500 font-mono">%</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="1"
+                              className="w-16 rounded bg-zinc-900 border border-zinc-800 px-1.5 py-1 text-xs text-center text-white font-mono focus:border-orange-500 outline-none"
+                              placeholder="Parcelas"
+                              value={propDownpaymentInstallmentsCount}
+                              onChange={(e) => setPropDownpaymentInstallmentsCount(Math.max(1, Number(e.target.value)))}
+                            />
+                            <span className="text-[10px] text-zinc-500 font-sans">vezes</span>
+                          </div>
                         </div>
                       </div>
                       <div>
@@ -3745,7 +3766,10 @@ export default function AdminPanel({
                           value={propDownpayment}
                           onChange={(e) => setPropDownpayment(Number(e.target.value))}
                         />
-                        <span className="text-[10px] text-zinc-500 mt-1 block font-mono text-right">{formatBRL(propDownpayment)}</span>
+                        <span className="text-[10px] text-zinc-500 mt-1 block font-mono text-right">
+                          {formatBRL(propDownpayment)}
+                          {propDownpaymentInstallmentsCount > 1 && ` (ou ${propDownpaymentInstallmentsCount}x de ${formatBRL(Math.round(propDownpayment / propDownpaymentInstallmentsCount))})`}
+                        </span>
                       </div>
                     </div>
 
@@ -3863,6 +3887,44 @@ export default function AdminPanel({
                         />
                         <span className="text-[10px] text-zinc-500 mt-1 block font-mono text-right">{formatBRL(propKeysValue)}</span>
                       </div>
+                    </div>
+
+                    {/* ADESÃO DE CONTRATO CEF */}
+                    <div className="bg-black/30 border border-zinc-850/60 p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-mono tracking-wider font-bold text-zinc-400 uppercase">
+                          5️⃣ Adesão CEF
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="checkbox"
+                            id="enableCefContractFee"
+                            className="rounded border-zinc-850 bg-zinc-900 text-orange-500 focus:ring-orange-500 h-3.5 w-3.5"
+                            checked={propCefContractFee !== undefined}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setPropCefContractFee(3500); // Default placeholder fee
+                              } else {
+                                setPropCefContractFee(undefined);
+                              }
+                            }}
+                          />
+                          <label htmlFor="enableCefContractFee" className="text-[10px] text-zinc-400 font-bold select-none cursor-pointer uppercase">Habilitar</label>
+                        </div>
+                      </div>
+                      {propCefContractFee !== undefined && (
+                        <div>
+                          <label className="text-[9px] text-zinc-500 uppercase block mb-1 font-mono">Valor da Taxa de Adesão CEF (R$)</label>
+                          <input
+                            type="number"
+                            className="w-full rounded bg-zinc-900 border border-zinc-800 px-2.5 py-1.5 text-xs text-white font-mono"
+                            placeholder="Valor da adesão CEF"
+                            value={propCefContractFee}
+                            onChange={(e) => setPropCefContractFee(Number(e.target.value))}
+                          />
+                          <span className="text-[10px] text-zinc-500 mt-1 block font-mono text-right">{formatBRL(propCefContractFee)}</span>
+                        </div>
+                      )}
                     </div>
 
                   </div>
