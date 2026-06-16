@@ -1165,13 +1165,22 @@ export default function PropertyCard({
                         ? ` (parcelada em ${property.downpaymentInstallmentsCount}x de ${formatBRL(Math.round(property.downpayment / property.downpaymentInstallmentsCount))})` 
                         : '';
 
-                      return `Olá! Estou visualizando o lançamento "${property.name}" (Ref: ${property.id}) e gostaria de receber uma simulação de pagamento personalizada.\n\n` +
-                        `Valor: ${formatBRL(property.price)}\n` +
-                        `Entrada de: ${formatBRL(property.downpayment)}${entradaDetail}\n` +
-                        `Parcelas de: ${formatBRL(property.installments)}/mês\n` +
-                        `Reforços/Balões: ${rCount}x de ${formatBRL(rValue)}\n` +
-                        `Nas chaves: ${formatBRL(kValue)}` +
-                        (property.cefContractFee !== undefined && property.cefContractFee > 0 ? `\nAdesão Conta CEF: ${formatBRL(property.cefContractFee)}` : '');
+                      const formattedReforcos = `Reforços/Balões: ${rCount}x de ${formatBRL(rValue)}`;
+                      const formattedChaves = `Nas chaves: ${formatBRL(kValue)}`;
+                      const formattedCef = property.cefContractFee !== undefined && property.cefContractFee > 0 
+                        ? `Adesão Conta CEF: ${formatBRL(property.cefContractFee)}` 
+                        : '';
+
+                      return [
+                        `Olá! Estou visualizando o lançamento "${property.name}" (Ref: ${property.id}) e gostaria de receber uma simulação de pagamento personalizada.`,
+                        '',
+                        `Valor: ${formatBRL(property.price)}`,
+                        `Entrada de: ${formatBRL(property.downpayment)}${entradaDetail}`,
+                        `Parcelas de: ${formatBRL(property.installments)}/mês`,
+                        formattedReforcos,
+                        formattedChaves,
+                        formattedCef
+                      ].filter(Boolean).join('\n');
                     })()
                   )}`}
                   target="_blank"
