@@ -1026,7 +1026,23 @@ export default function PropertyCard({
                     <div className="pt-0.5">
                       {property.availableUnits <= 10 ? (
                         <div className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-250/50 px-2.5 py-1 rounded-lg text-[10px] font-sans font-extrabold uppercase tracking-wide animate-pulse">
-                          <AlertTriangle className="h-3.5 w-3.5 text-red-600 fill-current animate-bounce" />
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="2" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            className="h-3.5 w-3.5 text-red-600 fill-current animate-bounce"
+                          >
+                            <path 
+                              style={{ color: '#fff400', borderColor: '#0f0f0f' }} 
+                              d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" 
+                            />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                          </svg>
                           <span>Apenas {property.availableUnits} {property.availableUnits === 1 ? 'unidade restante!' : 'unidades restantes!'}</span>
                         </div>
                       ) : (
@@ -1135,7 +1151,28 @@ export default function PropertyCard({
                 {/* Simulated Payment WhatsApp redirection button */}
                 <a
                   href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}?text=${encodeURIComponent(
-                    `Olá! Estou visualizando o lançamento "${property.name}" (Ref: ${property.id}) e gostaria de receber uma simulação de pagamento personalizada.\n\nValor: ${formatBRL(property.price)}\nEntrada de: ${formatBRL(property.downpayment)}${property.downpaymentInstallmentsCount !== undefined && property.downpaymentInstallmentsCount > 1 ? ` (parcelada em ${property.downpaymentInstallmentsCount}x de ${formatBRL(Math.round(property.downpayment / property.downpaymentInstallmentsCount))})` : ''}\nParcelas de: ${formatBRL(property.installments)}/mês${property.cefContractFee !== undefined && property.cefContractFee > 0 ? `\nAdesão Conta CEF: ${formatBRL(property.cefContractFee)}` : ''}`
+                    (() => {
+                      const rValue = property.reintegrationValue !== undefined 
+                        ? property.reintegrationValue 
+                        : Math.round(property.price * 0.2 / (property.reintegrationCount || 5));
+                      const rCount = property.reintegrationCount || 5;
+                      
+                      const kValue = property.keysValue !== undefined 
+                        ? property.keysValue 
+                        : Math.round(property.price * 0.1);
+
+                      const entradaDetail = property.downpaymentInstallmentsCount !== undefined && property.downpaymentInstallmentsCount > 1 
+                        ? ` (parcelada em ${property.downpaymentInstallmentsCount}x de ${formatBRL(Math.round(property.downpayment / property.downpaymentInstallmentsCount))})` 
+                        : '';
+
+                      return `Olá! Estou visualizando o lançamento "${property.name}" (Ref: ${property.id}) e gostaria de receber uma simulação de pagamento personalizada.\n\n` +
+                        `Valor: ${formatBRL(property.price)}\n` +
+                        `Entrada de: ${formatBRL(property.downpayment)}${entradaDetail}\n` +
+                        `Parcelas de: ${formatBRL(property.installments)}/mês\n` +
+                        `Reforços/Balões: ${rCount}x de ${formatBRL(rValue)}\n` +
+                        `Nas chaves: ${formatBRL(kValue)}` +
+                        (property.cefContractFee !== undefined && property.cefContractFee > 0 ? `\nAdesão Conta CEF: ${formatBRL(property.cefContractFee)}` : '');
+                    })()
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1145,7 +1182,7 @@ export default function PropertyCard({
                   <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
                     <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.197 1.488 4.792 1.489 5.4 0 9.794-4.39 9.797-9.786.002-2.613-1.015-5.07-2.868-6.924C16.483 2.08 14.025 1.06 11.4 1.06 6.002 1.06 1.61 5.45 1.607 10.843c0 1.698.446 3.353 1.295 4.81l-.827 3.02 3.111-.817.039.02l.042.022zM18.006 14.77c-.31-.155-1.84-.907-2.124-1.01-.284-.105-.49-.156-.697.155-.207.31-.802 1.01-.983 1.218-.18.208-.363.233-.673.078-1.554-.775-2.63-1.34-3.666-3.123-.272-.468.272-.434.782-1.448.086-.172.043-.323-.021-.453-.065-.13-.532-1.282-.73-1.758-.192-.463-.385-.4-.532-.407h-.453c-.156 0-.41.058-.625.295-.215.237-.822.802-.822 1.954 0 1.152.837 2.267.954 2.422.117.155 1.647 2.515 3.99 3.528 1.83.792 2.51.782 3.407.641.447-.07 1.84-.75 2.1-1.474.26-.723.26-1.344.18-1.474-.077-.13-.284-.207-.595-.363z"/>
                   </svg>
-                  <span>Simular Pagamento no WhatsApp</span>
+                  <span>SIMULAR PAGAMENTO</span>
                 </a>
               </div>
 
