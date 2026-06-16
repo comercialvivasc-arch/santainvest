@@ -97,7 +97,7 @@ async function startServer() {
         });
       }
     } catch (err: any) {
-      console.warn('[SMTP Warning] Email dispatch could not be finalized:', err.message || err);
+      console.error('[Email Notification API Error]', err);
       let friendlyError = err.message || 'Erro desconhecido ao processar e-mail.';
       if (err.message && (err.message.includes('535') || err.message.toLowerCase().includes('invalid login') || err.message.toLowerCase().includes('username and password not accepted'))) {
         friendlyError = "Erro de Autenticação SMTP (Gmail/Google Workspace - Código 535). A Google rejeitou o login e senha configurados na plataforma como SMTP_USER e SMTP_PASS. Se você está usando o e-mail 'comercial.vivasc@gmail.com', o Gmail BLOQUEIA senhas comuns por motivos de segurança. Para corrigir isso: 1. Acesse sua Conta Google. 2. Ative a 'Verificação em 2 Etapas'. 3. Procure por 'Senhas de App' (App Passwords) ao final da página de segurança física. 4. Crie uma nova senha de app chamada 'CRM VIVASC' e copie o código gerado de 16 letras. 5. Cole este código de 16 letras SEM espaços diretamente no segredo SMTP_PASS nas configurações da plataforma.";
