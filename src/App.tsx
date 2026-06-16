@@ -1181,7 +1181,7 @@ export default function App() {
       </main>
 
       {/* 3. INTERACTIVE FLOATING CHAT COMPONENT (Simulated chat with blonde business executive) */}
-      <FloatingChat settings={settings} />
+      <FloatingChat settings={settings} brokers={brokers} />
 
       {/* 4. DURABLE BRANDED LIGHT GRAY FOOTER */}
       <Footer 

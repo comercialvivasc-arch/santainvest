@@ -3,7 +3,7 @@ import {
   Plus, Edit2, Trash2, ShieldAlert, Lock, Check, CheckCircle2, Upload,
   X, Image as ImageIcon, Building, Tag, Calendar, MapPin, 
   Bed, Maximize, AlertCircle, FileText, ChevronLeft, ChevronRight, ToggleLeft, ToggleRight, Sparkles,
-  Search, Copy, Globe, Share2, Users, UserCheck, Briefcase, CalendarDays, TrendingUp, HelpCircle, BarChart3, PieChart as PieIcon, Layers, MessageSquare
+  Search, Copy, Globe, Share2, Users, UserCheck, User, Briefcase, CalendarDays, TrendingUp, HelpCircle, BarChart3, PieChart as PieIcon, Layers, MessageSquare, Clock, Send, History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BannerAd, BrandSettings, Broker, Client, Lead, Visit, Message, FloorPlan } from '../types';
@@ -43,6 +43,8 @@ import {
   PieChart,
   Pie
 } from 'recharts';
+
+export const EXECUTIVE_AVATAR = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200&h=200";
 
 const formatAdminBedrooms = (val: string | number) => {
   const s = String(val).trim();
@@ -109,6 +111,10 @@ export default function AdminPanel({
   const [authError, setAuthError] = useState('');
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   
+  // Custom user role and active logged broker states
+  const [userRole, setUserRole] = useState<'admin' | 'broker' | null>(null);
+  const [loggedBroker, setLoggedBroker] = useState<Broker | null>(null);
+
   // Email/Password login fallback states
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -215,31 +221,104 @@ export default function AdminPanel({
         const allowedAdmins = ['comercial.vivasc@gmail.com', 'meuprimeiroimovel.adm@gmail.com'];
         if (user.email && allowedAdmins.includes(user.email)) {
           setIsAuthenticated(true);
+          setUserRole('admin');
+          setLoggedBroker(null);
           setAuthError('');
         } else {
-          // Deny if logged in but email is wrong
-          setIsAuthenticated(false);
-          setAuthError(`Usuário logado (${user.email}) não possui as permissões de um administrador oficial.`);
+          // Check if it's an active Broker!
+          const activeBrokerObj = brokers?.find(b => b.email.toLowerCase() === user.email?.toLowerCase() && b.status === 'Ativo');
+          if (activeBrokerObj) {
+            setIsAuthenticated(true);
+            setUserRole('broker');
+            setLoggedBroker(activeBrokerObj);
+            setAuthError('');
+            setActiveTab('chat-panel');
+          } else {
+            setIsAuthenticated(false);
+            setUserRole(null);
+            setLoggedBroker(null);
+            setAuthError(`Usuário logado (${user.email}) não possui as permissões de um administrador ou corretor credenciado ativo.`);
+            fbSignOut(auth);
+          }
         }
-      } else {
-        // Fallback to local admin code if firebase auth session is disconnected
-        // This preserves compatibility for passcode if they are logged out
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [brokers]);
+
+  // Local session loader for brokers (for email/password logic fallback)
+  useEffect(() => {
+    const storedBrokerId = localStorage.getItem('vivas_broker_session');
+    if (storedBrokerId && brokers.length > 0 && !isAuthenticated) {
+      const found = brokers.find(b => b.id === storedBrokerId && b.status === 'Ativo');
+      if (found) {
+        setLoggedBroker(found);
+        setUserRole('broker');
+        setIsAuthenticated(true);
+        setActiveTab('chat-panel');
+      }
+    }
+  }, [brokers, isAuthenticated]);
+
+  // Sonar tone sound notifier when any new chat message arrives
+  const lastMessagesLengthRef = React.useRef(messages.length);
+  useEffect(() => {
+    if (messages.length > lastMessagesLengthRef.current && (isAuthenticated || loggedBroker)) {
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc1.frequency.setValueAtTime(880, audioCtx.currentTime + 0.12); // A5
+
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(1174.66, audioCtx.currentTime); // D6
+        osc2.frequency.setValueAtTime(1760, audioCtx.currentTime + 0.12); // A6
+
+        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc1.start();
+        osc2.start();
+        osc1.stop(audioCtx.currentTime + 0.5);
+        osc2.stop(audioCtx.currentTime + 0.5);
+      } catch (err) {
+        console.warn("Could not play audio due to user interaction browser restrictions", err);
+      }
+    }
+    lastMessagesLengthRef.current = messages.length;
+  }, [messages, isAuthenticated, loggedBroker]);
 
   const handleGoogleLogin = async () => {
     try {
       setAuthError('');
       const result = await signInWithPopup(auth, googleProvider);
+      const email = result.user.email;
       const allowedAdmins = ['comercial.vivasc@gmail.com', 'meuprimeiroimovel.adm@gmail.com'];
-      if (!result.user.email || !allowedAdmins.includes(result.user.email)) {
-        setAuthError(`Usuário logado (${result.user.email}) não possui permissões administrativas. Por favor, entre com uma conta de administrador autorizada.`);
-        await fbSignOut(auth);
-      } else {
+      if (email && allowedAdmins.includes(email)) {
         setIsAuthenticated(true);
+        setUserRole('admin');
+        setLoggedBroker(null);
         setAuthError('');
+      } else {
+        const activeBrokerObj = brokers?.find(b => b.email.toLowerCase() === email?.toLowerCase() && b.status === 'Ativo');
+        if (activeBrokerObj) {
+          setIsAuthenticated(true);
+          setUserRole('broker');
+          setLoggedBroker(activeBrokerObj);
+          setAuthError('');
+          setActiveTab('chat-panel');
+        } else {
+          setAuthError(`O e-mail (${email}) não é o de um administrador ou corretor credenciado ativo.`);
+          await fbSignOut(auth);
+        }
       }
     } catch (e: any) {
       const errStr = String(e?.code || e?.message || e || '');
@@ -286,28 +365,60 @@ export default function AdminPanel({
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginEmail || !loginPassword) {
-      setAuthError('Por favor, digite seu e-mail e senha de administrador.');
+      setAuthError('Por favor, digite seu e-mail e senha.');
       return;
     }
     setAuthError('');
     setIsEmailLoggingIn(true);
     try {
-      const result = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      let userCredential = null;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      } catch (authErr) {
+        console.warn("Autenticação direta falhou ou conta de Auth não existente. Testando fallback...", authErr);
+      }
+
+      const email = loginEmail.toLowerCase().trim();
       const allowedAdmins = ['comercial.vivasc@gmail.com', 'meuprimeiroimovel.adm@gmail.com'];
-      if (!result.user.email || !allowedAdmins.includes(result.user.email)) {
-        setAuthError(`O e-mail (${result.user.email}) não é o de um administrador oficial.`);
-        await fbSignOut(auth);
-      } else {
+
+      if (userCredential && userCredential.user?.email && allowedAdmins.includes(userCredential.user.email)) {
         setIsAuthenticated(true);
+        setUserRole('admin');
+        setLoggedBroker(null);
         setAuthError('');
+      } else if (userCredential && userCredential.user?.email) {
+        const activeBrokerObj = brokers?.find(b => b.email.toLowerCase() === userCredential.user.email?.toLowerCase() && b.status === 'Ativo');
+        if (activeBrokerObj) {
+          setIsAuthenticated(true);
+          setUserRole('broker');
+          setLoggedBroker(activeBrokerObj);
+          setAuthError('');
+          setActiveTab('chat-panel');
+        } else {
+          setAuthError(`Usuário (${userCredential.user.email}) não é administrador ou corretor ativo.`);
+          await fbSignOut(auth);
+        }
+      } else {
+        // Fallback option: local query matchmaking inside the brokers/corretores collection!
+        const matchedLocalBroker = brokers?.find(
+          b => b.email.toLowerCase() === email && 
+               b.password === loginPassword && 
+               b.status === 'Ativo'
+        );
+        if (matchedLocalBroker) {
+          setIsAuthenticated(true);
+          setUserRole('broker');
+          setLoggedBroker(matchedLocalBroker);
+          localStorage.setItem('vivas_broker_session', matchedLocalBroker.id);
+          setAuthError('');
+          setActiveTab('chat-panel');
+        } else {
+          setAuthError('Credenciais incorretas (E-mail ou senha inválidos) ou corretor inativo.');
+        }
       }
     } catch (error: any) {
       console.error("Erro no login por e-mail:", error);
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        setAuthError('E-mail ou senha incorretos. Verifique suas credenciais de e-mail/senha no Firebase Auth.');
-      } else {
-        setAuthError(`Erro de login por e-mail: ${error.message || error}`);
-      }
+      setAuthError(`Erro de login por e-mail: ${error.message || error}`);
     } finally {
       setIsEmailLoggingIn(false);
     }
@@ -317,7 +428,10 @@ export default function AdminPanel({
     try {
       await fbSignOut(auth);
       setIsAuthenticated(false);
+      setUserRole(null);
+      setLoggedBroker(null);
       setPasscode('');
+      localStorage.removeItem('vivas_broker_session');
     } catch (e: any) {
       console.error(e);
     }
@@ -338,7 +452,7 @@ export default function AdminPanel({
   };
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'properties' | 'banners' | 'settings' | 'seo' | 'dashboard' | 'brokers' | 'clients' | 'leads' | 'visits' | 'messages'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'properties' | 'banners' | 'settings' | 'seo' | 'dashboard' | 'brokers' | 'clients' | 'leads' | 'visits' | 'messages' | 'chat-panel' | 'broker-profile'>('dashboard');
 
   // NEW CRM FRONTEND FORMS STATE
   const [isBrokerFormOpen, setIsBrokerFormOpen] = useState(false);
@@ -348,6 +462,24 @@ export default function AdminPanel({
   const [brokerPhone, setBrokerPhone] = useState('');
   const [brokerRegion, setBrokerRegion] = useState('');
   const [brokerStatus, setBrokerStatus] = useState<'Ativo' | 'Inativo'>('Ativo');
+  const [brokerChatName, setBrokerChatName] = useState('');
+  const [brokerChatPhotoUrl, setBrokerChatPhotoUrl] = useState('');
+  const [brokerPassword, setBrokerPassword] = useState('');
+  const [brokerReceiveChat, setBrokerReceiveChat] = useState(true);
+
+  // Broker Chat Panel interactive states
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [chatFilter, setChatFilter] = useState<'all' | 'new' | 'my'>('all');
+
+  // Synchronize inputs with currently logged broker profile fields
+  useEffect(() => {
+    if (loggedBroker) {
+      setBrokerChatName(loggedBroker.chatName || loggedBroker.name || '');
+      setBrokerChatPhotoUrl(loggedBroker.chatPhotoUrl || '');
+      setBrokerPassword(loggedBroker.password || '123456');
+    }
+  }, [loggedBroker, activeTab]);
 
   const [isClientFormOpen, setIsClientFormOpen] = useState(false);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
@@ -1096,116 +1228,156 @@ export default function AdminPanel({
 
         {/* Master Tab togglers */}
         <div className="flex flex-wrap border border-zinc-800 bg-zinc-950 rounded-xl p-1 gap-1 self-start sm:w-auto w-full">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'dashboard'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <BarChart3 className="h-4 w-4" />
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab('leads')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'leads'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Layers className="h-4 w-4" />
-            Leads ({leads.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('properties')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'properties'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Building className="h-4 w-4" />
-            Imóveis ({properties.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('brokers')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'brokers'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Briefcase className="h-4 w-4" />
-            Corretores ({brokers.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('clients')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'clients'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            Clientes ({clients.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('visits')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'visits'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <CalendarDays className="h-4 w-4" />
-            Visitas ({visits.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('messages')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'messages'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <MessageSquare className="h-4 w-4" />
-            Mensagens ({messages.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('banners')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'banners'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <ImageIcon className="h-4 w-4" />
-            Banners ({banners.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'settings'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Tag className="h-4 w-4" />
-            Marca
-          </button>
-          <button
-            onClick={() => setActiveTab('seo')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
-              activeTab === 'seo'
-                ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
-                : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            <Globe className="h-4 w-4" />
-            SEO
-          </button>
+          {userRole === 'broker' ? (
+            <>
+              <button
+                onClick={() => setActiveTab('chat-panel')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'chat-panel'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                Atendimento Chat
+              </button>
+              <button
+                onClick={() => setActiveTab('broker-profile')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'broker-profile'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <User className="h-4 w-4" />
+                Configurações do Chat
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'dashboard'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <BarChart3 className="h-4 w-4" />
+                Dashboard
+              </button>
+              <button
+                onClick={() => setActiveTab('chat-panel')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'chat-panel'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                Chat Geral
+              </button>
+              <button
+                onClick={() => setActiveTab('leads')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'leads'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Layers className="h-4 w-4" />
+                Leads ({leads.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('properties')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'properties'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Building className="h-4 w-4" />
+                Imóveis ({properties.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('brokers')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'brokers'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Briefcase className="h-4 w-4" />
+                Corretores ({brokers.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('clients')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'clients'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Clientes ({clients.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('visits')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'visits'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <CalendarDays className="h-4 w-4" />
+                Visitas ({visits.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('messages')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'messages'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                Mensagens ({messages.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('banners')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'banners'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <ImageIcon className="h-4 w-4" />
+                Banners ({banners.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'settings'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Tag className="h-4 w-4" />
+                Marca
+              </button>
+              <button
+                onClick={() => setActiveTab('seo')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                  activeTab === 'seo'
+                    ? 'bg-orange-500 text-black shadow-lg shadow-orange-500/10'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Globe className="h-4 w-4" />
+                SEO
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -1988,6 +2160,90 @@ export default function AdminPanel({
               </div>
             </form>
           </div>
+
+          {/* Diagnostic & Troubleshooting Area for SMTP / Emails */}
+          <div className="bg-zinc-950 p-6 border border-zinc-900 rounded-2xl space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-500/10 border border-orange-500/20 rounded-xl text-orange-400">
+                <AlertCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-[9px] font-bold tracking-widest text-[#FF9D00] font-mono uppercase block">Suporte & Integrações</span>
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Guia de Diagnóstico de E-mails (SMTP)</h3>
+              </div>
+            </div>
+
+            <div className="text-xs text-zinc-400 space-y-3 leading-relaxed">
+              <p>
+                O sistema de notificações de leads e pré-aprovações dispara e-mails automáticos em tempo real para <strong className="text-white">{settingsEmail || 'comercial.vivasc@gmail.com'}</strong> sempre que um novo prospect preenche um cadastro no portal.
+              </p>
+              <p>
+                Se você receber erros de credenciais ao enviar e-mails (como <code className="text-orange-400 bg-black/40 px-1.5 py-0.5 rounded font-mono">Invalid login: 535-5.7.8 Username and Password not accepted</code>), é porque a Google bloqueia logins utilizando sua senha de e-mail comum. Siga as instruções abaixo para resolver:
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-zinc-900/60 pt-5">
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold tracking-widest text-zinc-300 uppercase font-mono">Como configurar o Gmail (App Password):</h4>
+                <ol className="list-decimal list-inside text-xs text-zinc-400 space-y-2">
+                  <li>
+                    Acesse a sua conta Google em <a href="https://myaccount.google.com" target="_blank" rel="noreferrer" className="text-orange-400 hover:underline inline-flex items-center gap-0.5">myaccount.google.com <Globe className="w-3 h-3 inline" /></a>.
+                  </li>
+                  <li>
+                    No menu esquerdo, vá para a seção de <strong className="text-white">Segurança</strong>.
+                  </li>
+                  <li>
+                    Certifique-se de que a <strong className="text-emerald-400">Verificação em duas etapas</strong> está ativada.
+                  </li>
+                  <li>
+                    Ao final da página de Verificação em duas etapas, localize a opção <strong className="text-white">Senhas de App (App Passwords)</strong>.
+                  </li>
+                  <li>
+                    Crie uma nova senha escolhendo qualquer nome (Ex: <code className="text-orange-400 font-mono">CRM VIVASC</code>).
+                  </li>
+                  <li>
+                    O Google exibirá um código seguro de <strong className="text-orange-400 font-mono">16 caracteres</strong>. Salve-o.
+                  </li>
+                  <li>
+                    Introduza essa senha de 16 caracteres sem espaços no segredo <code className="text-orange-400 font-mono">SMTP_PASS</code> da plataforma.
+                  </li>
+                </ol>
+              </div>
+
+              <div className="space-y-3 bg-black/40 border border-zinc-900 p-4 rounded-xl">
+                <h4 className="text-[10px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono">Valores de Configuração Corretos:</h4>
+                <div className="space-y-2.5 text-[11px] font-mono text-zinc-400">
+                  <div className="flex justify-between border-b border-zinc-900/40 pb-1.5">
+                    <span className="text-zinc-550">SMTP_HOST:</span>
+                    <span className="text-white font-bold">smtp.gmail.com</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-900/40 pb-1.5">
+                    <span className="text-zinc-550">SMTP_PORT:</span>
+                    <span className="text-white font-bold">587</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-900/40 pb-1.5">
+                    <span className="text-zinc-550">SMTP_SECURE:</span>
+                    <span className="text-white font-bold">false</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-900/40 pb-1.5">
+                    <span className="text-zinc-550">SMTP_USER:</span>
+                    <span className="text-white font-bold">comercial.vivasc@gmail.com</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-900/40 pb-1.5">
+                    <span className="text-zinc-550 font-sans text-orange-400">SMTP_PASS (Senha de App):</span>
+                    <span className="text-orange-400 font-bold font-sans text-right">Seu código de 16 caracteres</span>
+                  </div>
+                  <div className="flex justify-between pb-0.5">
+                    <span className="text-zinc-550">EMAIL_FROM:</span>
+                    <span className="text-white font-bold">comercial.vivasc@gmail.com</span>
+                  </div>
+                </div>
+                <div className="text-[10px] text-zinc-500 font-sans leading-normal pt-2 border-t border-zinc-900 mt-2">
+                  ℹ Caso precise alterar as variáveis ambientais no painel do servidor, reinicie o container para aplicar os novos dados.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -2199,6 +2455,10 @@ export default function AdminPanel({
                 setBrokerPhone('');
                 setBrokerRegion('');
                 setBrokerStatus('Ativo');
+                setBrokerChatName('');
+                setBrokerChatPhotoUrl('');
+                setBrokerPassword('');
+                setBrokerReceiveChat(true);
                 setIsBrokerFormOpen(true);
               }}
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 font-bold text-black border border-orange-500 px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
@@ -2212,9 +2472,22 @@ export default function AdminPanel({
             {brokers.map(b => (
               <div key={b.id} className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 space-y-4 hover:border-zinc-800 transition-all duration-300">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider ${b.status === 'Ativo' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-800 text-zinc-500 border border-zinc-800'}`}>{b.status}</span>
-                    <h4 className="text-base font-extrabold text-white mt-1 uppercase tracking-tight">{b.name}</h4>
+                  <div className="flex gap-3">
+                    <img
+                      src={b.chatPhotoUrl || EXECUTIVE_AVATAR}
+                      alt={b.chatName || b.name}
+                      referrerPolicy="no-referrer"
+                      className="w-12 h-12 rounded-full object-cover border border-zinc-800 shrink-0"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider ${b.status === 'Ativo' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-800 text-zinc-500 border border-zinc-800'}`}>{b.status}</span>
+                        {b.receiveChat !== false && (
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20">Chat Ativo</span>
+                        )}
+                      </div>
+                      <h4 className="text-sm font-extrabold text-white mt-1 uppercase tracking-tight">{b.name}</h4>
+                    </div>
                   </div>
                   <div className="flex gap-1.5 shrink-0 z-10">
                     <button
@@ -2225,6 +2498,10 @@ export default function AdminPanel({
                         setBrokerPhone(b.phone);
                         setBrokerRegion(b.region);
                         setBrokerStatus(b.status);
+                        setBrokerChatName(b.chatName || b.name);
+                        setBrokerChatPhotoUrl(b.chatPhotoUrl || '');
+                        setBrokerPassword(b.password || '123456');
+                        setBrokerReceiveChat(b.receiveChat !== false);
                         setIsBrokerFormOpen(true);
                       }}
                       className="p-2 rounded-lg bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-850 hover:bg-zinc-850 transition-all cursor-pointer"
@@ -2258,6 +2535,10 @@ export default function AdminPanel({
                   <div className="flex justify-between">
                     <span className="text-zinc-550 header-title">Região:</span>
                     <span className="text-white">{b.region || 'Balneário Camboriú'}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-zinc-900/40 pt-1.5 mt-1.5 font-sans">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase">Nome no Chat:</span>
+                    <span className="text-xs text-orange-400 font-extrabold">{b.chatName || b.name}</span>
                   </div>
                 </div>
               </div>
@@ -2306,6 +2587,10 @@ export default function AdminPanel({
                         phone: brokerPhone,
                         region: brokerRegion,
                         status: brokerStatus,
+                        chatName: brokerChatName || brokerName,
+                        chatPhotoUrl: brokerChatPhotoUrl || EXECUTIVE_AVATAR,
+                        password: brokerPassword || '123456',
+                        receiveChat: brokerReceiveChat,
                         createdAt: new Date().toISOString()
                       };
                       await saveBrokerToFirestore(payload);
@@ -2370,6 +2655,59 @@ export default function AdminPanel({
                         <option value="Ativo">Ativo / Prontamente para Leads</option>
                         <option value="Inativo">Inativo / Fora de Escalabilidade</option>
                       </select>
+                    </div>
+
+                    <div className="border-t border-zinc-900 pt-4 space-y-4">
+                      <h4 className="text-[10px] font-bold tracking-widest text-orange-400 uppercase font-mono">Configurações de Atendimento & Chat</h4>
+                      
+                      <div>
+                        <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">Nome de Exibição no Chat</label>
+                        <input
+                          type="text"
+                          value={brokerChatName}
+                          onChange={(e) => setBrokerChatName(e.target.value)}
+                          placeholder="Ex: Amanda Santos"
+                          className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500 outline-none placeholder-zinc-850"
+                        />
+                        <span className="text-[9px] text-zinc-500 mt-1 block">Nome amigável que o cliente verá no balão flutuante. Caso deixe em branco, usará o nome completo.</span>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">URL da Foto de Perfil no Chat</label>
+                        <input
+                          type="url"
+                          value={brokerChatPhotoUrl}
+                          onChange={(e) => setBrokerChatPhotoUrl(e.target.value)}
+                          placeholder="Ex: https://images.unsplash.com/..."
+                          className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500 outline-none placeholder-zinc-850"
+                        />
+                        <span className="text-[9px] text-zinc-500 mt-1 block">Insira um link HTTPS válido para a imagem do corretor para o botão de bate-papo.</span>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">Senha de Login do Corretor *</label>
+                        <input
+                          type="password"
+                          value={brokerPassword}
+                          onChange={(e) => setBrokerPassword(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500 outline-none placeholder-zinc-850"
+                        />
+                        <span className="text-[9px] text-zinc-500 mt-1 block">Esta senha será usada para login direto por e-mail e senha. Inicializada como '123456'.</span>
+                      </div>
+
+                      <div className="flex items-center gap-3 bg-black/40 p-3 rounded-xl border border-zinc-900">
+                        <input
+                          type="checkbox"
+                          id="receiveChatCheckbox"
+                          checked={brokerReceiveChat}
+                          onChange={(e) => setBrokerReceiveChat(e.target.checked)}
+                          className="w-4 h-4 rounded border-zinc-900 text-orange-500 focus:ring-0 cursor-pointer"
+                        />
+                        <label htmlFor="receiveChatCheckbox" className="text-xs font-medium text-white cursor-pointer select-none">
+                          Habilitar recebimento de chamados e chats flutuantes
+                        </label>
+                      </div>
                     </div>
 
                     <div className="pt-4 border-t border-zinc-900 flex justify-end gap-3 mt-6">
@@ -3046,6 +3384,422 @@ export default function AdminPanel({
               </div>
             )}
           </AnimatePresence>
+        </div>
+      )}
+
+      {/* =========================================================================
+          BROKER INTERACTIVE CHAT PANEL
+          ========================================================================= */}
+      {activeTab === 'chat-panel' && (
+        <div className="space-y-6 max-w-6xl mx-auto font-sans">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-zinc-950 p-5 border border-zinc-900 rounded-2xl gap-4">
+            <div>
+              <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-orange-400">Atendimento Digital</span>
+              <h3 className="text-lg font-black text-white uppercase tracking-tight mt-1">Painel Interativo de Chat Leads</h3>
+            </div>
+            
+            {/* Filter Buttons */}
+            <div className="flex items-center gap-1.5 bg-black p-1 rounded-xl border border-zinc-900">
+              <button
+                onClick={() => setChatFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${chatFilter === 'all' ? 'bg-zinc-900 text-white border border-zinc-800' : 'text-zinc-500 hover:text-zinc-400'}`}
+              >
+                Todas ({messages.length})
+              </button>
+              <button
+                onClick={() => setChatFilter('new')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${chatFilter === 'new' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : 'text-zinc-500 hover:text-zinc-400'}`}
+              >
+                Novas ({messages.filter(m => m.status === 'Novo' || !m.status).length})
+              </button>
+              {loggedBroker && (
+                <button
+                  onClick={() => setChatFilter('my')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${chatFilter === 'my' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-zinc-500 hover:text-zinc-400'}`}
+                >
+                  Minhas ({messages.filter(m => m.assignedBrokerId === loggedBroker.id).length})
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[550px]">
+            {/* Conversations Left Rail Sidebar (12-col layout) */}
+            <div className="lg:col-span-5 bg-zinc-950 border border-zinc-900 rounded-2xl flex flex-col overflow-hidden max-h-[600px] overflow-y-auto">
+              <div className="p-4 border-b border-zinc-900 bg-black/40">
+                <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase font-mono block">Canal de Entrada em Tempo Real</span>
+              </div>
+              
+              <div className="divide-y divide-zinc-900/60">
+                {messages
+                  .filter(m => {
+                    if (chatFilter === 'new') return m.status === 'Novo' || !m.status;
+                    if (chatFilter === 'my') return loggedBroker && m.assignedBrokerId === loggedBroker.id;
+                    return true;
+                  })
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .map(m => {
+                    const isSelected = m.id === selectedMessageId;
+                    const plainPhone = m.contact.replace(/\D/g, '');
+                    return (
+                      <div
+                        key={m.id}
+                        onClick={() => {
+                          setSelectedMessageId(m.id);
+                          setReplyText('');
+                        }}
+                        className={`p-4 transition-all cursor-pointer text-left relative flex items-start gap-3.5 ${isSelected ? 'bg-zinc-900' : 'hover:bg-zinc-900/30'}`}
+                      >
+                        {/* Status Dots */}
+                        <span className={`absolute top-4 right-4 w-2 h-2 rounded-full ${m.status === 'Finalizado' ? 'bg-emerald-500' : m.status === 'Atendendo' ? 'bg-orange-500' : 'bg-blue-500 animate-pulse'}`}></span>
+                        
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-800 text-xs font-extrabold text-orange-400 uppercase tracking-tight">
+                          {m.name.slice(0, 2)}
+                        </div>
+
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-black text-white uppercase tracking-tight">{m.name}</span>
+                            <span className="text-[9px] font-mono text-zinc-500">| {new Date(m.createdAt).toLocaleDateString('pt-BR')}</span>
+                          </div>
+                          
+                          <p className="text-[11px] text-zinc-400 truncate leading-relaxed">{m.message}</p>
+                          
+                          <div className="flex gap-2 flex-wrap pt-0.5 items-center">
+                            <span className="inline-flex px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 uppercase font-mono">{m.propertyId || 'Imóvel Geral'}</span>
+                            {m.assignedBrokerName && (
+                              <span className="inline-flex px-1.5 bg-orange-500/10 border border-orange-500/20 text-[9px] text-orange-400 rounded">Log: {m.assignedBrokerName}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {messages.length === 0 && (
+                  <div className="text-center py-20 px-4 text-zinc-500 space-y-3">
+                    <MessageSquare className="w-8 h-8 mx-auto text-zinc-700 block animate-pulse" />
+                    <p className="text-xs font-bold text-zinc-400 uppercase font-mono">Nenhum atendimento listado</p>
+                    <p className="text-[10px] text-zinc-600">Aguarde a entrada de novas propostas pelo chat flutuante.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Conversation Detail Box Area (12-col layout) */}
+            <div className="lg:col-span-7 bg-zinc-950 border border-zinc-900 rounded-2xl flex flex-col justify-between overflow-hidden min-h-[500px]">
+              {selectedMessageId ? (() => {
+                const selectedMsg = messages.find(m => m.id === selectedMessageId);
+                if (!selectedMsg) return null;
+                const plainPhone = selectedMsg.contact.replace(/\D/g, '');
+                const waBaseUrl = `https://wa.me/${plainPhone}`;
+                return (
+                  <>
+                    {/* Selected Message Header info bar */}
+                    <div className="p-4 border-b border-zinc-900 bg-black/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-white uppercase tracking-tight">{selectedMsg.name}</h4>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${selectedMsg.status === 'Finalizado' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : selectedMsg.status === 'Atendendo' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+                            {selectedMsg.status || 'Novo'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-mono text-zinc-400 mt-1">Contato: {selectedMsg.contact}</p>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">Visando: {selectedMsg.propertyId}</p>
+                      </div>
+
+                      {/* Header Actions */}
+                      <div className="flex items-center gap-2 flex-wrap shrink-0">
+                        {/* Assignment picker */}
+                        {selectedMsg.assignedBrokerId !== loggedBroker?.id && (
+                          <button
+                            onClick={async () => {
+                              const updated = {
+                                ...selectedMsg,
+                                assignedBrokerId: loggedBroker?.id || 'admin',
+                                assignedBrokerName: loggedBroker?.chatName || loggedBroker?.name || 'Administrador',
+                                status: 'Atendendo' as const
+                              };
+                              await saveMessageToFirestore(updated);
+                            }}
+                            className="bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-[10px] tracking-wider uppercase px-3 py-1.5 rounded-lg active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Assumir Conversa
+                          </button>
+                        )}
+
+                        {/* Status selection */}
+                        <select
+                          value={selectedMsg.status || 'Novo'}
+                          onChange={async (e) => {
+                            const updated = {
+                              ...selectedMsg,
+                              status: e.target.value as any
+                            };
+                            await saveMessageToFirestore(updated);
+                          }}
+                          className="bg-black border border-zinc-900 rounded-lg text-[10px] font-sans font-bold uppercase py-1.5 px-2.5 text-zinc-300 outline-none focus:border-orange-500"
+                        >
+                          <option value="Novo">Status: Novo</option>
+                          <option value="Atendendo">Status: Em Atendimento</option>
+                          <option value="Finalizado">Status: Finalizado</option>
+                        </select>
+
+                        {userRole === 'admin' && (
+                          <button
+                            onClick={async () => {
+                              if (confirm('Tem certeza que deseja apagar permanentemente esse log de chat?')) {
+                                await deleteMessageFromFirestore(selectedMsg.id);
+                                setSelectedMessageId(null);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-zinc-900 hover:bg-orange-950/20 text-orange-500 border border-zinc-850 hover:border-orange-500/20 cursor-pointer"
+                            title="Deletar Conversa"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Chat Messages Log Section */}
+                    <div className="flex-1 p-5 space-y-4 overflow-y-auto max-h-[350px] bg-black/20 flex flex-col">
+                      {/* Original Customer Message (Left side) */}
+                      <div className="text-left max-w-[85%] self-start space-y-1 bg-zinc-900 border border-zinc-850 p-4 rounded-2xl rounded-tl-none">
+                        <span className="text-[9px] font-bold text-orange-400 uppercase tracking-widest block font-mono">Atendimento Iniciado</span>
+                        <p className="text-xs text-white leading-relaxed font-sans">{selectedMsg.message}</p>
+                        <span className="text-[8px] font-mono text-zinc-500 block text-right">
+                          {new Date(selectedMsg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+
+                      {/* Logged replies */}
+                      {selectedMsg.replies?.map((rep) => (
+                        <div
+                          key={rep.id}
+                          className={`max-w-[85%] rounded-2xl p-4 text-left space-y-1 ${
+                            rep.isBroker 
+                              ? 'self-end bg-orange-500/10 border border-orange-500/20 rounded-tr-none text-right' 
+                              : 'self-start bg-zinc-900 border border-zinc-850 rounded-tl-none'
+                          }`}
+                        >
+                          <span className={`text-[8px] font-bold uppercase tracking-widest block font-mono ${rep.isBroker ? 'text-orange-400' : 'text-zinc-400'}`}>
+                            {rep.isBroker ? `Atendente (${rep.author})` : 'Prospect'}
+                          </span>
+                          <p className="text-xs text-white leading-relaxed font-sans">{rep.content}</p>
+                          <span className="text-[8px] font-mono text-zinc-500 block">
+                            {new Date(rep.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Chat footer input response text area */}
+                    <div className="p-4 border-t border-zinc-900 bg-black/40 space-y-3">
+                      <textarea
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder="Escreva sua resposta de acompanhamento ou proposta..."
+                        rows={2}
+                        className="w-full rounded-xl bg-black px-4 py-3 text-xs text-zinc-200 border border-zinc-900 focus:border-orange-500 outline-none placeholder-zinc-800 resize-none font-sans"
+                      />
+                      
+                      <div className="flex flex-wrap justify-between items-center gap-3">
+                        <span className="text-[9px] text-zinc-500 font-mono">Atendente logado: <strong className="text-orange-400">{loggedBroker?.chatName || loggedBroker?.name || 'Administrador'}</strong></span>
+                        
+                        <div className="flex items-center gap-2">
+                          {/* Internal log button */}
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!replyText.trim()) return;
+                              const updatedReplies = [...(selectedMsg.replies || []), {
+                                id: `rep_${Date.now()}`,
+                                author: loggedBroker?.chatName || loggedBroker?.name || 'Administrador',
+                                content: replyText.trim(),
+                                createdAt: new Date().toISOString(),
+                                isBroker: true
+                              }];
+                              const updated = {
+                                ...selectedMsg,
+                                replies: updatedReplies,
+                                status: 'Atendendo' as const
+                              };
+                              await saveMessageToFirestore(updated);
+                              setReplyText('');
+                            }}
+                            className="px-4 py-2 text-[10px] font-bold tracking-wider uppercase bg-zinc-900 text-zinc-300 hover:text-white rounded-xl border border-zinc-800 cursor-pointer transition-all active:scale-95"
+                          >
+                            Salvar Histórico
+                          </button>
+
+                          {/* WhatsApp forward response button */}
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!replyText.trim()) return;
+                              const updatedReplies = [...(selectedMsg.replies || []), {
+                                id: `rep_${Date.now()}`,
+                                author: loggedBroker?.chatName || loggedBroker?.name || 'Administrador',
+                                content: replyText.trim(),
+                                createdAt: new Date().toISOString(),
+                                isBroker: true
+                              }];
+                              const updated = {
+                                ...selectedMsg,
+                                replies: updatedReplies,
+                                status: 'Atendendo' as const
+                              };
+                              await saveMessageToFirestore(updated);
+                              
+                              const waUrl = `https://wa.me/${plainPhone}?text=${encodeURIComponent(replyText.trim())}`;
+                              window.open(waUrl, '_blank', 'noreferrer,noopener');
+                              setReplyText('');
+                            }}
+                            className="px-4 py-2 text-[10px] font-extrabold tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-500/10 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            Responder via WhatsApp
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })() : (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-zinc-500 select-none">
+                  <MessageSquare className="w-12 h-12 text-zinc-800 block mb-3 animate-pulse" />
+                  <p className="text-xs font-bold text-zinc-400 uppercase font-mono">Nenhuma conversa selecionada</p>
+                  <p className="text-[10px] text-zinc-600 mt-1 max-w-sm leading-relaxed">Selecione algum lead ou chat flutuante na lista lateral para conversar em tempo real, mudar o status de atendimento e logar históricos.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          BROKER PERSONAL PROFILE CONFIGURATION PANEL
+          ========================================================================= */}
+      {activeTab === 'broker-profile' && loggedBroker && (
+        <div className="max-w-xl mx-auto space-y-6 font-sans">
+          <div className="bg-zinc-950 p-6 border border-zinc-900 rounded-2xl relative overflow-hidden flex flex-col md:flex-row gap-6">
+            <div className="space-y-4 flex-1">
+              <div>
+                <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-[#FF9D00]">Personalização do Atendimento</span>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight mt-1">Configurar Meu Perfil do Chat</h3>
+                <p className="text-xs text-zinc-500 font-medium leading-relaxed mt-1">Aqui você pode personalizar a sua foto e o nome que as pessoas verão no balão de bate-papo no rodapé do portal.</p>
+              </div>
+
+              {/* Form Inputs */}
+              <div className="space-y-4 pt-3 border-t border-zinc-900">
+                <div>
+                  <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">Seu E-mail (Identidade Única)</label>
+                  <input
+                    type="email"
+                    disabled
+                    value={loggedBroker.email}
+                    className="w-full rounded-xl bg-zinc-900/50 cursor-not-allowed px-4 py-2.5 text-xs text-zinc-500 border border-zinc-850 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">Seu Nome Preferencial do Chat</label>
+                  <input
+                    type="text"
+                    required
+                    value={brokerChatName}
+                    onChange={(e) => setBrokerChatName(e.target.value)}
+                    placeholder="Amanda Plantão VIVASC"
+                    className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500 outline-none"
+                  />
+                  <span className="text-[9px] text-zinc-500 mt-1 block">Escolha um apelido profissional ou primeiro nome + sobrenome para seu botão de contato rápido!</span>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">Sua Foto de Perfil no Chat URL</label>
+                  <input
+                    type="url"
+                    required
+                    value={brokerChatPhotoUrl}
+                    onChange={(e) => setBrokerChatPhotoUrl(e.target.value)}
+                    placeholder="Link HTTPS para sua imagem de perfil"
+                    className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500 outline-none"
+                  />
+                  <span className="text-[9px] text-zinc-500 mt-1 block">Coloque um link público válido de imagem para carregar seu rosto no botão do chat.</span>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1.5">Sua Senha de Login Privada</label>
+                  <input
+                    type="password"
+                    required
+                    value={brokerPassword}
+                    onChange={(e) => setBrokerPassword(e.target.value)}
+                    placeholder="Mínimo de 6 dígitos"
+                    className="w-full rounded-xl bg-black px-4 py-2.5 text-xs text-white border border-zinc-900 focus:border-orange-500 outline-none"
+                  />
+                  <span className="text-[9px] text-zinc-500 mt-1 block">A sua senha atual cadastrada no sistema. Caso altere, clique para salvar.</span>
+                </div>
+              </div>
+
+              {/* Save trigger */}
+              <div className="pt-4 border-t border-zinc-900 flex justify-end">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!brokerChatName.trim()) {
+                      alert('Digite o seu nome de chat preferido!');
+                      return;
+                    }
+                    try {
+                      const updated: Broker = {
+                        ...loggedBroker,
+                        chatName: brokerChatName.trim(),
+                        chatPhotoUrl: brokerChatPhotoUrl.trim() || EXECUTIVE_AVATAR,
+                        password: brokerPassword.trim() || '123456'
+                      };
+                      await saveBrokerToFirestore(updated);
+                      setLoggedBroker(updated);
+                      alert('Perfil do corretor atualizado com sucesso no banco de dados!');
+                    } catch (err) {
+                      console.error("Erro saving profile:", err);
+                      alert('Falha ao gravar alterações no perfil.');
+                    }
+                  }}
+                  className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black text-xs font-extrabold tracking-wider uppercase transition-all shadow-lg shadow-orange-500/10 cursor-pointer"
+                >
+                  Salvar Alterações do Chat
+                </button>
+              </div>
+            </div>
+
+            {/* Live Visual Preview of Chat Badge */}
+            <div className="w-full md:w-48 shrink-0 flex flex-col items-center justify-center p-4 bg-zinc-900/50 rounded-2xl border border-zinc-900 space-y-4 select-none">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 font-mono">Prévia em Tempo Real</span>
+              
+              <div className="relative">
+                <img
+                  src={brokerChatPhotoUrl || EXECUTIVE_AVATAR}
+                  alt={brokerChatName}
+                  referrerPolicy="no-referrer"
+                  className="w-20 h-20 rounded-full border-2 border-orange-500 object-cover"
+                  onError={(e) => {
+                    // Fallback to placeholder if url is wrong/empty so layout stays elegant
+                    (e.target as HTMLImageElement).src = EXECUTIVE_AVATAR;
+                  }}
+                />
+                <span className="absolute bottom-0.5 right-0.5 w-5 h-5 bg-emerald-500 border-2 border-zinc-950 rounded-full"></span>
+              </div>
+
+              <div className="text-center space-y-1">
+                <p className="text-xs font-extrabold text-white uppercase tracking-wider block truncate max-w-[130px]">{brokerChatName || loggedBroker.name}</p>
+                <p className="text-[10px] font-medium text-zinc-500 block">Corretor de Plantão</p>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/25 text-[8px] font-bold font-mono text-emerald-400 uppercase mt-2">● Online</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

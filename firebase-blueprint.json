@@ -25,7 +25,11 @@
         "phone": { "type": "string" },
         "status": { "type": "string", "enum": ["Ativo", "Inativo"] },
         "region": { "type": "string" },
-        "createdAt": { "type": "string" }
+        "createdAt": { "type": "string" },
+        "chatName": { "type": "string" },
+        "chatPhotoUrl": { "type": "string" },
+        "password": { "type": "string" },
+        "receiveChat": { "type": "boolean" }
       },
       "required": ["id", "name", "email", "phone", "status", "region", "createdAt"]
     },
@@ -142,7 +146,11 @@
         "contact": { "type": "string" },
         "message": { "type": "string" },
         "propertyId": { "type": "string" },
-        "createdAt": { "type": "string" }
+        "createdAt": { "type": "string" },
+        "assignedBrokerId": { "type": "string" },
+        "assignedBrokerName": { "type": "string" },
+        "status": { "type": "string", "enum": ["Novo", "Atendendo", "Finalizado"] },
+        "replies": { "type": "array" }
       },
       "required": ["id", "name", "contact", "message", "propertyId", "createdAt"]
     },

@@ -100,6 +100,10 @@ export interface Broker {
   status: 'Ativo' | 'Inativo';
   region: string;
   createdAt: string;
+  chatName?: string;
+  chatPhotoUrl?: string;
+  password?: string;
+  receiveChat?: boolean;
 }
 
 export interface Client {
@@ -168,5 +172,15 @@ export interface Message {
   message: string;
   propertyId: string;
   createdAt: string;
+  assignedBrokerId?: string;
+  assignedBrokerName?: string;
+  status?: 'Novo' | 'Atendendo' | 'Finalizado';
+  replies?: {
+    id: string;
+    author: string;
+    content: string;
+    createdAt: string;
+    isBroker: boolean;
+  }[];
 }
 
