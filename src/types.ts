@@ -44,6 +44,8 @@ export interface Property {
   isMcmv?: boolean;
   mcmvLogoUrl?: string;
   cefContractFee?: number;
+  availableUnits?: number;
+  tableConditionDescription?: string;
 }
 
 export interface BannerAd {

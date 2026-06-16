@@ -16,6 +16,7 @@ export const INITIAL_PROPERTIES: Property[] = [
     price: 1250000,
     downpayment: 125000,
     installments: 4500,
+    availableUnits: 8,
     images: [
       'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80',
@@ -53,6 +54,7 @@ export const INITIAL_PROPERTIES: Property[] = [
     price: 890000,
     downpayment: 89000,
     installments: 3200,
+    availableUnits: 15,
     images: [
       'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1600573472591-ee6b68d14c68?auto=format&fit=crop&w=800&q=80',
@@ -83,6 +85,7 @@ export const INITIAL_PROPERTIES: Property[] = [
     price: 3450000,
     downpayment: 69000,
     installments: 12500,
+    availableUnits: 3,
     images: [
       'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=800&q=80',
@@ -105,6 +108,8 @@ export const INITIAL_PROPERTIES: Property[] = [
     downpayment: 49000,
     installments: 1800,
     isMcmv: true,
+    availableUnits: 12,
+    cefContractFee: 3200,
     images: [
       'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=800&q=80'

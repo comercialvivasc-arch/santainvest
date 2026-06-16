@@ -402,6 +402,8 @@ export default function AdminPanel({
   const [propKeysPct, setPropKeysPct] = useState(10);
   const [propKeysValue, setPropKeysValue] = useState(60000);
   const [propCefContractFee, setPropCefContractFee] = useState<number | undefined>(undefined);
+  const [propAvailableUnits, setPropAvailableUnits] = useState<number | undefined>(undefined);
+  const [propTableConditionDescription, setPropTableConditionDescription] = useState<string>('');
 
   // Auto-calculation of downpayment, installments, reinforcements (balloon), and keys
   useEffect(() => {
@@ -506,6 +508,8 @@ export default function AdminPanel({
     setPropKeysPct(10);
     setPropKeysValue(65000);
     setPropCefContractFee(undefined);
+    setPropAvailableUnits(undefined);
+    setPropTableConditionDescription('');
     setPropImageInput('');
     setPropImagesList([IMAGE_PRESETS[0]]);
     setPropPrivateNotes('');
@@ -542,6 +546,8 @@ export default function AdminPanel({
     setPropKeysPct(p.keysPct !== undefined ? p.keysPct : 10);
     setPropKeysValue(p.keysValue !== undefined ? p.keysValue : Math.round(p.price * 0.1));
     setPropCefContractFee(p.cefContractFee !== undefined ? p.cefContractFee : undefined);
+    setPropAvailableUnits(p.availableUnits !== undefined ? p.availableUnits : undefined);
+    setPropTableConditionDescription(p.tableConditionDescription || '');
     setPropImageInput('');
     setPropImagesList(p.images);
     setPropPrivateNotes(p.privateNotes || '');
@@ -763,7 +769,9 @@ export default function AdminPanel({
       floorPlans: propFloorPlans,
       isMcmv: propIsMcmv,
       mcmvLogoUrl: propMcmvLogoUrl,
-      cefContractFee: propCefContractFee !== undefined && propCefContractFee > 0 ? Number(propCefContractFee) : undefined
+      cefContractFee: propCefContractFee !== undefined && propCefContractFee > 0 ? Number(propCefContractFee) : undefined,
+      availableUnits: propAvailableUnits !== undefined ? Number(propAvailableUnits) : undefined,
+      tableConditionDescription: propTableConditionDescription ? propTableConditionDescription.trim() : undefined
     };
 
     if (editingPropertyId) {
@@ -3925,6 +3933,70 @@ export default function AdminPanel({
                           <span className="text-[10px] text-zinc-500 mt-1 block font-mono text-right">{formatBRL(propCefContractFee)}</span>
                         </div>
                       )}
+                    </div>
+
+                    {/* UNIDADES DISPONÍVEIS */}
+                    <div className="bg-black/30 border border-zinc-850/60 p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-mono tracking-wider font-bold text-zinc-400 uppercase flex items-center gap-1.5">
+                          📊 Unidades Disponíveis
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="checkbox"
+                            id="enableAvailableUnits"
+                            className="rounded border-zinc-850 bg-zinc-900 text-orange-500 focus:ring-orange-500 h-3.5 w-3.5"
+                            checked={propAvailableUnits !== undefined}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setPropAvailableUnits(15); // Default start
+                              } else {
+                                setPropAvailableUnits(undefined);
+                              }
+                            }}
+                          />
+                          <label htmlFor="enableAvailableUnits" className="text-[10px] text-zinc-400 font-bold select-none cursor-pointer uppercase">Habilitar</label>
+                        </div>
+                      </div>
+                      {propAvailableUnits !== undefined && (
+                        <div>
+                          <label className="text-[9px] text-zinc-500 uppercase block mb-1 font-mono">Unidades no Empreendimento</label>
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-full rounded bg-zinc-900 border border-zinc-800 px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:border-orange-500 outline-none"
+                            placeholder="Ex: 5, 12, 100"
+                            value={propAvailableUnits}
+                            onChange={(e) => setPropAvailableUnits(e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)))}
+                          />
+                          <span className="text-[10px] text-zinc-550 mt-1 block font-sans text-right font-medium">
+                            {propAvailableUnits <= 10 ? '⚠️ Alerta de escassez ativo (≤ 10)' : 'Status normal (> 10)'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CONDIÇÃO DE TABELA */}
+                    <div className="bg-black/30 border border-zinc-850/60 p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-mono tracking-wider font-bold text-zinc-400 uppercase flex items-center gap-1.5">
+                          📝 Condição de Tabela
+                        </span>
+                        <span className="text-[9px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded font-mono font-bold uppercase">Editável</span>
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-zinc-500 uppercase block mb-1 font-mono">Condição de tabela do imóvel</label>
+                        <textarea
+                          rows={2}
+                          className="w-full rounded bg-zinc-900 border border-zinc-800 px-2.5 py-1.5 text-xs text-white font-sans focus:border-orange-500 outline-none resize-none leading-relaxed"
+                          placeholder="Monte uma condição de pagamento flexível conforme sua capacidade financeira..."
+                          value={propTableConditionDescription}
+                          onChange={(e) => setPropTableConditionDescription(e.target.value)}
+                        />
+                        <span className="text-[9px] text-zinc-550 mt-1 block leading-normal">
+                          Se em branco: exibirá o aviso padrão. Se alterado: exibirá o texto preenchido acima.
+                        </span>
+                      </div>
                     </div>
 
                   </div>

@@ -7,6 +7,7 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import LegalDocsModal from './components/LegalDocsModal';
 import CookieConsent from './components/CookieConsent';
+import FloatingChat from './components/FloatingChat';
 import { Property, BannerAd, SearchFilters, BrandSettings, Broker, Client, Lead, Visit, Message } from './types';
 import { INITIAL_PROPERTIES, INITIAL_BANNERS, DEFAULT_BRAND_SETTINGS } from './data';
 import { 
@@ -58,7 +59,20 @@ export default function App() {
     const saved = localStorage.getItem('vivas_properties');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map((prop: Property) => {
+            const initial = INITIAL_PROPERTIES.find(p => p.id === prop.id);
+            if (!initial) return prop;
+            return {
+              ...initial,
+              ...prop,
+              availableUnits: prop.availableUnits !== undefined ? prop.availableUnits : initial.availableUnits,
+              cefContractFee: prop.cefContractFee !== undefined ? prop.cefContractFee : initial.cefContractFee,
+              tableConditionDescription: prop.tableConditionDescription !== undefined ? prop.tableConditionDescription : initial.tableConditionDescription,
+            };
+          });
+        }
       } catch (e) {
         console.error('Error parsing properties from localstorage', e);
       }
@@ -151,7 +165,18 @@ export default function App() {
     const unsubProps = subscribeProperties(
       (updatedProps) => {
         if (updatedProps.length > 0) {
-          setProperties(updatedProps);
+          const enriched = updatedProps.map((prop) => {
+            const initial = INITIAL_PROPERTIES.find(p => p.id === prop.id);
+            if (!initial) return prop;
+            return {
+              ...initial,
+              ...prop,
+              availableUnits: prop.availableUnits !== undefined ? prop.availableUnits : initial.availableUnits,
+              cefContractFee: prop.cefContractFee !== undefined ? prop.cefContractFee : initial.cefContractFee,
+              tableConditionDescription: prop.tableConditionDescription !== undefined ? prop.tableConditionDescription : initial.tableConditionDescription,
+            };
+          });
+          setProperties(enriched);
         }
         setIsFirebaseConnected(true);
         setIsDbLoading(false);
@@ -1155,25 +1180,8 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* 3. FLOATING WHATSAPP BUTTON (with premium pulse ring glow) */}
-      <a
-        href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}?text=${encodeURIComponent(
-          `Olá! Estou navegando no portal ${settings?.brandName || 'VIVASC'} e gostaria de falar com um consultor sobre os lançamentos ativos.`
-        )}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        referrerPolicy="no-referrer"
-        className="fixed bottom-24 sm:bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-xl shadow-primary/20 border border-primary hover:scale-110 active:scale-95 transition-all group cursor-pointer"
-        title="Fale conosco no WhatsApp"
-        id="whatsapp-floating-btn"
-      >
-        <svg className="h-6 w-6 text-black fill-current relative z-10" viewBox="0 0 24 24">
-          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.197 1.488 4.792 1.489 5.4 0 9.794-4.39 9.797-9.786.002-2.613-1.015-5.07-2.868-6.924C16.483 2.08 14.025 1.06 11.4 1.06 6.002 1.06 1.61 5.45 1.607 10.843c0 1.698.446 3.353 1.295 4.81l-.827 3.02 3.111-.817.039.02l.042.022zM18.006 14.77c-.31-.155-1.84-.907-2.124-1.01-.284-.105-.49-.156-.697.155-.207.31-.802 1.01-.983 1.218-.18.208-.363.233-.673.078-1.554-.775-2.63-1.34-3.666-3.123-.272-.468.272-.434.782-1.448.086-.172.043-.323-.021-.453-.065-.13-.532-1.282-.73-1.758-.192-.463-.385-.4-.532-.407h-.453c-.156 0-.41.058-.625.295-.215.237-.822.802-.822 1.954 0 1.152.837 2.267.954 2.422.117.155 1.647 2.515 3.99 3.528 1.83.792 2.51.782 3.407.641.447-.07 1.84-.75 2.1-1.474.26-.723.26-1.344.18-1.474-.077-.13-.284-.207-.595-.363z"/>
-        </svg>
-        {/* Dynamic radar outer indicator rings */}
-        <div className="absolute inset-0 rounded-full bg-primary/30 blur-md -z-10 animate-ping group-hover:bg-primary/50"></div>
-        <div className="absolute inset-0 rounded-full bg-primary/20 blur animate-pulse -z-10"></div>
-      </a>
+      {/* 3. INTERACTIVE FLOATING CHAT COMPONENT (Simulated chat with blonde business executive) */}
+      <FloatingChat settings={settings} />
 
       {/* 4. DURABLE BRANDED LIGHT GRAY FOOTER */}
       <Footer 

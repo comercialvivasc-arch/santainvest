@@ -64,7 +64,10 @@
         "installments": { "type": "number" },
         "images": { "type": "array" },
         "isMcmv": { "type": "boolean" },
-        "mcmvLogoUrl": { "type": "string" }
+        "mcmvLogoUrl": { "type": "string" },
+        "cefContractFee": { "type": "number" },
+        "availableUnits": { "type": "integer" },
+        "tableConditionDescription": { "type": "string" }
       },
       "required": ["id", "name", "status", "deliveryDate", "neighborhood", "address", "region", "projectType", "bedrooms", "area", "parkingSpaces", "price"]
     },

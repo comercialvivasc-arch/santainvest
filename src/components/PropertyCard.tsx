@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, ChevronLeft, ChevronRight, X, Sparkles, CheckCircle, Upload, FileUp, FileText, Check, ShieldCheck, UserCheck, HelpCircle, User, Briefcase, Coins, Trash2, Eye, Phone, BookOpen, ArrowLeft } from 'lucide-react';
+import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, ChevronLeft, ChevronRight, X, Sparkles, CheckCircle, Upload, FileUp, FileText, Check, ShieldCheck, UserCheck, HelpCircle, User, Briefcase, Coins, Trash2, Eye, Phone, BookOpen, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BrandSettings } from '../types';
 import { saveLeadToFirestore, saveMessageToFirestore } from '../services/firestoreService';
@@ -1014,13 +1014,32 @@ export default function PropertyCard({
                 </div>
               )}
 
-                       {/* DETAILED FINANCIAL SIMULATOR BLOCK */}
-              <div id="simulador-box" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
-                <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
-                  <Compass className="h-4.5 w-4.5 text-[#FF9D00]" />
-                  <h3 translate="no" className="notranslate text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
-                    Plano de Pagamento Facilitado
-                  </h3>
+               <div id="simulador-box" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
+                <div className="border-b border-zinc-200 pb-3.5 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Compass className="h-4.5 w-4.5 text-[#FF9D00]" />
+                    <h3 translate="no" className="notranslate text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
+                      Plano de Pagamento Facilitado
+                    </h3>
+                  </div>
+                  {property.availableUnits !== undefined && property.availableUnits > 0 && (
+                    <div className="pt-0.5">
+                      {property.availableUnits <= 10 ? (
+                        <div className="inline-flex items-center gap-1.5 bg-red-50 text-red-600 border border-red-250/50 px-2.5 py-1 rounded-lg text-[10px] font-sans font-extrabold uppercase tracking-wide animate-pulse">
+                          <AlertTriangle className="h-3.5 w-3.5 text-red-600 fill-current animate-bounce" />
+                          <span>Apenas {property.availableUnits} {property.availableUnits === 1 ? 'unidade restante!' : 'unidades restantes!'}</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-250/50 px-2.5 py-1 rounded-lg text-[10px] font-sans font-bold">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 relative flex font-semibold">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          <span>{property.availableUnits} unidades disponíveis</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-4 pt-1 font-mono">
@@ -1104,7 +1123,13 @@ export default function PropertyCard({
                 </div>
 
                 <div className="bg-orange-500/5 border border-orange-500/20 p-3 rounded-lg text-[10px] text-zinc-800 leading-normal font-sans block">
-                  💡 <strong>Condição de tabela:</strong> Monte uma condição de pagamento flexível conforme sua capacidade financeira, sujeita à análise da construtora. Valores, disponibilidade e condições podem ser alterados sem aviso prévio. Consulte e confirme as informações no momento da proposta.
+                  {property.tableConditionDescription ? (
+                    <span className="whitespace-pre-line">💡 <strong>Condição de tabela:</strong> {property.tableConditionDescription}</span>
+                  ) : (
+                    <>
+                      💡 <strong>Condição de tabela:</strong> Monte uma condição de pagamento flexível conforme sua capacidade financeira, sujeita à análise da construtora. Valores, disponibilidade e condições podem ser alterados sem aviso prévio. Consulte e confirme as informações no momento da proposta.
+                    </>
+                  )}
                 </div>
 
                 {/* Simulated Payment WhatsApp redirection button */}
