@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header';
+import ContatoSection from './components/ContatoSection';
 import SearchHero from './components/SearchHero';
 import SearchPanel from './components/SearchPanel';
 import PropertyCard from './components/PropertyCard';
@@ -803,12 +804,17 @@ export default function App() {
     );
   };
 
-  const renderContatoSection = () => {
-    const [name, setName] = useState('');
-    const [contact, setContact] = useState('');
-    const [subject, setSubject] = useState('Dúvida Geral / Agendar Visita');
-    const [msg, setMsg] = useState('');
-    const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const renderLegacyUnusedContatoSection = () => {
+    const name = '';
+    const contact = '';
+    const subject = '';
+    const msg = '';
+    const status: any = '';
+    const setStatus = (v: any) => {};
+    const setName = (v: any) => {};
+    const setContact = (v: any) => {};
+    const setSubject = (v: any) => {};
+    const setMsg = (v: any) => {};
 
     const handleFormSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -1097,7 +1103,7 @@ export default function App() {
               {currentTab === 'sobre' && renderSobreSection()}
               {currentTab === 'bairros' && renderBairrosSection()}
               {currentTab === 'favoritos' && renderFavoritosSection()}
-              {currentTab === 'contato' && renderContatoSection()}
+              {currentTab === 'contato' && <ContatoSection settings={settings} properties={properties} />}
 
               {/* Filters Popup Modal */}
               <AnimatePresence>
