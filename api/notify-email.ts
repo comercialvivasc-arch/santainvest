@@ -32,7 +32,7 @@ async function fetchBrandSettings(): Promise<any | null> {
   try {
     const projectId = getFirebaseProjectId();
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/brand`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data: any = await res.json();
     if (!data.fields) return null;

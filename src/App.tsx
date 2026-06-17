@@ -165,18 +165,20 @@ export default function App() {
   useEffect(() => {
     const unsubProps = subscribeProperties(
       (updatedProps) => {
-        const enriched = updatedProps.map((prop) => {
-          const initial = INITIAL_PROPERTIES.find(p => p.id === prop.id);
-          if (!initial) return prop;
-          return {
-            ...initial,
-            ...prop,
-            availableUnits: prop.availableUnits !== undefined ? prop.availableUnits : initial.availableUnits,
-            cefContractFee: prop.cefContractFee !== undefined ? prop.cefContractFee : initial.cefContractFee,
-            tableConditionDescription: prop.tableConditionDescription !== undefined ? prop.tableConditionDescription : initial.tableConditionDescription,
-          };
-        });
-        setProperties(enriched);
+        if (updatedProps.length > 0) {
+          const enriched = updatedProps.map((prop) => {
+            const initial = INITIAL_PROPERTIES.find(p => p.id === prop.id);
+            if (!initial) return prop;
+            return {
+              ...initial,
+              ...prop,
+              availableUnits: prop.availableUnits !== undefined ? prop.availableUnits : initial.availableUnits,
+              cefContractFee: prop.cefContractFee !== undefined ? prop.cefContractFee : initial.cefContractFee,
+              tableConditionDescription: prop.tableConditionDescription !== undefined ? prop.tableConditionDescription : initial.tableConditionDescription,
+            };
+          });
+          setProperties(enriched);
+        }
         setIsFirebaseConnected(true);
         setIsDbLoading(false);
       },
@@ -188,7 +190,9 @@ export default function App() {
 
     const unsubBanners = subscribeBanners(
       (updatedBanners) => {
-        setBanners(updatedBanners);
+        if (updatedBanners.length > 0) {
+          setBanners(updatedBanners);
+        }
         setIsFirebaseConnected(true);
         setIsDbLoading(false);
       },
