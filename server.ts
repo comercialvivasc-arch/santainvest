@@ -292,8 +292,16 @@ function sanitizeImageUrl(imgUrl: string, protocol: string, host: string): strin
 
 async function fetchPropertyFromFirestore(propId: string): Promise<any | null> {
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/meuprimeiroimovel/databases/(default)/documents/properties/${propId}`;
-    const res = await fetch(url);
+    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    let projectId = 'meuprimeiroimovel';
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (config.projectId) {
+        projectId = config.projectId;
+      }
+    }
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/properties/${propId}`;
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const data: any = await res.json();
     if (!data.fields) return null;
@@ -372,7 +380,7 @@ async function fetchBrandSettings(): Promise<any | null> {
       }
     }
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/brand`;
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const data: any = await res.json();
     if (!data.fields) return null;
