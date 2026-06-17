@@ -1169,6 +1169,35 @@ export default function AdminPanel({
   // ACTIVE MAIN ADMIN VIEW
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 relative">
+      {!currentUser && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 space-y-2 font-sans shadow-lg" id="local-only-warning-card">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5 animate-pulse" id="warning-icon" />
+            <div>
+              <h4 className="font-bold text-amber-400 text-sm mb-1 uppercase font-mono tracking-wider">
+                Modo de Gravação Local Ativo (Sem Sincronização na Nuvem)
+              </h4>
+              <p className="text-zinc-300 leading-relaxed font-sans font-normal">
+                Você acessou o console em modo local. Qualquer imóvel ou banner cadastrado, modificado ou removido agora ficará salvo <strong>somente no navegador local deste computador</strong> e não será enviado ao Firebase. <strong>Por conta disso, não aparecerá em celulares, outros computadores ou para os visitantes do site.</strong>
+              </p>
+              <div className="mt-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                <p className="text-zinc-400 text-[11px] font-sans">
+                  Para salvar e atualizar na nuvem em tempo real (inclusive celulares), faça logout e entre usando o botão do Google:
+                </p>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
+                  id="warning-logout-reconnect-btn"
+                >
+                  Sair e Conectar Oficialmente com Google
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Admin Status metadata and actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 mb-6 border border-zinc-850 rounded-2xl bg-zinc-950 gap-4">
         <div className="flex items-center gap-3">
