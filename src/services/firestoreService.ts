@@ -51,8 +51,7 @@ export function subscribeSettings(
 export async function saveSettingsToFirestore(settings: BrandSettings): Promise<void> {
   const path = `${SETTINGS_COLLECTION}/${settings.id}`;
   if (!auth.currentUser) {
-    console.warn(`[Firestore Service] Skipping database write for path: ${path} (User is logged in via passcode only). Changes remain local.`);
-    return;
+    throw new Error(`Não autenticado no Firebase Admin. Para sincronizar as alterações de configurações com a nuvem, faça login oficial na conta do Google comercial.vivasc@gmail.com.`);
   }
   try {
     const docRef = doc(db, SETTINGS_COLLECTION, settings.id);
@@ -116,8 +115,7 @@ export function subscribeBanners(
 export async function savePropertyToFirestore(property: Property): Promise<void> {
   const path = `${PROPERTIES_COLLECTION}/${property.id}`;
   if (!auth.currentUser) {
-    console.warn(`[Firestore Service] Skipping database write for path: ${path} (User is logged in via passcode only). Changes remain local.`);
-    return;
+    throw new Error(`Não conectado oficialmente como Administrador. O seu imóvel "${property.name}" foi salvo apenas LOCALMENTE neste navegador. Para que ele apareça em celulares e seja visto pelos clientes, faça logout e entre usando o botão Google Admin oficial.`);
   }
   try {
     const docRef = doc(db, PROPERTIES_COLLECTION, property.id);
@@ -133,8 +131,7 @@ export async function savePropertyToFirestore(property: Property): Promise<void>
 export async function deletePropertyFromFirestore(id: string): Promise<void> {
   const path = `${PROPERTIES_COLLECTION}/${id}`;
   if (!auth.currentUser) {
-    console.warn(`[Firestore Service] Skipping database delete for path: ${path} (User is logged in via passcode only). Changes remain local.`);
-    return;
+    throw new Error("Não conectado oficialmente como Administrador. A exclusão foi feita apenas LOCALMENTE neste navegador. Para deletar de forma definitiva na nuvem, entre como Google Admin oficial.");
   }
   try {
     const docRef = doc(db, PROPERTIES_COLLECTION, id);
@@ -150,8 +147,7 @@ export async function deletePropertyFromFirestore(id: string): Promise<void> {
 export async function saveBannerToFirestore(banner: BannerAd): Promise<void> {
   const path = `${BANNERS_COLLECTION}/${banner.id}`;
   if (!auth.currentUser) {
-    console.warn(`[Firestore Service] Skipping database write for path: ${path} (User is logged in via passcode only). Changes remain local.`);
-    return;
+    throw new Error(`Não autenticado oficialmente. O banner "${banner.title}" foi salvo apenas LOCALMENTE neste navegador. Para salvar de forma global, faça login como Administrador oficial.`);
   }
   try {
     const docRef = doc(db, BANNERS_COLLECTION, banner.id);
@@ -167,8 +163,7 @@ export async function saveBannerToFirestore(banner: BannerAd): Promise<void> {
 export async function deleteBannerFromFirestore(id: string): Promise<void> {
   const path = `${BANNERS_COLLECTION}/${id}`;
   if (!auth.currentUser) {
-    console.warn(`[Firestore Service] Skipping database delete for path: ${path} (User is logged in via passcode only). Changes remain local.`);
-    return;
+    throw new Error("Não conectado oficialmente como Administrador. A exclusão do banner foi feita apenas LOCALMENTE. Para apagar de forma definitiva na nuvem, entre como Google Admin oficial.");
   }
   try {
     const docRef = doc(db, BANNERS_COLLECTION, id);

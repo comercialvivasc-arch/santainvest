@@ -434,65 +434,82 @@ export default function App() {
 
   // MUTATION CALLBACKS FOR ADMIN ACTIONS (COMMITS TO FIRESTORE AND FORWARD UPDATED LOGIC)
   const handleSaveSettings = async (updatedSettings: BrandSettings) => {
+    const backup = settings;
     try {
       setSettings(updatedSettings);
       await saveSettingsToFirestore(updatedSettings);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving brand settings on Firestore', err);
+      setSettings(backup);
+      alert(`Falha ao salvar as configurações na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleAddProperty = async (newProp: Property) => {
     try {
-      setProperties((prev) => [newProp, ...prev]);
       await savePropertyToFirestore(newProp);
-    } catch (err) {
+      setProperties((prev) => [newProp, ...prev]);
+    } catch (err: any) {
       console.error('Error writing new property to Firestore', err);
+      alert(`Falha ao cadastrar o imóvel na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleEditProperty = async (updatedProp: Property) => {
+    const backup = properties;
     try {
       setProperties((prev) => prev.map((p) => p.id === updatedProp.id ? updatedProp : p));
       await savePropertyToFirestore(updatedProp);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error editing property on Firestore', err);
+      setProperties(backup);
+      alert(`Falha ao editar o imóvel na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleDeleteProperty = async (id: string) => {
+    const backup = properties;
     try {
       setProperties((prev) => prev.filter((p) => p.id !== id));
       await deletePropertyFromFirestore(id);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting property from Firestore', err);
+      setProperties(backup);
+      alert(`Falha ao remover o imóvel da nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleAddBanner = async (newBanner: BannerAd) => {
     try {
-      setBanners((prev) => [newBanner, ...prev]);
       await saveBannerToFirestore(newBanner);
-    } catch (err) {
+      setBanners((prev) => [newBanner, ...prev]);
+    } catch (err: any) {
       console.error('Error writing banner to Firestore', err);
+      alert(`Falha ao adicionar o banner na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleEditBanner = async (updatedBanner: BannerAd) => {
+    const backup = banners;
     try {
       setBanners((prev) => prev.map((b) => b.id === updatedBanner.id ? updatedBanner : b));
       await saveBannerToFirestore(updatedBanner);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error editing banner on Firestore', err);
+      setBanners(backup);
+      alert(`Falha ao editar o banner na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleDeleteBanner = async (id: string) => {
+    const backup = banners;
     try {
       setBanners((prev) => prev.filter((b) => b.id !== id));
       await deleteBannerFromFirestore(id);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting banner from Firestore', err);
+      setBanners(backup);
+      alert(`Falha ao remover o banner da nuvem:\n\n${err.message || err}`);
     }
   };
 
