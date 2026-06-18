@@ -14,8 +14,7 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() &&
              (request.auth.token.email == "comercial.vivasc@gmail.com" ||
-              request.auth.token.email == "meuprimeiroimovel.adm@gmail.com") &&
-             request.auth.token.email_verified == true;
+              request.auth.token.email == "meuprimeiroimovel.adm@gmail.com");
     }
 
     // Checks if the user has a profile document indicating broker or admin role

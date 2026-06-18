@@ -399,21 +399,29 @@ export default function AdminPanel({
           await fbSignOut(auth);
         }
       } else {
-        // Fallback option: local query matchmaking inside the brokers/corretores collection!
-        const matchedLocalBroker = brokers?.find(
-          b => b.email.toLowerCase() === email && 
-               b.password === loginPassword && 
-               b.status === 'Ativo'
-        );
-        if (matchedLocalBroker) {
+        // Fallback option: allow master code / passcode login for official admin emails directly
+        if (allowedAdmins.includes(email) && loginPassword === 'admin2026') {
           setIsAuthenticated(true);
-          setUserRole('broker');
-          setLoggedBroker(matchedLocalBroker);
-          localStorage.setItem('vivas_broker_session', matchedLocalBroker.id);
+          setUserRole('admin');
+          setLoggedBroker(null);
           setAuthError('');
-          setActiveTab('chat-panel');
         } else {
-          setAuthError('Credenciais incorretas (E-mail ou senha inválidos) ou corretor inativo.');
+          // Fallback option: local query matchmaking inside the brokers/corretores collection!
+          const matchedLocalBroker = brokers?.find(
+            b => b.email.toLowerCase() === email && 
+                 b.password === loginPassword && 
+                 b.status === 'Ativo'
+          );
+          if (matchedLocalBroker) {
+            setIsAuthenticated(true);
+            setUserRole('broker');
+            setLoggedBroker(matchedLocalBroker);
+            localStorage.setItem('vivas_broker_session', matchedLocalBroker.id);
+            setAuthError('');
+            setActiveTab('chat-panel');
+          } else {
+            setAuthError('Credenciais incorretas (E-mail ou senha inválidos) ou corretor inativo.');
+          }
         }
       }
     } catch (error: any) {
