@@ -5,7 +5,8 @@ import {
   deleteDoc, 
   onSnapshot, 
   writeBatch,
-  getDocs
+  getDocs,
+  getDoc
 } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { Property, BannerAd, BrandSettings, Broker, Client, Lead, Visit, Favorite, Message } from '../types';
@@ -20,6 +21,58 @@ const LEADS_COLLECTION = 'leads';
 const VISITS_COLLECTION = 'visitas';
 const FAVORITES_COLLECTION = 'favoritos';
 const MESSAGES_COLLECTION = 'mensagens';
+
+/**
+ * Direct fetch of settings from Firestore
+ */
+export async function getSettingsFromServer(): Promise<BrandSettings | null> {
+  try {
+    const docRef = doc(db, SETTINGS_COLLECTION, 'brand');
+    const snapshot = await getDoc(docRef);
+    if (snapshot.exists()) {
+      return snapshot.data() as BrandSettings;
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/brand`);
+  }
+  return null;
+}
+
+/**
+ * Direct fetch of properties from Firestore (bypasses snapshot listeners)
+ */
+export async function getPropertiesFromServer(): Promise<Property[]> {
+  try {
+    const collectionRef = collection(db, PROPERTIES_COLLECTION);
+    const snapshot = await getDocs(collectionRef);
+    const propertiesList: Property[] = [];
+    snapshot.forEach((docSnap) => {
+      propertiesList.push(docSnap.data() as Property);
+    });
+    return propertiesList;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, PROPERTIES_COLLECTION);
+    return [];
+  }
+}
+
+/**
+ * Direct fetch of banners from Firestore
+ */
+export async function getBannersFromServer(): Promise<BannerAd[]> {
+  try {
+    const collectionRef = collection(db, BANNERS_COLLECTION);
+    const snapshot = await getDocs(collectionRef);
+    const bannersList: BannerAd[] = [];
+    snapshot.forEach((docSnap) => {
+      bannersList.push(docSnap.data() as BannerAd);
+    });
+    return bannersList;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, BANNERS_COLLECTION);
+    return [];
+  }
+}
 
 /**
  * Subscribes to real-time updates of Brand/Contact Settings in Firestore

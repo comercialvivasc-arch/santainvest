@@ -13,7 +13,7 @@ import { INITIAL_PROPERTIES, INITIAL_BANNERS, DEFAULT_BRAND_SETTINGS } from './d
 import { 
   Building, MapPin, MessageSquare, ShieldCheck, HelpCircle, 
   Sparkles, Compass, Instagram, Facebook, ArrowUpRight, FilterX, HelpCircle as HelpIcon,
-  SlidersHorizontal, X
+  SlidersHorizontal, X, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -40,7 +40,10 @@ import {
   deleteVisitFromFirestore,
   subscribeMessages,
   saveMessageToFirestore,
-  deleteMessageFromFirestore
+  deleteMessageFromFirestore,
+  getPropertiesFromServer,
+  getBannersFromServer,
+  getSettingsFromServer
 } from './services/firestoreService';
 import { auth } from './firebase';
 
@@ -160,11 +163,98 @@ export default function App() {
   const [maxDownpayment, setMaxDownpayment] = useState<number>(0); // 0 means any
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
 
+  // Sync state helpers
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  /**
+   * Direct fetch logic that contacts server directly (bypassing potentially frozen real-time socket connections on mobile)
+   */
+  const handleSyncData = async (silent = false) => {
+    if (isSyncing) return;
+    if (!silent) {
+      setIsSyncing(true);
+      setSyncMessage('Sincronizando com o servidor...');
+    }
+    try {
+      const [freshProps, freshBanners, freshSettings] = await Promise.all([
+        getPropertiesFromServer(),
+        getBannersFromServer(),
+        getSettingsFromServer()
+      ]);
+
+      if (freshProps && freshProps.length >= 0) {
+        const enriched = freshProps.map((prop) => {
+          const initial = INITIAL_PROPERTIES.find(p => p.id === prop.id);
+          if (!initial) return prop;
+          return {
+            ...initial,
+            ...prop,
+            availableUnits: prop.availableUnits !== undefined ? prop.availableUnits : initial.availableUnits,
+            cefContractFee: prop.cefContractFee !== undefined ? prop.cefContractFee : initial.cefContractFee,
+            tableConditionDescription: prop.tableConditionDescription !== undefined ? prop.tableConditionDescription : initial.tableConditionDescription,
+          };
+        });
+        setProperties(enriched);
+        localStorage.setItem('vivas_properties', JSON.stringify(enriched));
+      }
+
+      if (freshBanners && freshBanners.length >= 0) {
+        setBanners(freshBanners);
+      }
+
+      if (freshSettings) {
+        setSettings(freshSettings);
+      }
+
+      if (!silent) {
+        setSyncMessage('Imóveis atualizados!');
+        setTimeout(() => setSyncMessage(null), 2500);
+      }
+    } catch (err) {
+      console.warn('Silent or targeted sync refresh failed', err);
+      if (!silent) {
+        setSyncMessage('Erro de conexão ao atualizar.');
+        setTimeout(() => setSyncMessage(null), 2500);
+      }
+    } finally {
+      if (!silent) {
+        setIsSyncing(false);
+      }
+    }
+  };
+
+  // Re-sync instantly when mobile window/tab gains focus or visible (tab sleep recovery)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[Firestore Sync] Tab gained visibility, performing auto-resync.');
+        handleSyncData(true);
+      }
+    };
+
+    const handleWindowFocus = () => {
+      console.log('[Firestore Sync] Window focused, performing auto-resync.');
+      handleSyncData(true);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+
+    // Run first upfront fetch to check for active changes
+    handleSyncData(true);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, []);
+
   // Real-time public Firestore listeners
   useEffect(() => {
     const unsubProps = subscribeProperties(
       (updatedProps) => {
-        if (updatedProps.length > 0) {
+        if (updatedProps && updatedProps.length >= 0) {
           const enriched = updatedProps.map((prop) => {
             const initial = INITIAL_PROPERTIES.find(p => p.id === prop.id);
             if (!initial) return prop;
@@ -189,7 +279,7 @@ export default function App() {
 
     const unsubBanners = subscribeBanners(
       (updatedBanners) => {
-        if (updatedBanners.length > 0) {
+        if (updatedBanners && updatedBanners.length >= 0) {
           setBanners(updatedBanners);
         }
         setIsFirebaseConnected(true);
@@ -1023,6 +1113,21 @@ export default function App() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-4">
+                      {/* MANUAL RESYNC DIRECTLY FROM SERVER */}
+                      <button 
+                        onClick={() => handleSyncData(false)}
+                        disabled={isSyncing}
+                        className={`flex items-center gap-2 rounded-xl border px-5 py-3.5 text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-sm cursor-pointer ${
+                          isSyncing 
+                            ? 'bg-zinc-100 text-zinc-400 border-zinc-200' 
+                            : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-900 hover:border-[#FF9D00]/40'
+                        }`}
+                        title="Atualizar imóveis diretamente do servidor"
+                      >
+                        <RefreshCw className={`h-4 w-4 text-[#FF9D00] ${isSyncing ? 'animate-spin' : ''}`} />
+                        {isSyncing ? 'Sincronizando...' : 'Atualizar'}
+                      </button>
+
                       {/* FILTERS POPUP TRIGGER BUTTON */}
                       <button 
                         onClick={() => setIsFilterPopupOpen(true)}
@@ -1223,6 +1328,21 @@ export default function App() {
           onNavigateToAdmin={() => setCurrentView('admin')}
         />
       )}
+
+      {/* Dynamic Sync feedback notification */}
+      <AnimatePresence>
+        {syncMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-[#203366] text-white border border-white/10 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 font-mono text-xs font-bold leading-normal tracking-wide shadow-black/45"
+          >
+            <RefreshCw className="h-4 w-4 text-[#FF9D00] animate-spin shrink-0" />
+            <span>{syncMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
