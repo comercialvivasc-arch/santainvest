@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header';
-import ContatoSection from './components/ContatoSection';
 import SearchHero from './components/SearchHero';
 import SearchPanel from './components/SearchPanel';
 import PropertyCard from './components/PropertyCard';
@@ -434,82 +433,65 @@ export default function App() {
 
   // MUTATION CALLBACKS FOR ADMIN ACTIONS (COMMITS TO FIRESTORE AND FORWARD UPDATED LOGIC)
   const handleSaveSettings = async (updatedSettings: BrandSettings) => {
-    const backup = settings;
     try {
       setSettings(updatedSettings);
       await saveSettingsToFirestore(updatedSettings);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error saving brand settings on Firestore', err);
-      setSettings(backup);
-      alert(`Falha ao salvar as configurações na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleAddProperty = async (newProp: Property) => {
     try {
-      await savePropertyToFirestore(newProp);
       setProperties((prev) => [newProp, ...prev]);
-    } catch (err: any) {
+      await savePropertyToFirestore(newProp);
+    } catch (err) {
       console.error('Error writing new property to Firestore', err);
-      alert(`Falha ao cadastrar o imóvel na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleEditProperty = async (updatedProp: Property) => {
-    const backup = properties;
     try {
       setProperties((prev) => prev.map((p) => p.id === updatedProp.id ? updatedProp : p));
       await savePropertyToFirestore(updatedProp);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error editing property on Firestore', err);
-      setProperties(backup);
-      alert(`Falha ao editar o imóvel na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleDeleteProperty = async (id: string) => {
-    const backup = properties;
     try {
       setProperties((prev) => prev.filter((p) => p.id !== id));
       await deletePropertyFromFirestore(id);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting property from Firestore', err);
-      setProperties(backup);
-      alert(`Falha ao remover o imóvel da nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleAddBanner = async (newBanner: BannerAd) => {
     try {
-      await saveBannerToFirestore(newBanner);
       setBanners((prev) => [newBanner, ...prev]);
-    } catch (err: any) {
+      await saveBannerToFirestore(newBanner);
+    } catch (err) {
       console.error('Error writing banner to Firestore', err);
-      alert(`Falha ao adicionar o banner na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleEditBanner = async (updatedBanner: BannerAd) => {
-    const backup = banners;
     try {
       setBanners((prev) => prev.map((b) => b.id === updatedBanner.id ? updatedBanner : b));
       await saveBannerToFirestore(updatedBanner);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error editing banner on Firestore', err);
-      setBanners(backup);
-      alert(`Falha ao editar o banner na nuvem:\n\n${err.message || err}`);
     }
   };
 
   const handleDeleteBanner = async (id: string) => {
-    const backup = banners;
     try {
       setBanners((prev) => prev.filter((b) => b.id !== id));
       await deleteBannerFromFirestore(id);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting banner from Firestore', err);
-      setBanners(backup);
-      alert(`Falha ao remover o banner da nuvem:\n\n${err.message || err}`);
     }
   };
 
@@ -821,17 +803,12 @@ export default function App() {
     );
   };
 
-  const renderLegacyUnusedContatoSection = () => {
-    const name = '';
-    const contact = '';
-    const subject = '';
-    const msg = '';
-    const status: any = '';
-    const setStatus = (v: any) => {};
-    const setName = (v: any) => {};
-    const setContact = (v: any) => {};
-    const setSubject = (v: any) => {};
-    const setMsg = (v: any) => {};
+  const renderContatoSection = () => {
+    const [name, setName] = useState('');
+    const [contact, setContact] = useState('');
+    const [subject, setSubject] = useState('Dúvida Geral / Agendar Visita');
+    const [msg, setMsg] = useState('');
+    const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
     const handleFormSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -1120,7 +1097,7 @@ export default function App() {
               {currentTab === 'sobre' && renderSobreSection()}
               {currentTab === 'bairros' && renderBairrosSection()}
               {currentTab === 'favoritos' && renderFavoritosSection()}
-              {currentTab === 'contato' && <ContatoSection settings={settings} properties={properties} />}
+              {currentTab === 'contato' && renderContatoSection()}
 
               {/* Filters Popup Modal */}
               <AnimatePresence>
