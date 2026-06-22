@@ -13,6 +13,7 @@ import {
   signInWithRedirect, 
   getRedirectResult, 
   signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
   signOut as fbSignOut 
 } from 'firebase/auth';
 import { 
@@ -371,21 +372,41 @@ export default function AdminPanel({
     setAuthError('');
     setIsEmailLoggingIn(true);
     try {
-      let userCredential = null;
-      try {
-        userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      } catch (authErr) {
-        console.warn("Autenticação direta falhou ou conta de Auth não existente. Testando fallback...", authErr);
-      }
-
       const email = loginEmail.toLowerCase().trim();
       const allowedAdmins = ['comercial.vivasc@gmail.com', 'meuprimeiroimovel.adm@gmail.com'];
+      
+      let userCredential = null;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, email, loginPassword);
+        console.log("[Firebase Auth] Login bem-sucedido com Firebase Auth:", userCredential.user.email);
+      } catch (authErr: any) {
+        console.warn("[Firebase Auth] Autenticação direta falhou. Verificando se é elegível para registro automático...", authErr);
+        
+        // Check local eligibility for dynamic signup to guarantee a real Firebase Auth session
+        const matchedLocalBroker = brokers?.find(
+          b => b.email.toLowerCase() === email && 
+               b.password === loginPassword && 
+               b.status === 'Ativo'
+        );
+
+        if ((allowedAdmins.includes(email) && loginPassword === 'admin2026') || matchedLocalBroker) {
+          try {
+            console.log(`[Firebase Auth] Registrando e autenticando dinamicamente usuário ${email} no Firebase...`);
+            userCredential = await createUserWithEmailAndPassword(auth, email, loginPassword);
+            console.log(`[Firebase Auth] Registro dinâmico concluído com sucesso para ${email}!`);
+          } catch (createErr: any) {
+            console.error("[Firebase Auth] Falha ao criar usuário dinamicamente:", createErr);
+            // If they already exist but threw another error, we'll output it later, or log and proceed to fallback
+          }
+        }
+      }
 
       if (userCredential && userCredential.user?.email && allowedAdmins.includes(userCredential.user.email)) {
         setIsAuthenticated(true);
         setUserRole('admin');
         setLoggedBroker(null);
         setAuthError('');
+        console.log("[Firebase Auth] Sessão iniciada como Administrador:", userCredential.user.email);
       } else if (userCredential && userCredential.user?.email) {
         const activeBrokerObj = brokers?.find(b => b.email.toLowerCase() === userCredential.user.email?.toLowerCase() && b.status === 'Ativo');
         if (activeBrokerObj) {
@@ -394,17 +415,19 @@ export default function AdminPanel({
           setLoggedBroker(activeBrokerObj);
           setAuthError('');
           setActiveTab('chat-panel');
+          console.log("[Firebase Auth] Sessão iniciada como Corretor credenciado:", userCredential.user.email);
         } else {
-          setAuthError(`Usuário (${userCredential.user.email}) não é administrador ou corretor ativo.`);
+          setAuthError(`Usuário (${userCredential.user.email}) não está ativo na lista de corretores ou não é administrador.`);
           await fbSignOut(auth);
         }
       } else {
-        // Fallback option: allow master code / passcode login for official admin emails directly
+        // Ultimate Fallback option (if Firebase Auth is offline or blockages persist): allow master code / passcode login
         if (allowedAdmins.includes(email) && loginPassword === 'admin2026') {
           setIsAuthenticated(true);
           setUserRole('admin');
           setLoggedBroker(null);
           setAuthError('');
+          console.warn("[Firebase Auth Fallback] Entrando em modo local offline ADMIN (sem auth.currentUser). Operações banco podem sofrer restrições.");
         } else {
           // Fallback option: local query matchmaking inside the brokers/corretores collection!
           const matchedLocalBroker = brokers?.find(
@@ -419,8 +442,9 @@ export default function AdminPanel({
             localStorage.setItem('vivas_broker_session', matchedLocalBroker.id);
             setAuthError('');
             setActiveTab('chat-panel');
+            console.warn(`[Firebase Auth Fallback] Entrando em modo local offline corretor ${email}.`);
           } else {
-            setAuthError('Credenciais incorretas (E-mail ou senha inválidos) ou corretor inativo.');
+            setAuthError('Credenciais incorretas (E-mail ou senha inválidos) ou corretor inativo. Se for o primeiro login, use a senha correspondente para que sua conta de segurança possa ser criada.');
           }
         }
       }

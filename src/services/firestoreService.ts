@@ -23,6 +23,31 @@ const FAVORITES_COLLECTION = 'favoritos';
 const MESSAGES_COLLECTION = 'mensagens';
 
 /**
+ * Recursively removes all undefined keys from an object or array to prevent Firestore write crashes.
+ */
+function cleanUndefined<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return null as any;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanUndefined(item)) as any;
+  }
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const value = (obj as any)[key];
+        if (value !== undefined) {
+          cleaned[key] = cleanUndefined(value);
+        }
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
+/**
  * Direct fetch of settings from Firestore
  */
 export async function getSettingsFromServer(): Promise<BrandSettings | null> {
@@ -103,14 +128,29 @@ export function subscribeSettings(
  */
 export async function saveSettingsToFirestore(settings: BrandSettings): Promise<void> {
   const path = `${SETTINGS_COLLECTION}/${settings.id}`;
+  const projectId = db.app?.options?.projectId || 'unknown';
+  const userEmail = auth.currentUser?.email || 'N/A';
+  const userId = auth.currentUser?.uid || 'N/A';
+
+  console.log(`[Firestore Log] Iniciando gravação de Configurações no Firestore:
+    - Projeto Firebase: ${projectId}
+    - Coleção Utilizada: ${SETTINGS_COLLECTION}
+    - ID do Documento: ${settings.id}
+    - Caminho Completo: ${path}
+    - Usuário Autenticado: ${userEmail} (ID: ${userId})
+    - Conteúdo Prévio:`, settings);
+
   if (!auth.currentUser) {
+    console.warn(`[Firestore Log] Alerta: Nenhum usuário autenticado no Firebase (currentUser está null). Escrevendo de forma local apenas.`);
     console.warn(`[Firestore Service] Skipping database write for path: ${path} (User is logged in via passcode only). Changes remain local.`);
     return;
   }
   try {
     const docRef = doc(db, SETTINGS_COLLECTION, settings.id);
-    await setDoc(docRef, settings);
-  } catch (error) {
+    await setDoc(docRef, cleanUndefined(settings));
+    console.log(`[Firestore Log] Sucesso: Configurações gravadas permanentemente no Firestore para ${path}!`);
+  } catch (error: any) {
+    console.error(`[Firestore Log] Erro ao gravar as Configurações no Firestore (${path}):`, error);
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
@@ -168,14 +208,29 @@ export function subscribeBanners(
  */
 export async function savePropertyToFirestore(property: Property): Promise<void> {
   const path = `${PROPERTIES_COLLECTION}/${property.id}`;
+  const projectId = db.app?.options?.projectId || 'unknown';
+  const userEmail = auth.currentUser?.email || 'N/A';
+  const userId = auth.currentUser?.uid || 'N/A';
+
+  console.log(`[Firestore Log] Iniciando gravação de Imóvel no Firestore:
+    - Projeto Firebase: ${projectId}
+    - Coleção Utilizada: ${PROPERTIES_COLLECTION}
+    - ID do Documento: ${property.id}
+    - Caminho Completo: ${path}
+    - Usuário Autenticado: ${userEmail} (ID: ${userId})
+    - Conteúdo do Imóvel:`, property);
+
   if (!auth.currentUser) {
+    console.warn(`[Firestore Log] Alerta: Nenhum usuário autenticado no Firebase (currentUser está null). Escrevendo temporariamente na interface mas sem persistência no banco.`);
     console.warn(`[Firestore Service] Skipping database write for path: ${path} (User is logged in via passcode only). Changes remain local.`);
     return;
   }
   try {
     const docRef = doc(db, PROPERTIES_COLLECTION, property.id);
-    await setDoc(docRef, property);
-  } catch (error) {
+    await setDoc(docRef, cleanUndefined(property));
+    console.log(`[Firestore Log] Sucesso: Imóvel [ID: ${property.id}] gravado permanentemente no Firestore em ${path}!`);
+  } catch (error: any) {
+    console.error(`[Firestore Log] Erro ao gravar Imóvel no Firestore (${path}):`, error);
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
@@ -185,14 +240,28 @@ export async function savePropertyToFirestore(property: Property): Promise<void>
  */
 export async function deletePropertyFromFirestore(id: string): Promise<void> {
   const path = `${PROPERTIES_COLLECTION}/${id}`;
+  const projectId = db.app?.options?.projectId || 'unknown';
+  const userEmail = auth.currentUser?.email || 'N/A';
+  const userId = auth.currentUser?.uid || 'N/A';
+
+  console.log(`[Firestore Log] Iniciando exclusão de Imóvel no Firestore:
+    - Projeto Firebase: ${projectId}
+    - Coleção Utilizada: ${PROPERTIES_COLLECTION}
+    - ID do Documento: ${id}
+    - Caminho Completo: ${path}
+    - Usuário Autenticado: ${userEmail} (ID: ${userId})`);
+
   if (!auth.currentUser) {
+    console.warn(`[Firestore Log] Alerta: Nenhum usuário autenticado no Firebase (currentUser está null). Removendo localmente apenas.`);
     console.warn(`[Firestore Service] Skipping database delete for path: ${path} (User is logged in via passcode only). Changes remain local.`);
     return;
   }
   try {
     const docRef = doc(db, PROPERTIES_COLLECTION, id);
     await deleteDoc(docRef);
-  } catch (error) {
+    console.log(`[Firestore Log] Sucesso: Imóvel [ID: ${id}] excluído permanentemente do Firestore em ${path}!`);
+  } catch (error: any) {
+    console.error(`[Firestore Log] Erro ao excluir Imóvel no Firestore (${path}):`, error);
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
@@ -202,14 +271,29 @@ export async function deletePropertyFromFirestore(id: string): Promise<void> {
  */
 export async function saveBannerToFirestore(banner: BannerAd): Promise<void> {
   const path = `${BANNERS_COLLECTION}/${banner.id}`;
+  const projectId = db.app?.options?.projectId || 'unknown';
+  const userEmail = auth.currentUser?.email || 'N/A';
+  const userId = auth.currentUser?.uid || 'N/A';
+
+  console.log(`[Firestore Log] Iniciando gravação de Banner no Firestore:
+    - Projeto Firebase: ${projectId}
+    - Coleção Utilizada: ${BANNERS_COLLECTION}
+    - ID do Documento: ${banner.id}
+    - Caminho Completo: ${path}
+    - Usuário Autenticado: ${userEmail} (ID: ${userId})
+    - Conteúdo do Banner:`, banner);
+
   if (!auth.currentUser) {
+    console.warn(`[Firestore Log] Alerta: Nenhum usuário autenticado no Firebase (currentUser está null). Gravação local apenas.`);
     console.warn(`[Firestore Service] Skipping database write for path: ${path} (User is logged in via passcode only). Changes remain local.`);
     return;
   }
   try {
     const docRef = doc(db, BANNERS_COLLECTION, banner.id);
-    await setDoc(docRef, banner);
-  } catch (error) {
+    await setDoc(docRef, cleanUndefined(banner));
+    console.log(`[Firestore Log] Sucesso: Banner [ID: ${banner.id}] gravado permanentemente no Firestore em ${path}!`);
+  } catch (error: any) {
+    console.error(`[Firestore Log] Erro ao gravar Banner no Firestore (${path}):`, error);
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
@@ -219,14 +303,28 @@ export async function saveBannerToFirestore(banner: BannerAd): Promise<void> {
  */
 export async function deleteBannerFromFirestore(id: string): Promise<void> {
   const path = `${BANNERS_COLLECTION}/${id}`;
+  const projectId = db.app?.options?.projectId || 'unknown';
+  const userEmail = auth.currentUser?.email || 'N/A';
+  const userId = auth.currentUser?.uid || 'N/A';
+
+  console.log(`[Firestore Log] Iniciando exclusão de Banner no Firestore:
+    - Projeto Firebase: ${projectId}
+    - Coleção Utilizada: ${BANNERS_COLLECTION}
+    - ID do Documento: ${id}
+    - Caminho Completo: ${path}
+    - Usuário Autenticado: ${userEmail} (ID: ${userId})`);
+
   if (!auth.currentUser) {
+    console.warn(`[Firestore Log] Alerta: Nenhum usuário autenticado no Firebase (currentUser está null). Remoção local apenas.`);
     console.warn(`[Firestore Service] Skipping database delete for path: ${path} (User is logged in via passcode only). Changes remain local.`);
     return;
   }
   try {
     const docRef = doc(db, BANNERS_COLLECTION, id);
     await deleteDoc(docRef);
-  } catch (error) {
+    console.log(`[Firestore Log] Sucesso: Banner [ID: ${id}] excluído permanentemente do Firestore em ${path}!`);
+  } catch (error: any) {
+    console.error(`[Firestore Log] Erro ao excluir Banner no Firestore (${path}):`, error);
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
@@ -259,7 +357,7 @@ export async function saveBrokerToFirestore(broker: Broker): Promise<void> {
     return;
   }
   try {
-    await setDoc(doc(db, BROKERS_COLLECTION, broker.id), broker);
+    await setDoc(doc(db, BROKERS_COLLECTION, broker.id), cleanUndefined(broker));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -304,7 +402,7 @@ export async function saveClientToFirestore(client: Client): Promise<void> {
     return;
   }
   try {
-    await setDoc(doc(db, CLIENTS_COLLECTION, client.id), client);
+    await setDoc(doc(db, CLIENTS_COLLECTION, client.id), cleanUndefined(client));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -345,7 +443,7 @@ export function subscribeLeads(onSuccess: (leads: Lead[]) => void, onErr: (err: 
 export async function saveLeadToFirestore(lead: Lead, triggerEmail = true): Promise<void> {
   const path = `${LEADS_COLLECTION}/${lead.id}`;
   try {
-    await setDoc(doc(db, LEADS_COLLECTION, lead.id), lead);
+    await setDoc(doc(db, LEADS_COLLECTION, lead.id), cleanUndefined(lead));
 
     if (triggerEmail) {
       // Non-blocking asynchronous trigger for administrator email dispatch
@@ -402,7 +500,7 @@ export function subscribeVisits(onSuccess: (visits: Visit[]) => void, onErr: (er
 export async function saveVisitToFirestore(visit: Visit): Promise<void> {
   const path = `${VISITS_COLLECTION}/${visit.id}`;
   try {
-    await setDoc(doc(db, VISITS_COLLECTION, visit.id), visit);
+    await setDoc(doc(db, VISITS_COLLECTION, visit.id), cleanUndefined(visit));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -447,7 +545,7 @@ export async function saveFavoriteToFirestore(fav: Favorite): Promise<void> {
     return;
   }
   try {
-    await setDoc(doc(db, FAVORITES_COLLECTION, fav.id), fav);
+    await setDoc(doc(db, FAVORITES_COLLECTION, fav.id), cleanUndefined(fav));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
@@ -488,7 +586,7 @@ export function subscribeMessages(onSuccess: (messages: Message[]) => void, onEr
 export async function saveMessageToFirestore(message: Message, triggerEmail = true): Promise<void> {
   const path = `${MESSAGES_COLLECTION}/${message.id}`;
   try {
-    await setDoc(doc(db, MESSAGES_COLLECTION, message.id), message);
+    await setDoc(doc(db, MESSAGES_COLLECTION, message.id), cleanUndefined(message));
 
     if (triggerEmail) {
       // Non-blocking trigger of quick-contact email notifications
@@ -538,7 +636,7 @@ export async function seedInitialDatabase(): Promise<{ propertiesSeeded: number;
       const batch = writeBatch(db);
       INITIAL_PROPERTIES.forEach((prop) => {
         const docRef = doc(db, PROPERTIES_COLLECTION, prop.id);
-        batch.set(docRef, prop);
+        batch.set(docRef, cleanUndefined(prop));
       });
       await batch.commit();
       propertiesSeeded = INITIAL_PROPERTIES.length;
@@ -550,7 +648,7 @@ export async function seedInitialDatabase(): Promise<{ propertiesSeeded: number;
       const batch = writeBatch(db);
       INITIAL_BANNERS.forEach((banner) => {
         const docRef = doc(db, BANNERS_COLLECTION, banner.id);
-        batch.set(docRef, banner);
+        batch.set(docRef, cleanUndefined(banner));
       });
       await batch.commit();
       bannersSeeded = INITIAL_BANNERS.length;
@@ -560,7 +658,7 @@ export async function seedInitialDatabase(): Promise<{ propertiesSeeded: number;
     const settingsSnapshot = await getDocs(collection(db, SETTINGS_COLLECTION));
     if (settingsSnapshot.empty) {
       const docRef = doc(db, SETTINGS_COLLECTION, DEFAULT_BRAND_SETTINGS.id);
-      await setDoc(docRef, DEFAULT_BRAND_SETTINGS);
+      await setDoc(docRef, cleanUndefined(DEFAULT_BRAND_SETTINGS));
       settingsSeeded = true;
     }
 

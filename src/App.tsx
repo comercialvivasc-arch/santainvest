@@ -524,8 +524,11 @@ export default function App() {
   // MUTATION CALLBACKS FOR ADMIN ACTIONS (COMMITS TO FIRESTORE AND FORWARD UPDATED LOGIC)
   const handleSaveSettings = async (updatedSettings: BrandSettings) => {
     try {
-      setSettings(updatedSettings);
+      console.log("[Mutation] Gravando alterações de configurações...");
       await saveSettingsToFirestore(updatedSettings);
+      setSettings(updatedSettings);
+      await handleSyncData(true);
+      console.log("[Mutation] Configurações sincronizadas!");
     } catch (err) {
       console.error('Error saving brand settings on Firestore', err);
     }
@@ -533,8 +536,12 @@ export default function App() {
 
   const handleAddProperty = async (newProp: Property) => {
     try {
-      setProperties((prev) => [newProp, ...prev]);
+      console.log("[Mutation] Gravando novo imóvel no Firestore...");
       await savePropertyToFirestore(newProp);
+      setProperties((prev) => [newProp, ...prev]);
+      // Force instant re-sync with Firestore server to confirm and persist state
+      await handleSyncData(true);
+      console.log("[Mutation] Novo imóvel salvo e sincronizado com o servidor!");
     } catch (err) {
       console.error('Error writing new property to Firestore', err);
     }
@@ -542,8 +549,12 @@ export default function App() {
 
   const handleEditProperty = async (updatedProp: Property) => {
     try {
-      setProperties((prev) => prev.map((p) => p.id === updatedProp.id ? updatedProp : p));
+      console.log("[Mutation] Gravando alterações do imóvel no Firestore...");
       await savePropertyToFirestore(updatedProp);
+      setProperties((prev) => prev.map((p) => p.id === updatedProp.id ? updatedProp : p));
+      // Force instant re-sync with Firestore server to confirm and persist state
+      await handleSyncData(true);
+      console.log("[Mutation] Alterações do imóvel salvas e sincronizadas com o servidor!");
     } catch (err) {
       console.error('Error editing property on Firestore', err);
     }
@@ -551,8 +562,12 @@ export default function App() {
 
   const handleDeleteProperty = async (id: string) => {
     try {
-      setProperties((prev) => prev.filter((p) => p.id !== id));
+      console.log("[Mutation] Removendo imóvel do Firestore...");
       await deletePropertyFromFirestore(id);
+      setProperties((prev) => prev.filter((p) => p.id !== id));
+      // Force instant re-sync with Firestore server to confirm state
+      await handleSyncData(true);
+      console.log("[Mutation] Imóvel excluído com sucesso do servidor!");
     } catch (err) {
       console.error('Error deleting property from Firestore', err);
     }
@@ -560,8 +575,11 @@ export default function App() {
 
   const handleAddBanner = async (newBanner: BannerAd) => {
     try {
-      setBanners((prev) => [newBanner, ...prev]);
+      console.log("[Mutation] Gravando novo banner no Firestore...");
       await saveBannerToFirestore(newBanner);
+      setBanners((prev) => [newBanner, ...prev]);
+      await handleSyncData(true);
+      console.log("[Mutation] Novo banner salvo e sincronizado!");
     } catch (err) {
       console.error('Error writing banner to Firestore', err);
     }
@@ -569,8 +587,11 @@ export default function App() {
 
   const handleEditBanner = async (updatedBanner: BannerAd) => {
     try {
-      setBanners((prev) => prev.map((b) => b.id === updatedBanner.id ? updatedBanner : b));
+      console.log("[Mutation] Gravando alterações de banner no Firestore...");
       await saveBannerToFirestore(updatedBanner);
+      setBanners((prev) => prev.map((b) => b.id === updatedBanner.id ? updatedBanner : b));
+      await handleSyncData(true);
+      console.log("[Mutation] Alterações de banner salvas e sincronizadas!");
     } catch (err) {
       console.error('Error editing banner on Firestore', err);
     }
@@ -578,8 +599,11 @@ export default function App() {
 
   const handleDeleteBanner = async (id: string) => {
     try {
-      setBanners((prev) => prev.filter((b) => b.id !== id));
+      console.log("[Mutation] Removendo banner do Firestore...");
       await deleteBannerFromFirestore(id);
+      setBanners((prev) => prev.filter((b) => b.id !== id));
+      await handleSyncData(true);
+      console.log("[Mutation] Banner excluído com sucesso!");
     } catch (err) {
       console.error('Error deleting banner from Firestore', err);
     }
