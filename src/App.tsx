@@ -973,7 +973,13 @@ export default function App() {
                   <div className="flex flex-col space-y-1 border-b border-white/10 pb-4">
                     <span className="text-[9px] uppercase font-mono tracking-widest text-[#FF9D00]">WhatsApp Oficial</span>
                     <a 
-                      href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}?text=Olá! Gostaria de falar com um corretor sobre os lançamentos.`} 
+                      href={`https://wa.me/${(() => {
+                        let num = (settings?.phone || '5547999999999').replace(/\D/g, '');
+                        if (num && !num.startsWith('55') && (num.length === 10 || num.length === 11)) {
+                          num = '55' + num;
+                        }
+                        return num;
+                      })()}?text=Olá! Gostaria de falar com um corretor sobre os lançamentos.`} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-base font-black text-white hover:underline hover:text-[#FF9D00] transition-all"

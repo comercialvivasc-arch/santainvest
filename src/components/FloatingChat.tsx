@@ -31,7 +31,10 @@ export default function FloatingChat({ settings, brokers = [] }: FloatingChatPro
   const chatTitle = activeBroker ? "Corretor de Plantão" : "Consultora Especialista Lançamentos";
 
   const phoneRaw = activeBroker?.phone || settings?.phone || '5547999999999';
-  const whatsappNumber = phoneRaw.replace(/\D/g, '');
+  let whatsappNumber = phoneRaw.replace(/\D/g, '');
+  if (whatsappNumber && !whatsappNumber.startsWith('55') && (whatsappNumber.length === 10 || whatsappNumber.length === 11)) {
+    whatsappNumber = '55' + whatsappNumber;
+  }
 
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault();

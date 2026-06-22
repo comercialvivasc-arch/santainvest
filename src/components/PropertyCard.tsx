@@ -117,7 +117,7 @@ export default function PropertyCard({
   const [emailFormName, setEmailFormName] = useState('');
   const [emailFormContact, setEmailFormContact] = useState('');
   const [emailFormMsg, setEmailFormMsg] = useState('');
-  const [emailFormStatus, setEmailFormStatus] = useState<'idle' | 'success'>('idle');
+  const [emailFormStatus, setEmailFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   // Pre-approval form states
   const [paName, setPaName] = useState('');
@@ -408,20 +408,26 @@ export default function PropertyCard({
     }
   };
 
+  const getCleanPhone = () => {
+    let num = (settings?.phone || '5547999999999').replace(/\D/g, '');
+    if (num && !num.startsWith('55') && (num.length === 10 || num.length === 11)) {
+      num = '55' + num;
+    }
+    return num;
+  };
+
   // Build Whatsapp text link helper
   const getWhatsAppLink = (isConsult = false) => {
     const text = isConsult 
       ? `Olá! Gostaria de consultar mais detalhes e condições exclusivas sobre o lançamento imobiliário "${property.name}" localizado no bairro ${property.neighborhood} (${property.region}).`
       : `Olá! Tenho interesse no lançamento "${property.name}" em ${property.neighborhood}. Valor sugerido: ${formatBRL(property.price)}. Gostaria de maiores informações sobre a Entrada de ${formatBRL(property.downpayment)} e parcelas de ${formatBRL(property.installments)}.`;
     
-    const cleanPhone = (settings?.phone || '5547999999999').replace(/\D/g, '');
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    return `https://wa.me/${getCleanPhone()}?text=${encodeURIComponent(text)}`;
   };
 
   const getCatalogWhatsAppLink = () => {
     const text = `Olá, me interessou este projeto e gostaria de receber o Catálogo do empreendimento ${property.name} (Ref: ${property.id}). Aguardo contato.`;
-    const cleanPhone = (settings?.phone || '5547999999999').replace(/\D/g, '');
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    return `https://wa.me/${getCleanPhone()}?text=${encodeURIComponent(text)}`;
   };
 
   return (
@@ -1019,7 +1025,7 @@ export default function PropertyCard({
                   <div className="flex items-center gap-2">
                     <Compass className="h-4.5 w-4.5 text-[#FF9D00]" />
                     <h3 translate="no" className="notranslate text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
-                      Plano de Pagamento Facilitado
+                      Valores iniciais de pagamento
                     </h3>
                   </div>
                   {property.availableUnits !== undefined && property.availableUnits > 0 && (
@@ -1150,7 +1156,7 @@ export default function PropertyCard({
 
                 {/* Simulated Payment WhatsApp redirection button */}
                 <a
-                  href={`https://wa.me/${(settings?.phone || '5547999999999').replace(/\D/g, '')}?text=${encodeURIComponent(
+                  href={`https://wa.me/${getCleanPhone()}?text=${encodeURIComponent(
                     (() => {
                       const rValue = property.reintegrationValue !== undefined 
                         ? property.reintegrationValue 
@@ -1311,9 +1317,9 @@ export default function PropertyCard({
 
                 {emailFormStatus === 'success' ? (
                   <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center space-y-2">
-                    <p className="text-xs font-semibold text-emerald-600">Mensagem gerada com sucesso!</p>
+                    <p className="text-xs font-semibold text-emerald-600">Mensagem enviada com sucesso!</p>
                     <p className="text-[10px] text-zinc-500 leading-relaxed">
-                      Seu cliente de e-mail foi aberto para envio seguro para: <strong className="text-zinc-800">{settings?.email || 'comercial.vivasc@gmail.com'}</strong>.
+                      Sua mensagem foi enviada de forma 100% segura para: <strong className="text-zinc-800">{settings?.email || 'comercial.vivasc@gmail.com'}</strong>. Nossa equipe entrará em contato em breve!
                     </p>
                     <button
                       onClick={() => setEmailFormStatus('idle')}
@@ -1322,48 +1328,75 @@ export default function PropertyCard({
                       Enviar outra mensagem
                     </button>
                   </div>
+                ) : emailFormStatus === 'submitting' ? (
+                  <div className="bg-zinc-100 border border-zinc-200 rounded-xl p-6 text-center space-y-3">
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-xs font-semibold text-zinc-750 animate-pulse">Enviando mensagem...</p>
+                    <p className="text-[10px] text-zinc-550 leading-relaxed">
+                      Aguarde, estamos enviando seus dados diretamente aos corretores responsáveis...
+                    </p>
+                  </div>
+                ) : emailFormStatus === 'error' ? (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center space-y-2">
+                    <p className="text-xs font-semibold text-red-650">Erro ao enviar</p>
+                    <p className="text-[10px] text-zinc-550 leading-relaxed">
+                      Não foi possível transmitir a mensagem automaticamente por e-mail.
+                    </p>
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() => setEmailFormStatus('idle')}
+                        className="px-3 py-1.5 rounded-lg bg-zinc-200 border border-zinc-300 hover:bg-zinc-250 text-[10px] uppercase font-bold text-zinc-800 transition-all cursor-pointer"
+                      >
+                        Tentar Novamente
+                      </button>
+                      <a
+                        href={`mailto:${settings?.email || 'comercial.vivasc@gmail.com'}?subject=${encodeURIComponent(`Interesse no Lançamento VIVASC-${property.id}: ${property.name}`)}&body=${encodeURIComponent(`Nome do Interessado: ${emailFormName}\nContato: ${emailFormContact}\nMensagem:\n${emailFormMsg}`)}`}
+                        className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-[10px] uppercase font-bold text-black transition-all text-center cursor-pointer"
+                      >
+                        Enviar Manualmente
+                      </a>
+                    </div>
+                  </div>
                 ) : (
                   <form 
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                       e.preventDefault();
                       if (!emailFormName || !emailFormMsg) return;
+                      
+                      setEmailFormStatus('submitting');
                       
                       const idLead = 'lead_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                       const idMsg = 'msg_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                       
-                      saveLeadToFirestore({
-                        id: idLead,
-                        name: emailFormName,
-                        contact: emailFormContact,
-                        message: emailFormMsg,
-                        propertyId: property.id,
-                        propertyName: property.name,
-                        status: 'Novo',
-                        createdAt: new Date().toISOString()
-                      }).catch((err) => console.error('Firestore CRM lead failure', err));
+                      try {
+                        await saveLeadToFirestore({
+                          id: idLead,
+                          name: emailFormName,
+                          contact: emailFormContact,
+                          message: emailFormMsg,
+                          propertyId: property.id,
+                          propertyName: property.name,
+                          status: 'Novo',
+                          createdAt: new Date().toISOString()
+                        });
 
-                      // CRM logs (email dispatch deactivated to avoid duplication)
-                      saveMessageToFirestore({
-                        id: idMsg,
-                        name: emailFormName,
-                        contact: emailFormContact,
-                        message: emailFormMsg,
-                        propertyId: property.id,
-                        createdAt: new Date().toISOString()
-                      }, false).catch((err) => console.error('Firestore CRM msg failure', err));
+                        await saveMessageToFirestore({
+                          id: idMsg,
+                          name: emailFormName,
+                          contact: emailFormContact,
+                          message: emailFormMsg,
+                          propertyId: property.id,
+                          createdAt: new Date().toISOString()
+                        }, false);
 
-                      const subject = encodeURIComponent(`Interesse no Lançamento VIVASC-${property.id}: ${property.name}`);
-                      const body = encodeURIComponent(
-                        `Nome do Interessado: ${emailFormName}\n` +
-                        `Contato (Email/WhatsApp): ${emailFormContact}\n\n` +
-                        `Mensagem:\n${emailFormMsg}`
-                      );
-                      
-                      window.location.href = `mailto:${settings?.email || 'comercial.vivasc@gmail.com'}?subject=${subject}&body=${body}`;
-                      setEmailFormStatus('success');
-                      setEmailFormName('');
-                      setEmailFormContact('');
-                      setEmailFormMsg('');
+                        setEmailFormStatus('success');
+                        setEmailFormName('');
+                        setEmailFormContact('');
+                        setEmailFormMsg('');
+                      } catch (err) {
+                        console.error('Email form CRM submission error', err);
+                        setEmailFormStatus('error');
+                      }
                     }}
                     className="space-y-3"
                   >
