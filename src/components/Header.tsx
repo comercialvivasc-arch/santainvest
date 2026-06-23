@@ -69,11 +69,11 @@ export default function Header({
 
   return (
     <header 
-      style={{ backgroundColor: '#045DA9' }}
+      style={{ backgroundColor: '#ff6200' }}
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${headerBgClass} ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
     >
       <div 
-        style={{ backgroundColor: '#045DA9' }}
+        style={{ backgroundColor: '#ff6200' }}
         className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8"
       >
         {/* Futuristic Logo & Brand (ESQUERDA) */}

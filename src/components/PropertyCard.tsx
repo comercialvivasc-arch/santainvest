@@ -544,7 +544,7 @@ export default function PropertyCard({
           <div>
             {/* Project template / type & location subheaders */}
             <div className="flex items-center justify-between text-[12px] mb-1">
-              <div className="flex items-center gap-1 font-bold tracking-wider text-primary uppercase font-mono">
+              <div className="flex items-center gap-1 font-bold tracking-wider text-primary uppercase font-mono" style={{ color: '#ff6200' }}>
                 <Compass className="h-3 w-3" />
                 {property.projectType}
               </div>
@@ -560,7 +560,7 @@ export default function PropertyCard({
 
             {/* Bairro */}
             <p className="mt-1 text-sm font-semibold text-zinc-700 flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" style={{ color: '#ff6200' }} />
               {property.neighborhood}, {property.region}
             </p>
 
@@ -572,8 +572,8 @@ export default function PropertyCard({
             {/* Icones Relativos: e.g. 2 Qts, 80m2, 2 Vagas */}
             <div className="my-4 pt-4 border-t border-zinc-200/80 flex justify-between items-center text-xs text-zinc-700 font-mono">
               <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
-                <Bed className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{formatBedroomsLabel(property.bedrooms)}</span>
+                <Bed className="h-3.5 w-3.5 text-primary shrink-0" style={{ color: '#ff6200' }} />
+                <span style={{ color: '#71717b' }}>{formatBedroomsLabel(property.bedrooms)}</span>
               </span>
               <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
                 <Maximize className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -601,7 +601,7 @@ export default function PropertyCard({
             {/* Entrada a partir R$ | Parcela a partir R$ */}
             <div className="grid grid-cols-2 gap-3 mb-4 rounded-xl bg-zinc-50 border border-zinc-250 p-3 text-xs font-mono">
               <div>
-                <span className="text-[9px] font-bold tracking-wider text-zinc-500 uppercase block mb-0.5">
+                <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: '#ff6200' }}>
                   Entrada R$
                 </span>
                 <span className="font-extrabold text-zinc-900 text-[14px] block">
@@ -609,10 +609,10 @@ export default function PropertyCard({
                 </span>
               </div>
               <div className="border-l border-zinc-200 pl-3">
-                <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5">
+                <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: '#71717b' }}>
                   Mensais R$
                 </span>
-                <span className="font-extrabold text-[#FF9D00] text-[14px] block">
+                <span className="font-extrabold text-[#FF9D00] text-[14px] block" style={{ color: '#18181b' }}>
                   {formatBRL(property.installments)}
                 </span>
               </div>
@@ -621,8 +621,8 @@ export default function PropertyCard({
             {/* Botao Ver Oferta */}
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold tracking-wider uppercase cursor-pointer hover:bg-[#e0b92f] hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
-              style={{ color: '#203366' }}
+              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold tracking-wider uppercase cursor-pointer hover:opacity-90 transition-all duration-300"
+              style={{ color: '#ffffff', backgroundColor: '#ff6200', fontWeight: 'normal' }}
             >
               <Sparkles className="h-4 w-4 shrink-0 stroke-[2.5]" />
               Ver Oferta
@@ -794,7 +794,7 @@ export default function PropertyCard({
                   <span className="text-[10px] sm:text-xs tracking-widest font-bold text-zinc-550 uppercase font-mono block">
                     {property.status === 'Pronto' ? 'Venda / Pronto' : 'A PARTIR DE'}
                   </span>
-                  <div className="text-3xl sm:text-4xl font-extrabold text-[#FF9D00] tracking-tight font-mono mt-0.5" style={{ fontSize: '33px' }}>
+                  <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-mono mt-0.5" style={{ fontSize: '31px', color: '#ff6200' }}>
                     {formatBRL(property.price)}
                   </div>
                   <p className="mt-1 text-xs text-zinc-650 uppercase font-mono tracking-wider font-semibold">
@@ -806,8 +806,8 @@ export default function PropertyCard({
                     const el = document.getElementById('simulador-box');
                     el?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-black font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-[#FF9D00]/10 cursor-pointer uppercase tracking-wider"
-                  style={{ backgroundColor: '#FF9D00', color: '#203366' }}
+                  className="rounded-xl hover:bg-[#E08A00] text-black font-extrabold text-xs sm:text-sm px-5 py-3 sm:px-6 py-3.5 transition-all active:scale-95 shadow-lg shadow-[#FF9D00]/10 cursor-pointer uppercase tracking-wider"
+                  style={{ backgroundColor: '#ff6200', color: '#ffffff', width: '147.55px', fontSize: '12px' }}
                 >
                   Ver parcelas
                 </button>
@@ -898,7 +898,7 @@ export default function PropertyCard({
                 </div>
                 
                 {/* Nome do Empreendimento */}
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#203366] tracking-tight mb-2 uppercase leading-[1.1]">
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2 uppercase leading-[1.1]" style={{ color: '#02036c' }}>
                   {property.name}
                 </h2>
                 
@@ -907,7 +907,7 @@ export default function PropertyCard({
                 </h3>
 
                 <div className="mt-5 space-y-4">
-                  <h4 className="text-xs font-extrabold uppercase tracking-widest text-[#FF9D00] font-mono">Descrição detalhada</h4>
+                  <h4 className="text-xs font-extrabold uppercase tracking-widest font-mono" style={{ color: '#ff6200' }}>Descrição detalhada</h4>
                   {property.detailedDescription ? (
                     <div className="text-sm text-zinc-700 leading-relaxed font-sans whitespace-pre-line">
                       {property.detailedDescription}
@@ -1032,7 +1032,7 @@ export default function PropertyCard({
                <div id="simulador-box" className="bg-zinc-50 p-5 sm:p-6 rounded-2xl border border-zinc-200 text-left space-y-4">
                 <div className="border-b border-zinc-200 pb-3.5 space-y-2">
                   <div className="flex items-center gap-2">
-                    <Compass className="h-4.5 w-4.5 text-[#FF9D00]" />
+                    <Compass className="h-4.5 w-4.5" style={{ color: '#ff6200' }} />
                     <h3 translate="no" className="notranslate text-xs sm:text-sm tracking-widest font-extrabold text-zinc-900 uppercase font-mono">
                       Valores iniciais de pagamento
                     </h3>
@@ -1052,13 +1052,13 @@ export default function PropertyCard({
                             className="h-3.5 w-3.5 text-red-600 fill-current animate-bounce"
                           >
                             <path 
-                              style={{ color: '#fff400', borderColor: '#0f0f0f' }} 
+                              style={{ color: '#fff400', borderColor: '#0f0f0f', height: 'auto' }} 
                               d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" 
                             />
                             <line x1="12" y1="9" x2="12" y2="13" />
                             <line x1="12" y1="17" x2="12.01" y2="17" />
                           </svg>
-                          <span>Apenas {property.availableUnits} {property.availableUnits === 1 ? 'unidade restante!' : 'unidades restantes!'}</span>
+                          <span style={{ fontSize: '12px' }}>Apenas {property.availableUnits} {property.availableUnits === 1 ? 'unidade restante!' : 'unidades restantes!'}</span>
                         </div>
                       ) : (
                         <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-250/50 px-2.5 py-1 rounded-lg text-[10px] font-sans font-bold">
@@ -1121,7 +1121,7 @@ export default function PropertyCard({
                       <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Investimento em {property.reintegrationCount || 5} parcelas anuais/semestrais</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-extrabold text-zinc-900 block">
+                      <span className="text-sm font-extrabold text-zinc-900 block" style={{ color: '#ff6200' }}>
                         {formatBRL(property.reintegrationValue !== undefined ? property.reintegrationValue : Math.round(property.price * 0.2 / (property.reintegrationCount || 5)))}
                       </span>
                       <span className="text-[11px] text-zinc-500 block font-bold mt-0.5">{property.reintegrationCount || 5}x Anuais</span>
@@ -1208,6 +1208,48 @@ export default function PropertyCard({
                   </svg>
                   <span>SIMULAR PAGAMENTO</span>
                 </a>
+              </div>
+
+              {/* LOCATION BANNER CARD (WITH INTERACTIVE MAP INTEGRATED ON-PAGE TO PREVENT LEAVING SITE) */}
+              <div 
+                id="location-section"
+                className="bg-zinc-50 border border-zinc-200 shadow-md rounded-2xl p-4 sm:p-5 space-y-4 font-sans"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-11 w-11 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 shrink-0 animate-pulse">
+                      <MapPin className="h-5.5 w-5.5 text-red-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Localização do Imóvel</h4>
+                      <p className="text-xs text-zinc-600 mt-0.5 font-mono">{property.neighborhood}, {property.region} / SC</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase bg-zinc-200/60 border border-zinc-300 px-2 py-0.5 rounded text-zinc-600">Mapa do Empreendimento</span>
+                </div>
+
+                <div className="relative w-full h-64 sm:h-72 rounded-xl border border-zinc-250 bg-zinc-100 overflow-hidden shadow-sm">
+                  <iframe 
+                    title={`Localização de ${property.name}`}
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                    className="w-full h-full border-0 rounded-xl"
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  ></iframe>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-zinc-500 font-mono border-t border-zinc-200/60 pt-3">
+                  <span className="truncate max-w-xs sm:max-w-md">📍 {property.address}</span>
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary font-bold hover:underline shrink-0 text-right uppercase tracking-wider"
+                  >
+                    Abrir no Maps externo ↗
+                  </a>
+                </div>
               </div>
 
               {/* VIDEO ANNEXED BY PROPERTY ADMIN PANEL */}
@@ -1307,8 +1349,9 @@ export default function PropertyCard({
                     type="button"
                     onClick={() => setIsPaModalOpen(true)}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-black font-extrabold text-xs uppercase tracking-wider py-3.5 px-6 transition-all text-center cursor-pointer select-none active:scale-[0.99] shadow-sm hover:shadow-md"
+                    style={{ color: '#fefeff', backgroundColor: '#ff6200' }}
                   >
-                    <Sparkles className="h-4 w-4 text-black shrink-0" />
+                    <Sparkles className="h-4 w-4 shrink-0" />
                     <span>{paStatus === 'success' ? 'Ver ou Refazer Cadastro' : 'Saber mais e simular agora'}</span>
                   </button>
                 </div>
@@ -1449,48 +1492,6 @@ export default function PropertyCard({
                 )}
               </div>
 
-              {/* LOCATION BANNER CARD (WITH INTERACTIVE MAP INTEGRATED ON-PAGE TO PREVENT LEAVING SITE) */}
-              <div 
-                id="location-section"
-                className="bg-zinc-50 border border-zinc-200 shadow-md rounded-2xl p-4 sm:p-5 space-y-4"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-11 w-11 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 shrink-0 animate-pulse">
-                      <MapPin className="h-5.5 w-5.5 text-red-500" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Localização do Imóvel</h4>
-                      <p className="text-xs text-zinc-600 mt-0.5 font-mono">{property.neighborhood}, {property.region} / SC</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono uppercase bg-zinc-200/60 border border-zinc-300 px-2 py-0.5 rounded text-zinc-600">Mapa do Empreendimento</span>
-                </div>
-
-                <div className="relative w-full h-64 sm:h-72 rounded-xl border border-zinc-250 bg-zinc-100 overflow-hidden shadow-sm">
-                  <iframe 
-                    title={`Localização de ${property.name}`}
-                    src={`https://maps.google.com/maps?q=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                    className="w-full h-full border-0 rounded-xl"
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  ></iframe>
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-zinc-500 font-mono border-t border-zinc-200/60 pt-3">
-                  <span className="truncate max-w-xs sm:max-w-md">📍 {property.address}</span>
-                  <a 
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary font-bold hover:underline shrink-0 text-right uppercase tracking-wider"
-                  >
-                    Abrir no Maps externo ↗
-                  </a>
-                </div>
-              </div>
-
               {/* SUGGESTED RECOMMENDED CAROUSEL / GRID IN REGION (SCREENSHOT 1 HIGH FIDELITY RESEMBLANCE) */}
               {similarProperties.length > 0 && (
                 <div className="w-full text-left space-y-4 border-t border-zinc-200 pt-8" id="recommended-showcase">
@@ -1575,7 +1576,8 @@ export default function PropertyCard({
                   target="_blank"
                   rel="noopener noreferrer"
                   referrerPolicy="no-referrer"
-                  className="flex-1 flex h-12 items-center justify-center gap-1.5 rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] font-extrabold text-xs uppercase tracking-wider text-black shrink-0 cursor-pointer shadow-md shadow-[#FF9D00]/10 active:scale-[0.98] transition-all px-2 text-center"
+                  className="flex-1 flex h-12 items-center justify-center gap-1.5 rounded-xl font-extrabold text-xs uppercase tracking-wider text-black shrink-0 cursor-pointer shadow-md shadow-[#FF9D00]/10 active:scale-[0.98] transition-all px-2 text-center"
+                  style={{ backgroundColor: '#ff6200', color: '#ffffff' }}
                   title="Solicitar Catálogo Completo"
                 >
                   <BookOpen className="h-4 w-4 stroke-[3]" />
@@ -1588,7 +1590,8 @@ export default function PropertyCard({
                   target="_blank"
                   rel="noopener noreferrer"
                   referrerPolicy="no-referrer"
-                  className="flex-1 flex h-12 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs uppercase tracking-wider text-white shrink-0 cursor-pointer shadow-md shadow-emerald-600/10 active:scale-[0.98] transition-all px-2 text-center"
+                  className="flex-1 flex h-12 items-center justify-center gap-1.5 rounded-xl font-extrabold text-xs uppercase tracking-wider text-white shrink-0 cursor-pointer shadow-md shadow-emerald-600/10 active:scale-[0.98] transition-all px-2 text-center"
+                  style={{ backgroundColor: '#25d366' }}
                 >
                   <MessageSquare className="h-4 w-4 stroke-[2.5]" />
                   <span>WhatsApp</span>
