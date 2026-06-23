@@ -26,8 +26,8 @@ export default function FloatingChat({ settings, brokers = [] }: FloatingChatPro
     || null;
 
   const chatAvatar = activeBroker?.chatPhotoUrl || EXECUTIVE_AVATAR;
-  const chatName = activeBroker?.chatName || "Juliana VIVA SC";
-  const brokerNameLabel = activeBroker?.name || "Consultora VIVA SC";
+  const chatName = activeBroker?.chatName || "Juliana - Meu Primeiro Imóvel";
+  const brokerNameLabel = activeBroker?.name || "Consultora Meu Primeiro Imóvel";
   const chatTitle = activeBroker ? "Corretor de Plantão" : "Consultora Especialista Lançamentos";
 
   const phoneRaw = activeBroker?.phone || settings?.phone || '5547999999999';
@@ -130,7 +130,7 @@ export default function FloatingChat({ settings, brokers = [] }: FloatingChatPro
             {/* Bubble Messages Area */}
             <div className="p-4 bg-zinc-50 border-b border-zinc-100 space-y-3.5 max-h-[220px] overflow-y-auto">
               <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-zinc-150 max-w-[90%] text-xs shadow-sm leading-relaxed text-zinc-800">
-                Olá! Seja bem-vindo(a) ao portal de imóveis VIVASC 💡
+                Olá! Seja bem-vindo(a) ao portal de imóveis Meu Primeiro Imóvel 💡
               </div>
               
               <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-zinc-150 max-w-[90%] text-xs shadow-sm leading-relaxed text-zinc-800">

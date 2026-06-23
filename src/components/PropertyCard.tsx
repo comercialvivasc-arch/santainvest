@@ -48,6 +48,15 @@ const formatBathroomsLabel = (bedrooms: string | number) => {
   return `${s} Banh.`;
 };
 
+const formatPropRef = (id: string | number) => {
+  const idStr = String(id);
+  const match = idStr.match(/\d+/);
+  if (match) {
+    return match[0].padStart(3, '0');
+  }
+  return idStr;
+};
+
 const McmvBadge = ({ customLogoUrl, className = "h-8" }: { customLogoUrl?: string; className?: string }) => {
   if (customLogoUrl) {
     return (
@@ -86,6 +95,7 @@ interface PropertyCardProps {
   isModalOnly?: boolean;
   onNavigateToProperty?: (id: string | null) => void;
   onNavigateToAdmin?: () => void;
+  index?: number;
 }
 
 export default function PropertyCard({ 
@@ -96,7 +106,8 @@ export default function PropertyCard({
   onOpenChange, 
   isModalOnly = false,
   onNavigateToProperty,
-  onNavigateToAdmin
+  onNavigateToAdmin,
+  index
 }: PropertyCardProps) {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [internalModalOpen, setInternalModalOpen] = useState(false);
@@ -430,7 +441,7 @@ export default function PropertyCard({
   };
 
   const getCatalogWhatsAppLink = () => {
-    const baseText = `Olá, me interessou este projeto e gostaria de receber o Catálogo do empreendimento ${property.name} (Ref: ${property.id}). Aguardo contato.`;
+    const baseText = `Olá, me interessou este projeto e gostaria de receber o Catálogo do empreendimento ${property.name} (Ref: ${formatPropRef(property.id)}). Aguardo contato.`;
     
     const realUrl = `${window.location.origin}${window.location.pathname}?imovel=${property.id}`;
     const mainImg = property.images[0] || '';
@@ -593,7 +604,7 @@ export default function PropertyCard({
                 Investimento Estimado
               </span>
               <div className="text-xl font-extrabold text-zinc-900">
-                <span className="text-xs font-semibold text-primary mr-1 font-mono">A partir</span>
+                <span className="text-xs font-semibold text-primary mr-1 font-mono" style={index === 0 ? { color: '#ff6200' } : undefined}>A partir</span>
                 {formatBRL(property.price)}
               </div>
             </div>
@@ -601,7 +612,7 @@ export default function PropertyCard({
             {/* Entrada a partir R$ | Parcela a partir R$ */}
             <div className="grid grid-cols-2 gap-3 mb-4 rounded-xl bg-zinc-50 border border-zinc-250 p-3 text-xs font-mono">
               <div>
-                <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: '#ff6200' }}>
+                <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: index === 1 ? '#71717b' : '#ff6200' }}>
                   Entrada R$
                 </span>
                 <span className="font-extrabold text-zinc-900 text-[14px] block">
@@ -894,7 +905,7 @@ export default function PropertyCard({
                     <McmvBadge customLogoUrl={property.mcmvLogoUrl} className="h-7" />
                   )}
                   <span className="text-zinc-400">•</span>
-                  <span className="text-[11px] text-zinc-600 font-mono">Ref do Produto: VIVASC-{property.id}</span>
+                  <span className="text-[11px] text-zinc-600 font-mono">Ref do Produto: {formatPropRef(property.id)}</span>
                 </div>
                 
                 {/* Nome do Empreendimento */}
@@ -920,7 +931,7 @@ export default function PropertyCard({
                 </div>
 
                 <p className="mt-6 text-[10px] text-zinc-500 font-mono">
-                  Última atualização: 18/05/2026 às 10:00h | Código: VIVASC-{property.id}
+                  Última atualização: 18/05/2026 às 10:00h | Código: {formatPropRef(property.id)}
                 </p>
               </div>
 
@@ -1187,7 +1198,7 @@ export default function PropertyCard({
                         : '';
 
                       return [
-                        `Olá! Estou visualizando o lançamento "${property.name}" (Ref: ${property.id}) e gostaria de receber uma simulação de pagamento personalizada.`,
+                        `Olá! Estou visualizando o lançamento "${property.name}" (Ref: ${formatPropRef(property.id)}) e gostaria de receber uma simulação de pagamento personalizada.`,
                         '',
                         `Valor: ${formatBRL(property.price)}`,
                         `Entrada de: ${formatBRL(property.downpayment)}${entradaDetail}`,
@@ -1393,7 +1404,7 @@ export default function PropertyCard({
                         Tentar Novamente
                       </button>
                       <a
-                        href={`mailto:${settings?.email || 'comercial.vivasc@gmail.com'}?subject=${encodeURIComponent(`Interesse no Lançamento VIVASC-${property.id}: ${property.name}`)}&body=${encodeURIComponent(`Nome do Interessado: ${emailFormName}\nContato: ${emailFormContact}\nMensagem:\n${emailFormMsg}`)}`}
+                        href={`mailto:${settings?.email || 'comercial.vivasc@gmail.com'}?subject=${encodeURIComponent(`Interesse no Lançamento Ref ${formatPropRef(property.id)}: ${property.name}`)}&body=${encodeURIComponent(`Nome do Interessado: ${emailFormName}\nContato: ${emailFormContact}\nMensagem:\n${emailFormMsg}`)}`}
                         className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-[10px] uppercase font-bold text-black transition-all text-center cursor-pointer"
                       >
                         Enviar Manualmente
