@@ -1449,25 +1449,46 @@ export default function PropertyCard({
                 )}
               </div>
 
-              {/* LOCATION BANNER CARD (WITH RED PIN HOVERABLE CARD IN SCREENSHOTS) */}
+              {/* LOCATION BANNER CARD (WITH INTERACTIVE MAP INTEGRATED ON-PAGE TO PREVENT LEAVING SITE) */}
               <div 
                 id="location-section"
-                onClick={() => {
-                  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}`;
-                  window.open(mapUrl, '_blank', 'referrerPolicy=no-referrer');
-                }}
-                className="bg-zinc-50 border border-zinc-200 shadow-md rounded-2xl p-4 sm:p-5 flex items-center justify-between hover:border-[#FF9D00]/40 hover:bg-zinc-100 transition-all cursor-pointer group"
+                className="bg-zinc-50 border border-zinc-200 shadow-md rounded-2xl p-4 sm:p-5 space-y-4"
               >
-                <div className="flex items-center gap-4">
-                  <div className="h-11 w-11 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 group-hover:scale-105 transition-all shrink-0">
-                    <MapPin className="h-5.5 w-5.5 text-red-500" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-11 w-11 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 shrink-0 animate-pulse">
+                      <MapPin className="h-5.5 w-5.5 text-red-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Localização do Imóvel</h4>
+                      <p className="text-xs text-zinc-600 mt-0.5 font-mono">{property.neighborhood}, {property.region} / SC</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Localização do Imóvel</h4>
-                    <p className="text-xs text-zinc-600 mt-0.5 font-mono">{property.neighborhood}, {property.region} / SC</p>
-                  </div>
+                  <span className="text-[10px] font-mono uppercase bg-zinc-200/60 border border-zinc-300 px-2 py-0.5 rounded text-zinc-600">Mapa do Empreendimento</span>
                 </div>
-                <ChevronRight className="h-5 w-5 text-zinc-500 group-hover:text-primary transition-colors shrink-0" />
+
+                <div className="relative w-full h-64 sm:h-72 rounded-xl border border-zinc-250 bg-zinc-100 overflow-hidden shadow-sm">
+                  <iframe 
+                    title={`Localização de ${property.name}`}
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                    className="w-full h-full border-0 rounded-xl"
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  ></iframe>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-zinc-500 font-mono border-t border-zinc-200/60 pt-3">
+                  <span className="truncate max-w-xs sm:max-w-md">📍 {property.address}</span>
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary font-bold hover:underline shrink-0 text-right uppercase tracking-wider"
+                  >
+                    Abrir no Maps externo ↗
+                  </a>
+                </div>
               </div>
 
               {/* SUGGESTED RECOMMENDED CAROUSEL / GRID IN REGION (SCREENSHOT 1 HIGH FIDELITY RESEMBLANCE) */}
