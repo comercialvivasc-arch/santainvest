@@ -625,7 +625,7 @@ export default function PropertyCard({
               style={{ color: '#ffffff', backgroundColor: '#ff6200', fontWeight: 'normal' }}
             >
               <Sparkles className="h-4 w-4 shrink-0 stroke-[2.5]" />
-              Ver Oferta
+              <span style={{ fontWeight: 'normal' }}>Ver Oferta</span>
             </button>
           </div>
         </div>
@@ -1107,7 +1107,7 @@ export default function PropertyCard({
                       <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Prazo direto da construtora ({property.installmentsCount || 60} parcelas)</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-extrabold text-[#FF9D00] block">
+                      <span className="text-sm font-extrabold block" style={{ color: '#ff6200' }}>
                         {formatBRL(property.installments)}
                       </span>
                       <span className="text-[11px] text-zinc-500 block uppercase font-bold mt-0.5">Por mês</span>
@@ -1121,7 +1121,7 @@ export default function PropertyCard({
                       <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Investimento em {property.reintegrationCount || 5} parcelas anuais/semestrais</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-extrabold text-zinc-900 block" style={{ color: '#ff6200' }}>
+                      <span className="text-sm font-extrabold text-zinc-900 block" style={{ color: '#18181b' }}>
                         {formatBRL(property.reintegrationValue !== undefined ? property.reintegrationValue : Math.round(property.price * 0.2 / (property.reintegrationCount || 5)))}
                       </span>
                       <span className="text-[11px] text-zinc-500 block font-bold mt-0.5">{property.reintegrationCount || 5}x Anuais</span>
@@ -1153,7 +1153,7 @@ export default function PropertyCard({
                   )}
                 </div>
 
-                <div className="bg-orange-500/5 border border-orange-500/20 p-3 rounded-lg text-[10px] text-zinc-800 leading-normal font-sans block">
+                <div className="bg-orange-500/5 border border-orange-500/20 p-3 rounded-lg text-zinc-800 leading-normal font-sans block" style={{ fontSize: '12px' }}>
                   {property.tableConditionDescription ? (
                     <span className="whitespace-pre-line">💡 <strong>Condição de tabela:</strong> {property.tableConditionDescription}</span>
                   ) : (
@@ -1222,10 +1222,9 @@ export default function PropertyCard({
                     </div>
                     <div>
                       <h4 className="text-xs sm:text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Localização do Imóvel</h4>
-                      <p className="text-xs text-zinc-600 mt-0.5 font-mono">{property.neighborhood}, {property.region} / SC</p>
+                      <p className="text-xs text-zinc-650 mt-0.5 font-mono">{property.neighborhood}, {property.region} / SC</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono uppercase bg-zinc-200/60 border border-zinc-300 px-2 py-0.5 rounded text-zinc-600">Mapa do Empreendimento</span>
                 </div>
 
                 <div className="relative w-full h-64 sm:h-72 rounded-xl border border-zinc-250 bg-zinc-100 overflow-hidden shadow-sm">
@@ -1240,15 +1239,7 @@ export default function PropertyCard({
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-zinc-500 font-mono border-t border-zinc-200/60 pt-3">
-                  <span className="truncate max-w-xs sm:max-w-md">📍 {property.address}</span>
-                  <a 
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.address}, ${property.neighborhood}, ${property.region}, SC, Brasil`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary font-bold hover:underline shrink-0 text-right uppercase tracking-wider"
-                  >
-                    Abrir no Maps externo ↗
-                  </a>
+                  <span className="truncate max-w-xs sm:max-w-md" style={{ fontSize: '13px' }}>📍 {property.address}</span>
                 </div>
               </div>
 
@@ -1320,7 +1311,7 @@ export default function PropertyCard({
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-zinc-200 pb-3">
                   <div className="space-y-1">
                     <h4 className="text-md sm:text-lg font-black text-zinc-900 uppercase tracking-wider flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5 text-primary" />
+                      <ShieldCheck className="h-5 w-5" style={{ color: '#ff6200' }} />
                       Análise para Pré-Aprovação
                     </h4>
                     <p className="text-[11px] text-zinc-500 leading-normal">
@@ -1484,7 +1475,8 @@ export default function PropertyCard({
                     
                     <button
                       type="submit"
-                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-black font-extrabold text-xs uppercase tracking-wider py-3.5 transition-all text-center cursor-pointer select-none active:scale-[0.99]"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-[#ffffff] font-extrabold text-xs uppercase tracking-wider py-3.5 transition-all text-center cursor-pointer select-none active:scale-[0.99]"
+                      style={{ backgroundColor: '#ff6200', color: '#ffffff' }}
                     >
                       Enviar Mensagem por E-mail
                     </button>
@@ -1538,7 +1530,7 @@ export default function PropertyCard({
                             </p>
                           </div>
                           <div>
-                            <div className="text-md font-black text-[#FF9D00] font-mono pt-1">
+                            <div className="text-md font-black font-mono pt-1" style={{ color: '#ff6200' }}>
                               {formatBRL(simProp.price)}
                             </div>
                             <div className="text-[10px] text-zinc-600 font-mono pt-1 border-t border-zinc-200 mt-2 flex justify-between">
