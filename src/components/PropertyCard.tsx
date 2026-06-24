@@ -803,13 +803,19 @@ export default function PropertyCard({
               {/* TRANSACTION / PRICE SUB-BAR (MATCHING LAYOUT IN SCREENSHOT 3) */}
               <div className="w-full flex items-center justify-between border-b border-zinc-200 pb-5" id="details-section">
                 <div>
-                  <span className="text-[10px] sm:text-xs tracking-widest font-bold text-zinc-550 uppercase font-mono block">
+                  <span 
+                    className="text-[10px] sm:text-xs tracking-widest font-bold uppercase font-mono block"
+                    style={{ color: '#3f3f47' }}
+                  >
                     {property.status === 'Pronto' ? 'Venda / Pronto' : 'A PARTIR DE'}
                   </span>
                   <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-mono mt-0.5" style={{ fontSize: '28px', color: '#ff6200', marginTop: '2px', marginRight: '4px', paddingBottom: '0px', paddingRight: '0px', marginLeft: '0px', marginBottom: '0px' }}>
                     {formatBRL(property.price)}
                   </div>
-                  <p className="mt-1 text-xs text-zinc-650 uppercase font-mono tracking-wider font-semibold">
+                  <p 
+                    className="mt-1 text-xs uppercase font-mono tracking-wider font-semibold"
+                    style={{ color: '#3f3f47' }}
+                  >
                     {property.status === 'Pronto' ? 'Pronto para Morar' : `Previsão ${property.deliveryDate}`}
                   </p>
                 </div>
@@ -1320,7 +1326,7 @@ export default function PropertyCard({
 
               {/* CADASTRO DE PRÉ-APROVAÇÃO WIDGET */}
               <div 
-                style={{ backgroundColor: '#203366' }}
+                style={{ backgroundColor: '#ff6200' }}
                 className="border border-zinc-200/20 rounded-3xl p-5 sm:p-6 text-left space-y-4 shadow-sm scroll-mt-20"
               >
                 {/* div:nth-of-type(1) */}
@@ -1331,14 +1337,14 @@ export default function PropertyCard({
                   <h4 
                     className="text-md sm:text-lg font-black uppercase tracking-wider flex items-center gap-2"
                   >
-                    <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: '#ff6200' }} />
+                    <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: '#203366' }} />
                     <span style={{ color: '#ffffff' }}>Análise para Pré-Aprovação</span>
                   </h4>
                   <p 
                     style={{ color: '#ffffff' }}
                     className="text-[11px] leading-normal opacity-90 mt-1"
                   >
-                    Inicie seu cadastro de crédito imobiliário de forma segura e 100% criptografada direta com os bancos.
+                    Inicie seu cadastro de crédito imobiliário para obter a melhor forma de pagamento.
                   </p>
                 </div>
 
@@ -1347,8 +1353,8 @@ export default function PropertyCard({
                   <button
                     type="button"
                     onClick={() => setIsPaModalOpen(true)}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#ff6200] text-white font-extrabold text-xs uppercase tracking-wider py-3.5 px-6 transition-all text-center cursor-pointer select-none active:scale-[0.99] shadow-sm hover:shadow-md hover:bg-[#E08A00]"
-                    style={{ color: '#ffffff', backgroundColor: '#ff6200' }}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#203366] text-white font-extrabold text-xs uppercase tracking-wider py-3.5 px-6 transition-all text-center cursor-pointer select-none active:scale-[0.99] shadow-sm hover:shadow-md hover:bg-[#1a2b56]"
+                    style={{ color: '#ffffff', backgroundColor: '#203366' }}
                   >
                     <Sparkles className="h-4 w-4 shrink-0" />
                     <span>{paStatus === 'success' ? 'Ver ou Refazer Cadastro' : 'Saber mais e simular agora'}</span>
@@ -1374,7 +1380,7 @@ export default function PropertyCard({
                         </span>
                       ) : (
                         <span 
-                          style={{ color: '#ff6200' }}
+                          style={{ color: '#ffffff' }}
                           className="inline-flex items-center gap-1 border border-white/20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg font-mono bg-white/5"
                         >
                           GRATUITO
