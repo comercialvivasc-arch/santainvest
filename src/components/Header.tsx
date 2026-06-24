@@ -87,7 +87,8 @@ export default function Header({
               src={settings.logoUrl} 
               alt={settings.brandName || "Logo"} 
               referrerPolicy="no-referrer"
-              className="w-[120px] h-[60px] sm:w-[155px] sm:h-[80px] object-contain transition-all duration-300 group-hover:scale-105"
+              style={{ width: '128px' }}
+              className="object-contain transition-all duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-primary rotate-45 shadow-lg shadow-primary/20 transition-all duration-300 group-hover:scale-105">

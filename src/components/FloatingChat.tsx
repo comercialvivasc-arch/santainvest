@@ -217,7 +217,10 @@ export default function FloatingChat({ settings, brokers = [] }: FloatingChatPro
         </div>
 
         <div className="text-left py-0.5">
-          <span className="text-[9px] font-mono font-black tracking-widest text-[#FF9D00] uppercase block animate-pulse">
+          <span 
+            style={{ color: '#ff6200' }}
+            className="text-[9px] font-mono font-black tracking-widest uppercase block animate-pulse"
+          >
             Fale agora!
           </span>
           <span className="text-xs font-extrabold text-zinc-900 tracking-tight block">

@@ -229,7 +229,7 @@ export default function SearchHero({
           className="max-w-2xl flex flex-col items-center justify-center w-full"
         >
           <span 
-            style={{ color: '#FF9D00' }}
+            style={{ color: '#ff6200' }}
             className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3.5 py-1 text-xs font-semibold tracking-widest uppercase border border-orange-500/20 mb-4 backdrop-blur-sm"
           >
             <Sparkles className="h-3 w-3 animate-pulse text-orange-500" />
@@ -256,7 +256,7 @@ export default function SearchHero({
                 }
               }
             }}
-            style={{ backgroundColor: '#FF9D00', color: '#203366' }}
+            style={{ backgroundColor: '#ff6200', color: '#ffffff' }}
             className="mt-6 inline-flex items-center gap-2 rounded-xl font-extrabold text-xs sm:text-sm px-6 py-3.5 hover:shadow-xl transition-all duration-300 active:scale-95 cursor-pointer uppercase tracking-wider border-0"
           >
             Conhecer agora

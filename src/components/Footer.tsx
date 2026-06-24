@@ -46,7 +46,7 @@ export default function Footer({ settings, onTabChange, onNavigateToHome, onNavi
                 src={settings.footerLogoUrl || settings.logoUrl}
                 alt={settings.brandName || "Logo"}
                 referrerPolicy="no-referrer"
-                style={{ height: settings?.footerLogoHeight || '45px', maxHeight: '100px' }}
+                style={{ height: settings?.footerLogoHeight || '45px', maxHeight: '100px', width: '141.25px' }}
                 className="object-contain cursor-pointer"
                 onClick={() => handleMenuClick('home')}
               />

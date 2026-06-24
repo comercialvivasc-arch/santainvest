@@ -805,7 +805,7 @@ export default function PropertyCard({
                   <span className="text-[10px] sm:text-xs tracking-widest font-bold text-zinc-550 uppercase font-mono block">
                     {property.status === 'Pronto' ? 'Venda / Pronto' : 'A PARTIR DE'}
                   </span>
-                  <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-mono mt-0.5" style={{ fontSize: '31px', color: '#ff6200' }}>
+                  <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-mono mt-0.5" style={{ fontSize: '28px', color: '#ff6200', marginTop: '2px', marginRight: '4px', paddingBottom: '0px', paddingRight: '0px', marginLeft: '0px', marginBottom: '0px' }}>
                     {formatBRL(property.price)}
                   </div>
                   <p className="mt-1 text-xs text-zinc-650 uppercase font-mono tracking-wider font-semibold">

@@ -1200,7 +1200,7 @@ export default function AdminPanel({
 
   // ACTIVE MAIN ADMIN VIEW
   return (
-    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 relative">
+    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 relative" style={{ backgroundColor: '#9b9b9b' }}>
       {/* Admin Status metadata and actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 mb-6 border border-zinc-850 rounded-2xl bg-zinc-950 gap-4">
         <div className="flex items-center gap-3">
@@ -1245,7 +1245,7 @@ export default function AdminPanel({
 
       {/* Header section with credentials and tabs */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-zinc-900 mb-8">
-        <div>
+        <div style={{ backgroundColor: '#191919' }}>
           <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest font-mono text-orange-500 font-bold font-mono">
             <CheckCircle2 className="h-3.5 w-3.5 text-orange-500" />
             Sessão Autorizada

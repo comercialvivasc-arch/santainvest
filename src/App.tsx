@@ -1110,6 +1110,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
+              style={{ backgroundColor: '#9b9b9b' }}
             >
               {currentTab === 'home' && (
                 <SearchHero 
@@ -1131,7 +1132,10 @@ export default function App() {
                   <div className="max-w-7xl mx-auto px-6 lg:px-8">
                   <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6 relative z-10">
                     <div>
-                      <span className="text-[11px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block mb-1">
+                      <span 
+                        style={{ color: '#ff6200' }}
+                        className="text-[11px] font-bold tracking-widest uppercase font-mono block mb-1"
+                      >
                         ✦ Portfolio Selecionado
                       </span>
                       <h2 className="text-3xl font-black text-zinc-950 tracking-tight sm:text-4xl uppercase">
@@ -1293,6 +1297,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
+              style={{ backgroundColor: '#9b9b9b' }}
             >
               <AdminPanel
                 properties={properties}
