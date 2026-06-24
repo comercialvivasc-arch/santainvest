@@ -144,6 +144,9 @@ export default function AdminPanel({
   const [settingsPrivacyPolicy, setSettingsPrivacyPolicy] = useState(settings?.privacyPolicy || '');
   const [settingsCookieText, setSettingsCookieText] = useState(settings?.cookieText || '');
   const [settingsEnableCookieConsent, setSettingsEnableCookieConsent] = useState(settings?.enableCookieConsent !== false);
+  const [settingsAboutHeading, setSettingsAboutHeading] = useState(settings?.aboutHeading || '');
+  const [settingsAboutSubtitle, setSettingsAboutSubtitle] = useState(settings?.aboutSubtitle || '');
+  const [settingsAboutHistory, setSettingsAboutHistory] = useState(settings?.aboutHistory || '');
   const [isSettingsUpdating, setIsSettingsUpdating] = useState(false);
   const [settingsUpdateStatus, setSettingsUpdateStatus] = useState<string | null>(null);
 
@@ -178,6 +181,9 @@ export default function AdminPanel({
       setSettingsPrivacyPolicy(settings.privacyPolicy || '');
       setSettingsCookieText(settings.cookieText || '');
       setSettingsEnableCookieConsent(settings.enableCookieConsent !== false);
+      setSettingsAboutHeading(settings.aboutHeading || '');
+      setSettingsAboutSubtitle(settings.aboutSubtitle || '');
+      setSettingsAboutHistory(settings.aboutHistory || '');
     }
   }, [settings]);
 
@@ -1649,7 +1655,10 @@ export default function AdminPanel({
                     termsOfUse: settingsTermsOfUse,
                     privacyPolicy: settingsPrivacyPolicy,
                     cookieText: settingsCookieText,
-                    enableCookieConsent: settingsEnableCookieConsent
+                    enableCookieConsent: settingsEnableCookieConsent,
+                    aboutHeading: settingsAboutHeading,
+                    aboutSubtitle: settingsAboutSubtitle,
+                    aboutHistory: settingsAboutHistory
                   });
                   setSettingsUpdateStatus('Configurações de marca e contatos salvas no Firebase Firestore com sucesso.');
                 } catch (err: any) {
@@ -2176,6 +2185,71 @@ export default function AdminPanel({
                       placeholder="Insira as regras e políticas de privacidade conforme a LGPD..."
                       className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans placeholder-zinc-800"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Textos do Menu Sobre Nós Section */}
+              <div className="space-y-4 border-t border-zinc-900 pt-5">
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest text-[#FF9D00] font-mono uppercase block mb-1">
+                    ✦ Menu Sobre Nós
+                  </span>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                    Textos da Página Sobre Nós
+                  </h3>
+                  <p className="text-xs text-zinc-500 leading-normal mt-1">
+                    Preencha e personalize os textos exibidos aos usuários na página institucional "Sobre Nós" do portal.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">
+                      Etiqueta do Crachá/Badge
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsAboutHeading}
+                      onChange={(e) => setSettingsAboutHeading(e.target.value)}
+                      placeholder="Portal imobiliário de lançamentos"
+                      className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                    />
+                    <span className="block text-[10px] text-zinc-550 leading-normal">
+                      * Texto em destaque de cor dourada exibido acima do título principal "Sobre Nós".
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">
+                      Subtítulo de Introdução
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={settingsAboutSubtitle}
+                      onChange={(e) => setSettingsAboutSubtitle(e.target.value)}
+                      placeholder="Conectamos você aos lançamentos mais promissores..."
+                      className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                    />
+                    <span className="block text-[10px] text-zinc-550 leading-normal">
+                      * O parágrafo principal explicativo logo abaixo do título "Sobre Nós".
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">
+                      História & Propósito
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={settingsAboutHistory}
+                      onChange={(e) => setSettingsAboutHistory(e.target.value)}
+                      placeholder="História completa..."
+                      className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans placeholder-zinc-850"
+                    />
+                    <span className="block text-[10px] text-zinc-550 leading-normal">
+                      * Texto explicativo detalhado sobre a história e propósito da imobiliária.
+                    </span>
                   </div>
                 </div>
               </div>

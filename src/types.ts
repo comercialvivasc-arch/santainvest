@@ -81,6 +81,9 @@ export interface BrandSettings {
   privacyPolicy?: string;   // custom privacy policy text
   cookieText?: string;      // custom cookie text description
   enableCookieConsent?: boolean; // configuration to enable or disable the cookie consent banner
+  aboutHeading?: string;    // Badge text above "Sobre Nós"
+  aboutSubtitle?: string;   // Introduction subtitle under "Sobre Nós"
+  aboutHistory?: string;    // History text under "História & Propósito"
 }
 
 export interface UserProfile {

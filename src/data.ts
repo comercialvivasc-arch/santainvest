@@ -151,5 +151,8 @@ export const DEFAULT_BRAND_SETTINGS: BrandSettings = {
   termsOfUse: '',
   privacyPolicy: '',
   cookieText: '',
-  enableCookieConsent: true
+  enableCookieConsent: true,
+  aboutHeading: 'Portal imobiliário de lançamentos',
+  aboutSubtitle: 'Conectamos você aos lançamentos mais promissores das principais construtoras no litoral de Santa Catarina.',
+  aboutHistory: 'Fundada sob os pilares da transparência e inovação tecnológica, a imobiliária atua de forma diferenciada no mercado litoral do sul do país.\n\nAcreditamos que a compra do primeiro ou múltiplos investimentos de alto padrão deve ser guiada por análise preditiva de valorização espacial, planos de parcelas adaptados diretamente à sua capacidade e segurança jurídica plena.'
 };

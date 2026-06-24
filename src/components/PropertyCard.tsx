@@ -491,7 +491,8 @@ export default function PropertyCard({
               src={property.images[currentImgIndex]}
               alt={`${property.name} - slide ${currentImgIndex + 1}`}
               referrerPolicy="no-referrer"
-              className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+              className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105 border-2"
+              style={{ borderColor: '#ffffff' }}
             />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-zinc-500 bg-zinc-200 font-mono text-xs">
@@ -1318,55 +1319,83 @@ export default function PropertyCard({
               )}
 
               {/* CADASTRO DE PRÉ-APROVAÇÃO WIDGET */}
-              <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-5 sm:p-6 text-left space-y-4 shadow-sm scroll-mt-20">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-zinc-200 pb-3">
-                  <div className="space-y-1">
-                    <h4 className="text-md sm:text-lg font-black text-zinc-900 uppercase tracking-wider flex items-center gap-2">
-                      <ShieldCheck className="h-5 w-5" style={{ color: '#ff6200' }} />
-                      Análise para Pré-Aprovação
-                    </h4>
-                    <p className="text-[11px] text-zinc-500 leading-normal">
-                      Inicie seu cadastro de crédito imobiliário de forma segura e 100% criptografada direta com os bancos.
-                    </p>
-                  </div>
-                  <div className="shrink-0">
-                    {paStatus === 'success' ? (
-                      <span className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-[10px] font-extrabold uppercase tracking-wider px-3 py-1.5 rounded-xl">
-                        <Check className="h-3 w-3 stroke-[3]" /> Enviado
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 bg-[#FF9D00]/10 border border-[#FF9D00]/30 text-zinc-800 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg font-mono">
-                        GRATUITO
-                      </span>
-                    )}
-                  </div>
+              <div 
+                style={{ backgroundColor: '#203366' }}
+                className="border border-zinc-200/20 rounded-3xl p-5 sm:p-6 text-left space-y-4 shadow-sm scroll-mt-20"
+              >
+                {/* div:nth-of-type(1) */}
+                <div className="hidden" />
+
+                {/* div:nth-of-type(2) - contains h4 and icon */}
+                <div>
+                  <h4 
+                    className="text-md sm:text-lg font-black uppercase tracking-wider flex items-center gap-2"
+                  >
+                    <ShieldCheck className="h-5 w-5 shrink-0" style={{ color: '#ff6200' }} />
+                    <span style={{ color: '#ffffff' }}>Análise para Pré-Aprovação</span>
+                  </h4>
+                  <p 
+                    style={{ color: '#ffffff' }}
+                    className="text-[11px] leading-normal opacity-90 mt-1"
+                  >
+                    Inicie seu cadastro de crédito imobiliário de forma segura e 100% criptografada direta com os bancos.
+                  </p>
                 </div>
 
-                <p className="text-xs text-zinc-650 leading-relaxed font-semibold">
-                  Com esse cadastro, nossa equipe de correspondentes bancários credenciados irá simular e buscar a melhor taxa de financiamento para você em instituições como Caixa, Itaú, Bradesco e Santander.
-                </p>
-
+                {/* div:nth-of-type(3) - contains the button */}
                 <div className="pt-1">
                   <button
                     type="button"
                     onClick={() => setIsPaModalOpen(true)}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF9D00] hover:bg-[#E08A00] text-black font-extrabold text-xs uppercase tracking-wider py-3.5 px-6 transition-all text-center cursor-pointer select-none active:scale-[0.99] shadow-sm hover:shadow-md"
-                    style={{ color: '#fefeff', backgroundColor: '#ff6200' }}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#ff6200] text-white font-extrabold text-xs uppercase tracking-wider py-3.5 px-6 transition-all text-center cursor-pointer select-none active:scale-[0.99] shadow-sm hover:shadow-md hover:bg-[#E08A00]"
+                    style={{ color: '#ffffff', backgroundColor: '#ff6200' }}
                   >
                     <Sparkles className="h-4 w-4 shrink-0" />
                     <span>{paStatus === 'success' ? 'Ver ou Refazer Cadastro' : 'Saber mais e simular agora'}</span>
                   </button>
                 </div>
+
+                {/* div:nth-of-type(4) - contains the badge container div:nth-of-type(2) with span */}
+                <div>
+                  {/* div:nth-of-type(1) - contains description */}
+                  <div>
+                    <p className="text-xs text-white opacity-95 leading-relaxed font-semibold">
+                      Com esse cadastro, nossa equipe de correspondentes bancários credenciados irá simular e buscar a melhor taxa de financiamento para você em instituições como Caixa, Itaú, Bradesco e Santander.
+                    </p>
+                  </div>
+                  {/* div:nth-of-type(2) - contains the badge flex row */}
+                  <div className="flex justify-between items-center mt-3 border-t border-white/10 pt-3">
+                    <span className="text-[10px] font-mono text-white/60">Custo do serviço:</span>
+                    {/* div:nth-of-type(1) - wraps the badge span */}
+                    <div className="shrink-0 flex items-center gap-1.5">
+                      {paStatus === 'success' ? (
+                        <span className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-[10px] font-extrabold uppercase tracking-wider px-3 py-1.5 rounded-xl">
+                          <Check className="h-3 w-3 stroke-[3]" /> Enviado
+                        </span>
+                      ) : (
+                        <span 
+                          style={{ color: '#ff6200' }}
+                          className="inline-flex items-center gap-1 border border-white/20 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg font-mono bg-white/5"
+                        >
+                          GRATUITO
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* CONTACT FORM EMAIL WIDGET (o email que será para contato de formulários) */}
-              <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5 sm:p-6 text-left space-y-4">
-                <h4 className="text-md sm:text-lg font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+              <div 
+                style={{ backgroundColor: '#203366' }}
+                className="border border-zinc-200/20 rounded-2xl p-5 sm:p-6 text-left space-y-4"
+              >
+                <h4 className="text-md sm:text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <span className="text-primary text-base font-mono">@</span>
-                  Fale por E-mail
+                  Precisa achar um imóvel ideal?
                 </h4>
-                <p className="text-xs text-zinc-650 leading-relaxed">
-                  Deseja enviar uma mensagem direta por e-mail? Escreva abaixo para falar com o anunciante.
+                <p className="text-xs text-white opacity-90 leading-relaxed">
+                  Envie sua mensagem com as informações do que procura, que vamos retornar com novas opções.
                 </p>
 
                 {emailFormStatus === 'success' ? (
@@ -1479,7 +1508,7 @@ export default function PropertyCard({
                         required
                         value={emailFormMsg}
                         onChange={(e) => setEmailFormMsg(e.target.value)}
-                        placeholder="Estou interessado neste lançamento, gostaria de receber mais informações e detalhes de financiamento..."
+                        placeholder="Informe a região de procura, sua idéia de parcelas, quanto de entrada dispõe e outras informações que nos ajudem a achar a melhor oportunidade para você"
                         className="w-full bg-white border border-zinc-250 rounded-xl p-4 text-xs text-zinc-850 placeholder-zinc-400 focus:outline-none focus:border-primary/40 focus:bg-zinc-50 transition-all min-h-[80px] resize-none"
                       />
                     </div>
