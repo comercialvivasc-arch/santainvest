@@ -147,6 +147,10 @@ export default function AdminPanel({
   const [settingsAboutHeading, setSettingsAboutHeading] = useState(settings?.aboutHeading || '');
   const [settingsAboutSubtitle, setSettingsAboutSubtitle] = useState(settings?.aboutSubtitle || '');
   const [settingsAboutHistory, setSettingsAboutHistory] = useState(settings?.aboutHistory || '');
+  const [settingsMcmvLogoUrl, setSettingsMcmvLogoUrl] = useState(settings?.mcmvLogoUrl || '');
+  const [settingsCadastroHeading, setSettingsCadastroHeading] = useState(settings?.cadastroHeading || '');
+  const [settingsCadastroSubtitle, setSettingsCadastroSubtitle] = useState(settings?.cadastroSubtitle || '');
+  const [settingsCadastroContent, setSettingsCadastroContent] = useState(settings?.cadastroContent || '');
   const [isSettingsUpdating, setIsSettingsUpdating] = useState(false);
   const [settingsUpdateStatus, setSettingsUpdateStatus] = useState<string | null>(null);
 
@@ -184,6 +188,10 @@ export default function AdminPanel({
       setSettingsAboutHeading(settings.aboutHeading || '');
       setSettingsAboutSubtitle(settings.aboutSubtitle || '');
       setSettingsAboutHistory(settings.aboutHistory || '');
+      setSettingsMcmvLogoUrl(settings.mcmvLogoUrl || '');
+      setSettingsCadastroHeading(settings.cadastroHeading || '');
+      setSettingsCadastroSubtitle(settings.cadastroSubtitle || '');
+      setSettingsCadastroContent(settings.cadastroContent || '');
     }
   }, [settings]);
 
@@ -1721,7 +1729,11 @@ export default function AdminPanel({
                     enableCookieConsent: settingsEnableCookieConsent,
                     aboutHeading: settingsAboutHeading,
                     aboutSubtitle: settingsAboutSubtitle,
-                    aboutHistory: settingsAboutHistory
+                    aboutHistory: settingsAboutHistory,
+                    mcmvLogoUrl: settingsMcmvLogoUrl,
+                    cadastroHeading: settingsCadastroHeading,
+                    cadastroSubtitle: settingsCadastroSubtitle,
+                    cadastroContent: settingsCadastroContent
                   });
                   setSettingsUpdateStatus('Configurações de marca e contatos salvas no Firebase Firestore com sucesso.');
                 } catch (err: any) {
@@ -2316,6 +2328,76 @@ export default function AdminPanel({
                   </div>
                 </div>
               </div>
+
+                <div className="mt-8 pt-8 border-t border-zinc-900 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-500/10 border border-orange-500/20 rounded-xl text-orange-400">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold tracking-widest text-[#FF9D00] font-mono uppercase block mb-1">
+                        ✦ Menu Cadastro
+                      </span>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                        Textos da Página de Cadastro
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">
+                        URL do Logo Minha Casa Minha Vida
+                      </label>
+                      <input
+                        type="text"
+                        value={settingsMcmvLogoUrl}
+                        onChange={(e) => setSettingsMcmvLogoUrl(e.target.value)}
+                        placeholder="https://exemplo.com/logo-mcmv.png"
+                        className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">
+                        Título da Página
+                      </label>
+                      <input
+                        type="text"
+                        value={settingsCadastroHeading}
+                        onChange={(e) => setSettingsCadastroHeading(e.target.value)}
+                        placeholder="Faça seu cadastro"
+                        className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">
+                        Subtítulo da Página
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={settingsCadastroSubtitle}
+                        onChange={(e) => setSettingsCadastroSubtitle(e.target.value)}
+                        placeholder="Informações para simulação"
+                        className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">
+                        Conteúdo Principal
+                      </label>
+                      <textarea
+                        rows={5}
+                        value={settingsCadastroContent}
+                        onChange={(e) => setSettingsCadastroContent(e.target.value)}
+                        placeholder="Conteúdo informativo..."
+                        className="w-full rounded-xl bg-black px-4 py-3 text-xs text-white border border-zinc-900 focus:border-orange-500/60 outline-none font-sans"
+                      />
+                    </div>
+                  </div>
+                </div>
 
               {/* Submit panel buttons */}
               <div className="border-t border-zinc-900 pt-5 text-right">

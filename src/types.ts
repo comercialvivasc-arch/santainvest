@@ -85,6 +85,10 @@ export interface BrandSettings {
   aboutHeading?: string;    // Badge text above "Sobre Nós"
   aboutSubtitle?: string;   // Introduction subtitle under "Sobre Nós"
   aboutHistory?: string;    // History text under "História & Propósito"
+  mcmvLogoUrl?: string;     // Logo for Minha Casa Minha Vida
+  cadastroHeading?: string; // Heading for Cadastro page
+  cadastroSubtitle?: string;// Subtitle for Cadastro page
+  cadastroContent?: string; // Content for Cadastro page
 }
 
 export interface UserProfile {

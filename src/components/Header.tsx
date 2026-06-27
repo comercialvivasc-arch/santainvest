@@ -6,8 +6,8 @@ import { BrandSettings } from '../types';
 interface HeaderProps {
   currentView: 'home' | 'admin';
   onNavigate: (view: 'home' | 'admin') => void;
-  currentTab: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato';
-  onTabChange: (tab: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato') => void;
+  currentTab: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato' | 'cadastro';
+  onTabChange: (tab: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato' | 'cadastro') => void;
   query?: string;
   setQuery?: (q: string) => void;
   settings: BrandSettings;
@@ -56,6 +56,7 @@ export default function Header({
     { id: 'lançamentos', label: 'Lançamentos' },
     { id: 'bairros', label: 'Bairros' },
     { id: 'sobre', label: 'Sobre Nós' },
+    { id: 'cadastro', label: 'Cadastro' },
     { id: 'favoritos', label: 'Favoritos' },
     { id: 'contato', label: 'Contato' }
   ];

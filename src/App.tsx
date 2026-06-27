@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { CadastroForm } from './components/CadastroForm';
 import Header from './components/Header';
 import SearchHero from './components/SearchHero';
 import SearchPanel from './components/SearchPanel';
@@ -120,7 +121,7 @@ export default function App() {
 
   // Navigation View ('home' or 'admin')
   const [currentView, setCurrentView] = useState<'home' | 'admin'>('home');
-  const [currentTab, setCurrentTab] = useState<'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato'>('home');
+  const [currentTab, setCurrentTab] = useState<'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato' | 'cadastro'>('home');
   const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy' | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
@@ -916,6 +917,37 @@ export default function App() {
     );
   };
 
+  const renderCadastroSection = () => (
+    <div className="w-full bg-white text-zinc-900 py-16 px-6 lg:px-8 mt-1 border-t border-zinc-150 animate-fade-in">
+      <div className="max-w-4xl mx-auto space-y-12">
+        <div className="text-center space-y-3">
+          <span className="text-[11px] font-bold tracking-widest text-[#FF9D00] uppercase font-mono block">
+            ✦ Cadastro
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#203366] uppercase tracking-tight">
+            {settings?.cadastroHeading || 'Faça seu cadastro'}
+          </h1>
+          <p className="max-w-2xl mx-auto text-sm text-zinc-550 leading-relaxed">
+            {settings?.cadastroSubtitle || 'Preencha as informações para prosseguir com sua simulação.'}
+          </p>
+        </div>
+
+        {settings?.mcmvLogoUrl && (
+          <div className="flex justify-center">
+            <img src={settings.mcmvLogoUrl} alt="Logo" className="h-16 object-contain" />
+          </div>
+        )}
+
+        <div className="bg-zinc-50 border border-zinc-200 p-8 rounded-3xl text-sm text-zinc-650 leading-relaxed whitespace-pre-wrap">
+          {settings?.cadastroContent || 'Conteúdo do cadastro aqui...'}
+          <div className="mt-8">
+            <CadastroForm settings={settings} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#050507] text-[#f4f4f5] flex flex-col justify-between selection:bg-primary selection:text-black" id="root-portal">
       {/* 1. STICKY GLASS HEADER */}
@@ -1052,6 +1084,7 @@ export default function App() {
               {currentTab === 'sobre' && renderSobreSection()}
               {currentTab === 'bairros' && renderBairrosSection()}
               {currentTab === 'favoritos' && renderFavoritosSection()}
+              {currentTab === 'cadastro' && renderCadastroSection()}
               {currentTab === 'contato' && (
                 <ContatoSection 
                   settings={settings} 
