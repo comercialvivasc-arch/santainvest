@@ -5067,7 +5067,7 @@ export default function AdminPanel({
                             : 'border-zinc-800 opacity-60 hover:opacity-100'
                         }`}
                       >
-                        <img src={pUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                        <img src={pUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-contain" />
                         {propImagesList.includes(pUrl) && (
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                             <Check className="h-5 w-5 text-orange-500 stroke-[3]" />
@@ -5129,7 +5129,7 @@ export default function AdminPanel({
                             src={url} 
                             alt={`Imagem ${idx + 1}`} 
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover transition-transform group-hover/img:scale-105" 
+                            className="w-full h-full object-contain transition-transform group-hover/img:scale-105" 
                           />
                           
                           {/* Top-right delete/remove button */}
@@ -5526,7 +5526,7 @@ export default function AdminPanel({
                             bannerImageUrl === imgUrl ? 'border-orange-500 scale-95' : 'border-zinc-800'
                           }`}
                         >
-                          <img src={imgUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                          <img src={imgUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-contain" />
                         </button>
                       ))}
                     </div>
