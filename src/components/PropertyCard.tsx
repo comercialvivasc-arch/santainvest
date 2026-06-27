@@ -357,12 +357,28 @@ export default function PropertyCard({
     };
   }, [isModalOpen]);
 
+  const getPriceNum = (p: string | number) => typeof p === 'number' ? p : Number(p) || 0;
+
   // Currency Formatter helper
-  const formatBRL = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(val);
+  const formatBRL = (val: string | number) => {
+    if (typeof val === 'number') {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(val);
+    }
+    
+    // Check if the string is actually a number
+    const num = Number(val);
+    if (!isNaN(num) && val.trim() !== '') {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(num);
+    }
+    
+    // If it's a string that's not a number, just return the string
+    return val;
   };
 
   // Carousel helpers
@@ -1016,11 +1032,8 @@ export default function PropertyCard({
 
                       {/* Right: Descritivo */}
                       <div className="md:col-span-5 space-y-3 flex flex-col justify-center">
-                        <div>
-                          <span className="text-[10px] font-bold text-[#FF9D00] tracking-widest uppercase font-mono">
-                            Layout Premium Selecionado
-                          </span>
-                          <h5 className="text-sm sm:text-md font-bold text-zinc-900 mt-1">
+                        <div className="flex flex-col justify-center">
+                          <h5 className="text-sm sm:text-md font-bold text-zinc-900">
                             {floorPlansList[activePlanIdx >= floorPlansList.length ? 0 : activePlanIdx].name}
                           </h5>
                         </div>
@@ -1034,6 +1047,12 @@ export default function PropertyCard({
                             <div>
                               <span className="text-zinc-500 block text-[9px] uppercase font-semibold">Área da Privativa</span>
                               <span className="text-zinc-900 text-xs">{formatAreaLabel(floorPlansList[activePlanIdx >= floorPlansList.length ? 0 : activePlanIdx].area || '')}</span>
+                            </div>
+                          )}
+                          {floorPlansList[activePlanIdx >= floorPlansList.length ? 0 : activePlanIdx].bedrooms && (
+                            <div>
+                              <span className="text-zinc-500 block text-[9px] uppercase font-semibold">Dormitórios</span>
+                              <span className="text-zinc-900 text-xs">{floorPlansList[activePlanIdx >= floorPlansList.length ? 0 : activePlanIdx].bedrooms}</span>
                             </div>
                           )}
                           <div>
@@ -1140,7 +1159,7 @@ export default function PropertyCard({
                     </div>
                     <div className="text-right">
                       <span className="text-sm font-extrabold text-zinc-900 block" style={{ color: '#18181b' }}>
-                        {formatBRL(property.reintegrationValue !== undefined ? property.reintegrationValue : Math.round(property.price * 0.2 / (property.reintegrationCount || 5)))}
+                        {formatBRL(property.reintegrationValue !== undefined ? property.reintegrationValue : Math.round(getPriceNum(property.price) * 0.2 / (property.reintegrationCount || 5)))}
                       </span>
                       <span className="text-[11px] text-zinc-500 block font-bold mt-0.5">{property.reintegrationCount || 5}x Anuais</span>
                     </div>
@@ -1153,7 +1172,7 @@ export default function PropertyCard({
                       <span className="text-[10px] text-zinc-500 font-sans block mt-0.5">Entrega efetiva do imóvel ou financiamento bancário</span>
                     </div>
                     <span className="text-sm font-extrabold text-zinc-900">
-                      {formatBRL(property.keysValue !== undefined ? property.keysValue : Math.round(property.price * 0.1))}
+                      {formatBRL(property.keysValue !== undefined ? property.keysValue : Math.round(getPriceNum(property.price) * 0.1))}
                     </span>
                   </div>
 
@@ -1187,12 +1206,12 @@ export default function PropertyCard({
                     (() => {
                       const rValue = property.reintegrationValue !== undefined 
                         ? property.reintegrationValue 
-                        : Math.round(property.price * 0.2 / (property.reintegrationCount || 5));
+                        : Math.round(getPriceNum(property.price) * 0.2 / (property.reintegrationCount || 5));
                       const rCount = property.reintegrationCount || 5;
                       
                       const kValue = property.keysValue !== undefined 
                         ? property.keysValue 
-                        : Math.round(property.price * 0.1);
+                        : Math.round(getPriceNum(property.price) * 0.1);
 
                       const entradaDetail = property.downpaymentInstallmentsCount !== undefined && property.downpaymentInstallmentsCount > 1 
                         ? ` (parcelada em ${property.downpaymentInstallmentsCount}x de ${formatBRL(Math.round(property.downpayment / property.downpaymentInstallmentsCount))})` 

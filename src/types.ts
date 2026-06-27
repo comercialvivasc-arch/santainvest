@@ -4,6 +4,7 @@ export interface FloorPlan {
   image: string;       // URL or Base64 string
   description: string; // Description details e.g. "3 Suítes sendo 1 Master com closet, Cozinha gourmet e Churrasqueira"
   area?: string | number; // m² (optional)
+  bedrooms?: string | number; // Add bedrooms
 }
 
 export interface Property {
@@ -19,7 +20,7 @@ export interface Property {
   suites?: string | number;
   area: string | number; // in m²
   parkingSpaces: string | number;
-  price: number; // starting price (valor a partir de)
+  price: string | number; // starting price (valor a partir de) - Changed to string | number
   downpayment: number; // entrada a partir de
   installments: number; // parcelas a partir de
   images: string[]; // array of images for the slider

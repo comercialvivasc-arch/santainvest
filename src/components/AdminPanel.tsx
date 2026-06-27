@@ -552,7 +552,7 @@ export default function AdminPanel({
   const [propSuites, setPropSuites] = useState<string | number>('');
   const [propArea, setPropArea] = useState<string | number>(80);
   const [propParking, setPropParking] = useState<string | number>(1);
-  const [propPrice, setPropPrice] = useState(600000);
+  const [propPrice, setPropPrice] = useState<string | number>(600000);
   const [propDownpayment, setPropDownpayment] = useState(60000);
   const [propInstallments, setPropInstallments] = useState(2500);
   const [propImageInput, setPropImageInput] = useState('');
@@ -577,7 +577,8 @@ export default function AdminPanel({
 
   // Auto-calculation of downpayment, installments, reinforcements (balloon), and keys
   useEffect(() => {
-    const price = Number(propPrice) || 0;
+    if (typeof propPrice !== 'number') return;
+    const price = propPrice;
     
     // Entrada
     const downpaymentVal = Math.round(price * (Number(propDownpaymentPct) / 100));
@@ -613,6 +614,7 @@ export default function AdminPanel({
   const [newPlanArea, setNewPlanArea] = useState('');
   const [newPlanDescription, setNewPlanDescription] = useState('');
   const [newPlanImageUrl, setNewPlanImageUrl] = useState('');
+  const [newPlanBedrooms, setNewPlanBedrooms] = useState<string | number | undefined>(undefined);
   
   // Form Banner State
   const [isBannerFormOpen, setIsBannerFormOpen] = useState(false);
@@ -712,9 +714,47 @@ export default function AdminPanel({
     setPropInstallmentsCount(p.installmentsCount !== undefined ? p.installmentsCount : 60);
     setPropReintegrationPct(p.reintegrationPct !== undefined ? p.reintegrationPct : 20);
     setPropReintegrationCount(p.reintegrationCount !== undefined ? p.reintegrationCount : 5);
-    setPropReintegrationValue(p.reintegrationValue !== undefined ? p.reintegrationValue : Math.round(p.price * 0.2 / 5));
+    setPropReintegrationValue(p.reintegrationValue !== undefined ? p.reintegrationValue : Math.round((typeof p.price === 'number' ? p.price : Number(p.price) || 0) * 0.2 / 5));
     setPropKeysPct(p.keysPct !== undefined ? p.keysPct : 10);
-    setPropKeysValue(p.keysValue !== undefined ? p.keysValue : Math.round(p.price * 0.1));
+    setPropKeysValue(p.keysValue !== undefined ? p.keysValue : Math.round((typeof p.price === 'number' ? p.price : Number(p.price) || 0) * 0.1));
+    setPropCefContractFee(p.cefContractFee !== undefined ? p.cefContractFee : undefined);
+    setPropAvailableUnits(p.availableUnits !== undefined ? p.availableUnits : undefined);
+    setPropTableConditionDescription(p.tableConditionDescription || '');
+    setPropImageInput('');
+    setPropImagesList(p.images);
+    setPropPrivateNotes(p.privateNotes || '');
+    setPropDetailedDescription(p.detailedDescription || '');
+    setPropFloorPlans(p.floorPlans || []);
+    setIsPropertyFormOpen(true);
+  };
+
+  const handleDuplicateProperty = (p: Property) => {
+    setEditingPropertyId(null); // Will create a new property
+    setPropName(`${p.name} (Cópia)`);
+    setPropStatus(p.status);
+    setPropDelivery(p.deliveryDate);
+    setPropNeighborhood(p.neighborhood);
+    setPropRegion(p.region);
+    setPropAddress(p.address);
+    setPropIsMcmv(p.isMcmv || false);
+    setPropMcmvLogoUrl(p.mcmvLogoUrl || '');
+    setPropType(p.projectType);
+    setPropBedrooms(p.bedrooms);
+    setPropSuites(p.suites !== undefined && p.suites !== null ? p.suites : '');
+    setPropArea(p.area);
+    setPropParking(p.parkingSpaces);
+    setPropPrice(p.price);
+    setPropDownpayment(p.downpayment);
+    setPropInstallments(p.installments);
+    setPropDownpaymentPct(p.downpaymentPct !== undefined ? p.downpaymentPct : 10);
+    setPropDownpaymentInstallmentsCount(p.downpaymentInstallmentsCount !== undefined ? p.downpaymentInstallmentsCount : 1);
+    setPropInstallmentsPct(p.installmentsPct !== undefined ? p.installmentsPct : 60);
+    setPropInstallmentsCount(p.installmentsCount !== undefined ? p.installmentsCount : 60);
+    setPropReintegrationPct(p.reintegrationPct !== undefined ? p.reintegrationPct : 20);
+    setPropReintegrationCount(p.reintegrationCount !== undefined ? p.reintegrationCount : 5);
+    setPropReintegrationValue(p.reintegrationValue !== undefined ? p.reintegrationValue : Math.round((typeof p.price === 'number' ? p.price : Number(p.price) || 0) * 0.2 / 5));
+    setPropKeysPct(p.keysPct !== undefined ? p.keysPct : 10);
+    setPropKeysValue(p.keysValue !== undefined ? p.keysValue : Math.round((typeof p.price === 'number' ? p.price : Number(p.price) || 0) * 0.1));
     setPropCefContractFee(p.cefContractFee !== undefined ? p.cefContractFee : undefined);
     setPropAvailableUnits(p.availableUnits !== undefined ? p.availableUnits : undefined);
     setPropTableConditionDescription(p.tableConditionDescription || '');
@@ -797,7 +837,8 @@ export default function AdminPanel({
       name: newPlanName.trim(),
       image: newPlanImageUrl.trim() || 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80',
       description: newPlanDescription.trim() || 'Planta humanizada com distribuição inteligente e acabamento fino.',
-      area: newPlanArea ? Number(newPlanArea) : undefined
+      area: newPlanArea ? Number(newPlanArea) : undefined,
+      bedrooms: newPlanBedrooms
     };
     setPropFloorPlans([...propFloorPlans, newPlan]);
     // Reset inputs
@@ -805,6 +846,7 @@ export default function AdminPanel({
     setNewPlanArea('');
     setNewPlanDescription('');
     setNewPlanImageUrl('');
+    setNewPlanBedrooms(undefined);
   };
 
   const handleRemovePlan = (idx: number) => {
@@ -916,7 +958,7 @@ export default function AdminPanel({
       suites: parseFlexField(propSuites),
       area: parseFlexField(propArea),
       parkingSpaces: parseFlexField(propParking),
-      price: Number(propPrice),
+      price: typeof propPrice === 'number' ? propPrice : propPrice.toString(),
       downpayment: Number(propDownpayment),
       installments: Number(propInstallments),
       downpaymentPct: Number(propDownpaymentPct),
@@ -997,11 +1039,25 @@ export default function AdminPanel({
     setIsBannerFormOpen(false);
   };
 
-  const formatBRL = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(val);
+  const formatBRL = (val: string | number) => {
+    if (typeof val === 'number') {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(val);
+    }
+    
+    // Check if the string is actually a number
+    const num = Number(val);
+    if (!isNaN(num) && val.trim() !== '') {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(num);
+    }
+    
+    // If it's a string that's not a number, just return the string
+    return val;
   };
 
 
@@ -1494,6 +1550,13 @@ export default function AdminPanel({
                 </div>
 
                 <div className="flex justify-end gap-2 text-xs">
+                  <button
+                    onClick={() => handleDuplicateProperty(p)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-zinc-800 text-zinc-300 hover:text-white hover:border-orange-500/50 hover:bg-zinc-900 transition-all cursor-pointer"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-orange-400" />
+                    Duplicar
+                  </button>
                   <button
                     onClick={() => openEditProperty(p)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-zinc-800 text-zinc-300 hover:text-white hover:border-orange-500/50 hover:bg-zinc-900 transition-all cursor-pointer"
@@ -2535,7 +2598,7 @@ export default function AdminPanel({
                       <p className="text-xs font-bold text-white truncate uppercase">{p.name}</p>
                       <p className="text-[10px] text-zinc-500 font-mono">{p.neighborhood}</p>
                     </div>
-                    <span className="text-xs font-mono font-bold text-zinc-300">R$ {(p.price / 1000000).toFixed(1)}M</span>
+                    <span className="text-xs font-mono font-bold text-zinc-300">R$ {(((typeof p.price === 'number' ? p.price : Number(p.price) || 0) / 1000000).toFixed(1))}M</span>
                   </div>
                 ))}
               </div>
@@ -4580,15 +4643,16 @@ export default function AdminPanel({
                       VALOR DE LISTA / PREÇO INICIAL (R$) *
                     </span>
                     <input
-                      type="number"
-                      min="100000"
-                      required
+                      type="text"
                       className="w-full text-center rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-3 text-lg font-bold text-white focus:border-orange-500 outline-none font-mono"
                       value={propPrice}
-                      onChange={(e) => setPropPrice(Number(e.target.value))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPropPrice(isNaN(Number(val)) || val === '' ? val : Number(val));
+                      }}
                     />
                     <div className="text-center font-bold text-sm text-zinc-400 mt-1.5 font-mono">
-                      {formatBRL(propPrice)}
+                      {typeof propPrice === 'number' ? formatBRL(propPrice) : propPrice}
                     </div>
                   </div>
 
@@ -5053,25 +5117,35 @@ export default function AdminPanel({
                       ➕ Cadastrar Nova Planta
                     </span>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide block mb-1">Nome da Planta *</label>
                         <input
                           type="text"
                           className="w-full rounded bg-black/50 border border-zinc-800 px-2.5 py-1.5 text-xs text-white focus:border-orange-500 outline-none"
-                          placeholder="Ex: Planta Tipo A - Frente Mar"
+                          placeholder="Ex: Planta Tipo A"
                           value={newPlanName}
                           onChange={(e) => setNewPlanName(e.target.value)}
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide block mb-1">Metragem (m² — opcional)</label>
+                        <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide block mb-1">Metragem (m²)</label>
                         <input
                           type="number"
                           className="w-full rounded bg-black/50 border border-zinc-800 px-2.5 py-1.5 text-xs text-white focus:border-orange-500 outline-none font-mono"
                           placeholder="Ex: 120"
                           value={newPlanArea}
                           onChange={(e) => setNewPlanArea(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide block mb-1">Dormitórios</label>
+                        <input
+                          type="text"
+                          className="w-full rounded bg-black/50 border border-zinc-800 px-2.5 py-1.5 text-xs text-white focus:border-orange-500 outline-none font-mono"
+                          placeholder="Ex: 1 a 2"
+                          value={newPlanBedrooms || ''}
+                          onChange={(e) => setNewPlanBedrooms(e.target.value)}
                         />
                       </div>
                     </div>

@@ -977,20 +977,6 @@ export default function App() {
 
                     <div className="flex flex-wrap items-center gap-4">
                       {/* MANUAL RESYNC DIRECTLY FROM SERVER */}
-                      <button 
-                        onClick={() => handleSyncData(false)}
-                        disabled={isSyncing}
-                        className={`flex items-center gap-2 rounded-xl border px-5 py-3.5 text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-sm cursor-pointer ${
-                          isSyncing 
-                            ? 'bg-zinc-100 text-zinc-400 border-zinc-200' 
-                            : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-900 hover:border-[#FF9D00]/40'
-                        }`}
-                        title="Atualizar imóveis diretamente do servidor"
-                      >
-                        <RefreshCw className={`h-4 w-4 text-[#FF9D00] ${isSyncing ? 'animate-spin' : ''}`} />
-                        {isSyncing ? 'Sincronizando...' : 'Atualizar'}
-                      </button>
-
                       {/* FILTERS POPUP TRIGGER BUTTON */}
                       <button 
                         onClick={() => setIsFilterPopupOpen(true)}
