@@ -76,8 +76,8 @@ interface AdminPanelProps {
   banners: BannerAd[];
   settings: BrandSettings;
   onSaveSettings: (settings: BrandSettings) => Promise<void>;
-  onAddProperty: (p: Property) => void;
-  onEditProperty: (p: Property) => void;
+  onAddProperty: (p: Property) => Promise<void>;
+  onEditProperty: (p: Property) => Promise<void>;
   onDeleteProperty: (id: string) => void;
   onAddBanner: (b: BannerAd) => void;
   onEditBanner: (b: BannerAd) => void;
@@ -905,7 +905,9 @@ export default function AdminPanel({
     reader.readAsDataURL(file);
   };
 
-  const onSubmitProperty = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const onSubmitProperty = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!propName || !propNeighborhood || !propRegion || !propAddress) {
       alert('Favor preencher os campos estruturais obrigatórios!');
@@ -917,99 +919,107 @@ export default function AdminPanel({
       return;
     }
 
-    const calculatedSlug = propName
-      .toLowerCase()
-      .normalize('NFD') // strip Portuguese accents and diacritics
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '');
+    setIsSaving(true);
+    try {
+      const calculatedSlug = propName
+        .toLowerCase()
+        .normalize('NFD') // strip Portuguese accents and diacritics
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '');
 
-    const calculatedSeoTitle = `${propName} | Lançamento ${propStatus} no ${propNeighborhood}`;
-    const calculatedSeoDesc = `Conheça ${propName} em ${propNeighborhood}, ${propRegion}. Lançamento residencial luxuoso com ${propBedrooms} dormitórios, ${propArea}m² privativos e parcelas iniciais de R$ ${propInstallments.toLocaleString('pt-BR')}. Agende já!`;
-    const calculatedKeywords = `${propName.toLowerCase()}, lançamento ${propNeighborhood.toLowerCase()}, comprar apartamento ${propRegion.toLowerCase()}, vivasc imovel`;
-    const calculatedSchema = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "RealEstateListing",
-      "name": propName,
-      "description": calculatedSeoDesc,
-      "url": `https://vivasc.com.br/imovel/${calculatedSlug}`,
-      "itemOffered": {
-        "@type": "Apartment",
+      const calculatedSeoTitle = `${propName} | Lançamento ${propStatus} no ${propNeighborhood}`;
+      const calculatedSeoDesc = `Conheça ${propName} em ${propNeighborhood}, ${propRegion}. Lançamento residencial luxuoso com ${propBedrooms} dormitórios, ${propArea}m² privativos e parcelas iniciais de R$ ${propInstallments.toLocaleString('pt-BR')}. Agende já!`;
+      const calculatedKeywords = `${propName.toLowerCase()}, lançamento ${propNeighborhood.toLowerCase()}, comprar apartamento ${propRegion.toLowerCase()}, vivasc imovel`;
+      const calculatedSchema = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "RealEstateListing",
         "name": propName,
-        "address": {
-          "@type": "PostalAddress",
-          "streetAddress": propAddress,
-          "addressLocality": propNeighborhood,
-          "addressRegion": propRegion,
-          "addressCountry": "BR"
-        },
-        "numberOfRooms": propBedrooms,
-        "floorSize": {
-          "@type": "QuantitativeValue",
-          "value": propArea,
-          "unitCode": "MTK"
+        "description": calculatedSeoDesc,
+        "url": `https://vivasc.com.br/imovel/${calculatedSlug}`,
+        "itemOffered": {
+          "@type": "Apartment",
+          "name": propName,
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": propAddress,
+            "addressLocality": propNeighborhood,
+            "addressRegion": propRegion,
+            "addressCountry": "BR"
+          },
+          "numberOfRooms": propBedrooms,
+          "floorSize": {
+            "@type": "QuantitativeValue",
+            "value": propArea,
+            "unitCode": "MTK"
+          }
         }
+      }, null, 2);
+
+      const parseFlexField = (val: any) => {
+        if (val === undefined || val === null || val === '') return '';
+        if (typeof val === 'number') return val;
+        const trimmed = String(val).trim();
+        const num = Number(trimmed);
+        if (!isNaN(num) && trimmed !== '') {
+          return num;
+        }
+        return trimmed;
+      };
+
+      const payload: Property = {
+        id: editingPropertyId || `prop-${Date.now()}`,
+        name: propName,
+        status: propStatus,
+        deliveryDate: propDelivery,
+        neighborhood: propNeighborhood,
+        region: propRegion,
+        address: propAddress,
+        projectType: propType,
+        bedrooms: parseFlexField(propBedrooms),
+        suites: parseFlexField(propSuites),
+        area: parseFlexField(propArea),
+        parkingSpaces: parseFlexField(propParking),
+        price: typeof propPrice === 'number' ? propPrice : propPrice.toString(),
+        downpayment: Number(propDownpayment),
+        installments: Number(propInstallments),
+        downpaymentPct: Number(propDownpaymentPct),
+        downpaymentInstallmentsCount: Number(propDownpaymentInstallmentsCount),
+        installmentsPct: Number(propInstallmentsPct),
+        installmentsCount: Number(propInstallmentsCount),
+        reintegrationPct: Number(propReintegrationPct),
+        reintegrationCount: Number(propReintegrationCount),
+        reintegrationValue: Number(propReintegrationValue),
+        keysPct: Number(propKeysPct),
+        keysValue: Number(propKeysValue),
+        images: propImagesList,
+        slug: calculatedSlug,
+        seoTitle: calculatedSeoTitle,
+        seoDescription: calculatedSeoDesc,
+        seoKeywords: calculatedKeywords,
+        schemaMarkup: calculatedSchema,
+        privateNotes: propPrivateNotes,
+        detailedDescription: propDetailedDescription,
+        floorPlans: propFloorPlans,
+        isMcmv: propIsMcmv,
+        mcmvLogoUrl: propMcmvLogoUrl,
+        cefContractFee: propCefContractFee !== undefined && propCefContractFee > 0 ? Number(propCefContractFee) : undefined,
+        availableUnits: propAvailableUnits !== undefined ? Number(propAvailableUnits) : undefined,
+        tableConditionDescription: propTableConditionDescription ? propTableConditionDescription.trim() : undefined
+      };
+
+      if (editingPropertyId) {
+        await onEditProperty(payload);
+      } else {
+        await onAddProperty(payload);
       }
-    }, null, 2);
-
-    const parseFlexField = (val: any) => {
-      if (val === undefined || val === null || val === '') return '';
-      if (typeof val === 'number') return val;
-      const trimmed = String(val).trim();
-      const num = Number(trimmed);
-      if (!isNaN(num) && trimmed !== '') {
-        return num;
-      }
-      return trimmed;
-    };
-
-    const payload: Property = {
-      id: editingPropertyId || `prop-${Date.now()}`,
-      name: propName,
-      status: propStatus,
-      deliveryDate: propDelivery,
-      neighborhood: propNeighborhood,
-      region: propRegion,
-      address: propAddress,
-      projectType: propType,
-      bedrooms: parseFlexField(propBedrooms),
-      suites: parseFlexField(propSuites),
-      area: parseFlexField(propArea),
-      parkingSpaces: parseFlexField(propParking),
-      price: typeof propPrice === 'number' ? propPrice : propPrice.toString(),
-      downpayment: Number(propDownpayment),
-      installments: Number(propInstallments),
-      downpaymentPct: Number(propDownpaymentPct),
-      downpaymentInstallmentsCount: Number(propDownpaymentInstallmentsCount),
-      installmentsPct: Number(propInstallmentsPct),
-      installmentsCount: Number(propInstallmentsCount),
-      reintegrationPct: Number(propReintegrationPct),
-      reintegrationCount: Number(propReintegrationCount),
-      reintegrationValue: Number(propReintegrationValue),
-      keysPct: Number(propKeysPct),
-      keysValue: Number(propKeysValue),
-      images: propImagesList,
-      slug: calculatedSlug,
-      seoTitle: calculatedSeoTitle,
-      seoDescription: calculatedSeoDesc,
-      seoKeywords: calculatedKeywords,
-      schemaMarkup: calculatedSchema,
-      privateNotes: propPrivateNotes,
-      detailedDescription: propDetailedDescription,
-      floorPlans: propFloorPlans,
-      isMcmv: propIsMcmv,
-      mcmvLogoUrl: propMcmvLogoUrl,
-      cefContractFee: propCefContractFee !== undefined && propCefContractFee > 0 ? Number(propCefContractFee) : undefined,
-      availableUnits: propAvailableUnits !== undefined ? Number(propAvailableUnits) : undefined,
-      tableConditionDescription: propTableConditionDescription ? propTableConditionDescription.trim() : undefined
-    };
-
-    if (editingPropertyId) {
-      onEditProperty(payload);
-    } else {
-      onAddProperty(payload);
+      setIsPropertyFormOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar imóvel. Verifique a conexão ou tente novamente.');
+    } finally {
+      setIsSaving(false);
     }
-    setIsPropertyFormOpen(false);
   };
 
   // Banner handlers
@@ -5375,9 +5385,10 @@ export default function AdminPanel({
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-3 rounded-xl bg-orange-500 text-black text-xs font-extrabold tracking-widest uppercase hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/15 cursor-pointer"
+                    disabled={isSaving}
+                    className="px-8 py-3 rounded-xl bg-orange-500 text-black text-xs font-extrabold tracking-widest uppercase hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/15 cursor-pointer disabled:opacity-50"
                   >
-                    Salvar Empreendimento
+                    {isSaving ? 'Salvando...' : 'Salvar Empreendimento'}
                   </button>
                 </div>
               </form>

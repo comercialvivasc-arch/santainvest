@@ -550,6 +550,7 @@ export default function App() {
       console.log("[Mutation] Novo imóvel salvo e sincronizado com o servidor!");
     } catch (err) {
       console.error('Error writing new property to Firestore', err);
+      throw err;
     }
   };
 
@@ -563,6 +564,7 @@ export default function App() {
       console.log("[Mutation] Alterações do imóvel salvas e sincronizadas com o servidor!");
     } catch (err) {
       console.error('Error editing property on Firestore', err);
+      throw err;
     }
   };
 
