@@ -449,9 +449,8 @@ export default function PropertyCard({
       ? `Olá! Gostaria de consultar mais detalhes e condições exclusivas sobre o lançamento imobiliário "${property.name}" localizado no bairro ${property.neighborhood} (${property.region}).`
       : `Olá! Tenho interesse no lançamento "${property.name}" em ${property.neighborhood}. Valor sugerido: ${formatBRL(property.price)}. Gostaria de maiores informações sobre a Entrada de ${formatBRL(property.downpayment)} e parcelas de ${formatBRL(property.installments)}.`;
     
-    const realUrl = `${window.location.origin}${window.location.pathname}?imovel=${property.id}`;
-    const mainImg = property.images[0] || '';
-    const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}${mainImg ? `\nImagem: ${mainImg}` : ''}`;
+    const realUrl = `${window.location.origin}/api/s/${property.id}`;
+    const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}`;
     
     return `https://wa.me/${getCleanPhone()}?text=${encodeURIComponent(fullText)}`;
   };
@@ -459,9 +458,8 @@ export default function PropertyCard({
   const getCatalogWhatsAppLink = () => {
     const baseText = `Olá, me interessou este projeto e gostaria de receber o Catálogo do empreendimento ${property.name} (Ref: ${formatPropRef(property.id)}). Aguardo contato.`;
     
-    const realUrl = `${window.location.origin}${window.location.pathname}?imovel=${property.id}`;
-    const mainImg = property.images[0] || '';
-    const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}${mainImg ? `\nImagem: ${mainImg}` : ''}`;
+    const realUrl = `${window.location.origin}/api/s/${property.id}`;
+    const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}`;
     
     return `https://wa.me/${getCleanPhone()}?text=${encodeURIComponent(fullText)}`;
   };
@@ -2049,7 +2047,7 @@ export default function PropertyCard({
                           onClick={(e) => e.stopPropagation()}
                         />
                         <div>
-                          <p className="text-xs font-bold text-zinc-800">Desejo compor renda imobiliária</p>
+                          <p className="text-xs font-bold text-zinc-800">Desejo compor renda familiar</p>
                           <p className="text-[10px] text-zinc-450">Somar rendimentos próprios com cônjuges ou parentes.</p>
                         </div>
                       </button>

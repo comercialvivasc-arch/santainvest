@@ -110,6 +110,13 @@ async function startServer() {
     }
   });
 
+  // API route for short links
+  app.get('/api/s/:id', (req, res) => {
+    const { id } = req.params;
+    res.redirect(`/?imovel=${id}`);
+  });
+
+
   let vite: any;
   if (process.env.NODE_ENV !== 'production') {
     vite = await createViteServer({
