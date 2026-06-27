@@ -493,7 +493,11 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const imovelId = params.get('imovel') || params.get('id');
-    if (imovelId && imovelId !== globalSelectedPropertyId) {
+    
+    // Check for path navigation
+    if (window.location.pathname === '/cadastro') {
+      setCurrentTab('cadastro');
+    } else if (imovelId && imovelId !== globalSelectedPropertyId) {
       const found = properties.some((p) => p.id === imovelId);
       if (found) {
         setGlobalSelectedPropertyId(imovelId);
