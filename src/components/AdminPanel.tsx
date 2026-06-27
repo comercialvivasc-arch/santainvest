@@ -623,6 +623,7 @@ export default function AdminPanel({
   const [newPlanDescription, setNewPlanDescription] = useState('');
   const [newPlanImageUrl, setNewPlanImageUrl] = useState('');
   const [newPlanBedrooms, setNewPlanBedrooms] = useState<string | number | undefined>(undefined);
+  const [editingPlanIdx, setEditingPlanIdx] = useState<number | null>(null);
   
   // Form Banner State
   const [isBannerFormOpen, setIsBannerFormOpen] = useState(false);
@@ -840,15 +841,24 @@ export default function AdminPanel({
       alert('Por favor, informe pelo menos o nome da planta!');
       return;
     }
-    const newPlan: FloorPlan = {
-      id: `fp-${Date.now()}`,
+    const planData: FloorPlan = {
+      id: editingPlanIdx !== null ? propFloorPlans[editingPlanIdx].id : `fp-${Date.now()}`,
       name: newPlanName.trim(),
       image: newPlanImageUrl.trim() || 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=800&q=80',
       description: newPlanDescription.trim() || 'Planta humanizada com distribuição inteligente e acabamento fino.',
       area: newPlanArea ? Number(newPlanArea) : undefined,
       bedrooms: newPlanBedrooms
     };
-    setPropFloorPlans([...propFloorPlans, newPlan]);
+    
+    if (editingPlanIdx !== null) {
+      const updatedPlans = [...propFloorPlans];
+      updatedPlans[editingPlanIdx] = planData;
+      setPropFloorPlans(updatedPlans);
+      setEditingPlanIdx(null);
+    } else {
+      setPropFloorPlans([...propFloorPlans, planData]);
+    }
+
     // Reset inputs
     setNewPlanName('');
     setNewPlanArea('');
@@ -5183,6 +5193,20 @@ export default function AdminPanel({
                           </div>
                           <button
                             type="button"
+                            onClick={() => {
+                              setEditingPlanIdx(idx);
+                              setNewPlanName(p.name);
+                              setNewPlanArea(p.area ? String(p.area) : '');
+                              setNewPlanDescription(p.description || '');
+                              setNewPlanImageUrl(p.image || '');
+                              setNewPlanBedrooms(p.bedrooms);
+                            }}
+                            className="absolute top-2 right-9 p-1 rounded bg-zinc-900 hover:bg-zinc-700 text-zinc-500 transition-colors"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleRemovePlan(idx)}
                             className="absolute top-2 right-2 p-1 rounded bg-zinc-900 hover:bg-red-950 hover:text-red-400 text-zinc-500 transition-colors"
                           >
@@ -5195,9 +5219,21 @@ export default function AdminPanel({
 
                   {/* Inputs for adding a plan */}
                   <div className="bg-black/35 p-3 sm:p-4 rounded-xl border border-zinc-850 space-y-3">
-                    <span className="block text-[10px] font-black text-orange-500 uppercase font-mono tracking-wider">
-                      ➕ Cadastrar Nova Planta
-                    </span>
+                    <div className="flex justify-between items-center">
+                      <span className="block text-[10px] font-black text-orange-500 uppercase font-mono tracking-wider">
+                        {editingPlanIdx !== null ? '✏️ Editando Planta' : '➕ Cadastrar Nova Planta'}
+                      </span>
+                      {editingPlanIdx !== null && (
+                        <button type="button" onClick={() => {
+                          setEditingPlanIdx(null);
+                          setNewPlanName('');
+                          setNewPlanArea('');
+                          setNewPlanDescription('');
+                          setNewPlanImageUrl('');
+                          setNewPlanBedrooms(undefined);
+                        }} className="text-[10px] text-zinc-400 hover:text-white">Cancelar</button>
+                      )}
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
