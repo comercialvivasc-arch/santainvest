@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, ChevronLeft, ChevronRight, X, Sparkles, CheckCircle, Upload, FileUp, FileText, Check, ShieldCheck, UserCheck, HelpCircle, User, Briefcase, Coins, Trash2, Eye, Phone, BookOpen, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Bed, Maximize, Car, MapPin, Calendar, Compass, Share2, MessageSquare, ChevronLeft, ChevronRight, X, Sparkles, CheckCircle, Upload, FileUp, FileText, Check, ShieldCheck, UserCheck, HelpCircle, User, Briefcase, Coins, Trash2, Eye, Phone, BookOpen, ArrowLeft, AlertTriangle, Bath } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BrandSettings } from '../types';
 import { saveLeadToFirestore, saveMessageToFirestore } from '../services/firestoreService';
@@ -285,30 +285,6 @@ export default function PropertyCard({
     return () => window.removeEventListener('favorites-updated', handleUpdate);
   }, [property.id]);
 
-  // Native share handler
-  const handleShare = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    const realUrl = `${window.location.origin}${window.location.pathname}?imovel=${property.id}`;
-    const shareData = {
-      title: property.name,
-      text: `${property.projectType || 'Lançamento'} - ${property.neighborhood}, ${property.region}. Veja fotos, plantas e plano de parcelas facilitado!`,
-      url: realUrl,
-    };
-    
-    if (navigator.share) {
-      navigator.share(shareData)
-        .catch((err) => {
-          navigator.clipboard?.writeText(realUrl);
-          alert("Link do imóvel copiado!");
-        });
-    } else {
-      navigator.clipboard?.writeText(realUrl);
-      alert("Link do imóvel copiado para a área de transferência!");
-    }
-  };
 
   // Filter for similar properties excluding this one
   const similarProperties = React.useMemo(() => {
@@ -450,7 +426,8 @@ export default function PropertyCard({
       : `Olá! Tenho interesse no lançamento "${property.name}" em ${property.neighborhood}. Valor sugerido: ${formatBRL(property.price)}. Gostaria de maiores informações sobre a Entrada de ${formatBRL(property.downpayment)} e parcelas de ${formatBRL(property.installments)}.`;
     
     const realUrl = `${window.location.origin}/api/s/${property.id}`;
-    const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}`;
+    const imageUrl = property.images && property.images.length > 0 ? property.images[0] : '';
+    const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}${imageUrl ? `\n\nImagem do imóvel: ${imageUrl}` : ''}`;
     
     return `https://wa.me/${getCleanPhone()}?text=${encodeURIComponent(fullText)}`;
   };
@@ -459,206 +436,229 @@ export default function PropertyCard({
     const baseText = `Olá, me interessou este projeto e gostaria de receber o Catálogo do empreendimento ${property.name} (Ref: ${formatPropRef(property.id)}). Aguardo contato.`;
     
     const realUrl = `${window.location.origin}/api/s/${property.id}`;
-    const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}`;
+    const imageUrl = property.images && property.images.length > 0 ? property.images[0] : '';
+    const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}${imageUrl ? `\n\nImagem do imóvel: ${imageUrl}` : ''}`;
     
     return `https://wa.me/${getCleanPhone()}?text=${encodeURIComponent(fullText)}`;
   };
 
-  return (
-    <>
-      {!isModalOnly && (
-        <motion.div
-          layout
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="group relative rounded-2xl border border-zinc-205 bg-white overflow-hidden flex flex-col justify-between hover:border-primary hover:shadow-xl hover:shadow-primary/5 transition-all duration-500"
-        >
-        {/* Absolute top neon corner decoration */}
-        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none rounded-tr-2xl"></div>
+  // Native share handler
+  const handleShare = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    const realUrl = `${window.location.origin}${window.location.pathname}?imovel=${property.id}`;
+    const shareData: ShareData = {
+      title: property.name,
+      text: `${property.projectType || 'Lançamento'} - ${property.neighborhood}, ${property.region}. Veja fotos, plantas e plano de parcelas facilitado!`,
+      url: realUrl,
+    };
+    
+    try {
+      if (property.images && property.images.length > 0) {
+        const response = await fetch(property.images[0]);
+        const blob = await response.blob();
+        const file = new File([blob], 'imovel.jpg', { type: 'image/jpeg' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          shareData.files = [file];
+        }
+      }
+      
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard?.writeText(realUrl);
+        alert("Link do imóvel copiado!");
+      }
+    } catch (err) {
+      console.error("Erro ao compartilhar:", err);
+      navigator.clipboard?.writeText(realUrl);
+      alert("Link do imóvel copiado!");
+    }
+  };
 
-        {/* IMAGE SLIDER (passam em slide com o dedo ou setas) */}
-        <div 
-          className="relative h-64 w-full overflow-hidden bg-zinc-100 group-second select-none touch-pan-y"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
-          {/* Header badged overlays above image */}
-          <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
-            {/* Status do Imovel */}
-            <span className={`rounded-md bg-gradient-to-r ${getStatusBadge(property.status)} px-2.5 py-1 text-[10px] uppercase tracking-wider shadow-md font-mono`}>
-              {property.status}
-            </span>
+  const renderCard = () => (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+      className="group relative rounded-2xl border border-zinc-205 bg-white overflow-hidden flex flex-col justify-between hover:border-primary hover:shadow-xl hover:shadow-primary/5 transition-all duration-500"
+    >
+      <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none rounded-tr-2xl"></div>
 
-            {/* Data de Entrega */}
-            <span className="flex items-center gap-1 rounded-md bg-black/70 px-2.5 py-1 text-[10px] tracking-wide text-zinc-100 border border-white/10 backdrop-blur-sm font-mono font-bold">
-              <Calendar className="h-3 w-3 text-[#FF9D00] shrink-0" />
-              {property.status === 'Pronto' ? 'Pronto' : `Entrega: ${property.deliveryDate}`}
-            </span>
+      <div 
+        className="relative h-64 w-full overflow-hidden bg-zinc-100 group-second select-none touch-pan-y"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+          <span className={`rounded-md bg-gradient-to-r ${getStatusBadge(property.status)} px-2.5 py-1 text-[10px] uppercase tracking-wider shadow-md font-mono`}>
+            {property.status}
+          </span>
+
+          <span className="flex items-center gap-1 rounded-md bg-black/70 px-2.5 py-1 text-[10px] tracking-wide text-zinc-100 border border-white/10 backdrop-blur-sm font-mono font-bold">
+            <Calendar className="h-3 w-3 text-[#FF9D00] shrink-0" />
+            {property.status === 'Pronto' ? 'Pronto' : `Entrega: ${property.deliveryDate}`}
+          </span>
+        </div>
+
+        {property.images.length > 0 ? (
+          <img
+            src={property.images[currentImgIndex]}
+            alt={`${property.name} - slide ${currentImgIndex + 1}`}
+            referrerPolicy="no-referrer"
+            className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105 border-2"
+            style={{ borderColor: '#ffffff' }}
+          />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center text-zinc-500 bg-zinc-200 font-mono text-xs">
+            Sem Imagens Cadastradas
+          </div>
+        )}
+
+        {property.images.length > 1 && (
+          <>
+            <button
+              onClick={handlePrevImage}
+              className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-lg bg-black/60 text-white hover:bg-primary hover:text-black hover:scale-105 border border-white/10 transition-all z-20 cursor-pointer"
+              aria-label="Anterior"
+            >
+              <ChevronLeft className="h-4 w-4 stroke-[2.5]" />
+            </button>
+
+            <button
+              onClick={handleNextImage}
+              className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-lg bg-black/60 text-white hover:bg-primary hover:text-black hover:scale-105 border border-white/10 transition-all z-20 cursor-pointer"
+              aria-label="Próximo"
+            >
+              <ChevronRight className="h-4 w-4 stroke-[2.5]" />
+            </button>
+
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+              {property.images.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    idx === currentImgIndex ? 'w-4 bg-primary' : 'w-1 bg-zinc-400'
+                  }`}
+                ></div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <button
+          onClick={toggleFavorite}
+          className={`absolute bottom-3 right-3 z-30 h-8 w-8 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md border hover:scale-110 active:scale-90 transition-all cursor-pointer ${
+            isFavorited 
+              ? 'text-red-500 border-red-500/40 bg-red-950/20 shadow-red-500/20 shadow-sm' 
+              : 'text-zinc-200 border-white/10 hover:text-red-500 hover:border-red-500'
+          }`}
+          title={isFavorited ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
+        >
+          <svg className={`h-4 w-4 ${isFavorited ? 'fill-red-500 text-red-500' : 'fill-none stroke-current'}`} viewBox="0 0 24 24" strokeWidth="2.5">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div className="p-5 flex-1 flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between text-[12px] mb-1">
+            <div className="flex items-center gap-1 font-bold tracking-wider text-primary uppercase font-mono" style={{ color: '#ff6200' }}>
+              <Compass className="h-3 w-3" />
+              {property.projectType}
+            </div>
+            {property.isMcmv && (
+              <McmvBadge customLogoUrl={property.mcmvLogoUrl} className="h-6" />
+            )}
           </div>
 
-          {/* Current Carousel Image */}
-          {property.images.length > 0 ? (
-            <img
-              src={property.images[currentImgIndex]}
-              alt={`${property.name} - slide ${currentImgIndex + 1}`}
-              referrerPolicy="no-referrer"
-              className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105 border-2"
-              style={{ borderColor: '#ffffff' }}
-            />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-zinc-500 bg-zinc-200 font-mono text-xs">
-              Sem Imagens Cadastradas
+          <h3 className="text-xl font-bold text-zinc-900 tracking-tight leading-[1.15] mt-1 group-hover:text-primary transition-colors">
+            {property.name}
+          </h3>
+
+          <p className="mt-1 text-sm font-semibold text-zinc-700 flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5 text-primary shrink-0" style={{ color: '#ff6200' }} />
+            {property.neighborhood}, {property.region}
+          </p>
+
+          <p className="mt-1 text-xs text-zinc-550 line-clamp-1 italic">
+            {property.address}
+          </p>
+
+          <div className="my-4 pt-4 border-t border-zinc-200/80 flex justify-between items-center text-xs text-zinc-700 font-mono">
+            <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
+              <Bed className="h-3.5 w-3.5 text-primary shrink-0" style={{ color: '#ff6200' }} />
+              <span style={{ color: '#71717b' }}>{formatBedroomsLabel(property.bedrooms)}</span>
+            </span>
+            {property.bathrooms && (
+              <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
+                <Bath className="h-3.5 w-3.5 text-primary shrink-0" style={{ color: '#ff6200' }} />
+                <span style={{ color: '#71717b' }}>{property.bathrooms}</span>
+              </span>
+            )}
+            <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
+              <Maximize className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>{formatAreaLabel(property.area)}</span>
+            </span>
+            <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
+              <Car className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>{formatParkingLabel(property.parkingSpaces)}</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="border-t border-zinc-200/80 pt-4 mt-auto">
+          <div className="mb-3">
+            <span className="text-[10px] tracking-widest font-bold text-zinc-500 uppercase font-mono block">
+              Investimento Estimado
+            </span>
+            <div className="text-xl font-extrabold text-zinc-900">
+              <span className="text-xs font-semibold text-primary mr-1 font-mono" style={{ color: '#ff6200' }}>A partir</span>
+              {formatBRL(property.price)}
             </div>
-          )}
+          </div>
 
-          {/* Carousel Interactive Controls (Visible on hover or mobile) */}
-          {property.images.length > 1 && (
-            <>
-              {/* Left Arrow */}
-              <button
-                onClick={handlePrevImage}
-                className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-lg bg-black/60 text-white hover:bg-primary hover:text-black hover:scale-105 border border-white/10 transition-all z-20 cursor-pointer"
-                aria-label="Anterior"
-              >
-                <ChevronLeft className="h-4 w-4 stroke-[2.5]" />
-              </button>
+          <div className="grid grid-cols-2 gap-3 mb-4 rounded-xl bg-zinc-50 border border-zinc-250 p-3 text-xs font-mono">
+            <div>
+              <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: '#ff6200' }}>
+                Entrada R$
+              </span>
+              <span className="font-extrabold text-zinc-900 text-[14px] block">
+                {formatBRL(property.downpayment)}
+              </span>
+            </div>
+            <div className="border-l border-zinc-200 pl-3">
+              <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: '#71717b' }}>
+                Mensais R$
+              </span>
+              <span className="font-extrabold text-[#FF9D00] text-[14px] block" style={{ color: '#18181b' }}>
+                {formatBRL(property.installments)}
+              </span>
+            </div>
+          </div>
 
-              {/* Right Arrow */}
-              <button
-                onClick={handleNextImage}
-                className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-lg bg-black/60 text-white hover:bg-primary hover:text-black hover:scale-105 border border-white/10 transition-all z-20 cursor-pointer"
-                aria-label="Próximo"
-              >
-                <ChevronRight className="h-4 w-4 stroke-[2.5]" />
-              </button>
-
-              {/* Bullet Indicators */}
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-20">
-                {property.images.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      idx === currentImgIndex ? 'w-4 bg-primary' : 'w-1 bg-zinc-400'
-                    }`}
-                  ></div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Heart button on card image bottom-right */}
           <button
-            onClick={toggleFavorite}
-            className={`absolute bottom-3 right-3 z-30 h-8 w-8 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md border hover:scale-110 active:scale-90 transition-all cursor-pointer ${
-              isFavorited 
-                ? 'text-red-500 border-red-500/40 bg-red-950/20 shadow-red-500/20 shadow-sm' 
-                : 'text-zinc-200 border-white/10 hover:text-red-500 hover:border-red-500'
-            }`}
-            title={isFavorited ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
+            onClick={() => setIsModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold tracking-wider uppercase cursor-pointer hover:opacity-90 transition-all duration-300"
+            style={{ color: '#ffffff', backgroundColor: '#ff6200', fontWeight: 'normal' }}
           >
-            <svg className={`h-4 w-4 ${isFavorited ? 'fill-red-500 text-red-500' : 'fill-none stroke-current'}`} viewBox="0 0 24 24" strokeWidth="2.5">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
+            <Sparkles className="h-4 w-4 shrink-0 stroke-[2.5]" />
+            <span style={{ fontWeight: 'normal' }}>Ver Oferta</span>
           </button>
         </div>
+      </div>
+    </motion.div>
+  );
 
-        {/* BOTTOM METRICS AND TEXTS */}
-        <div className="p-5 flex-1 flex flex-col justify-between">
-          <div>
-            {/* Project template / type & location subheaders */}
-            <div className="flex items-center justify-between text-[12px] mb-1">
-              <div className="flex items-center gap-1 font-bold tracking-wider text-primary uppercase font-mono" style={{ color: '#ff6200' }}>
-                <Compass className="h-3 w-3" />
-                {property.projectType}
-              </div>
-              {property.isMcmv && (
-                <McmvBadge customLogoUrl={property.mcmvLogoUrl} className="h-6" />
-              )}
-            </div>
-
-            {/* Nome do Projeto */}
-            <h3 className="text-xl font-bold text-zinc-900 tracking-tight leading-[1.15] mt-1 group-hover:text-primary transition-colors">
-              {property.name}
-            </h3>
-
-            {/* Bairro */}
-            <p className="mt-1 text-sm font-semibold text-zinc-700 flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" style={{ color: '#ff6200' }} />
-              {property.neighborhood}, {property.region}
-            </p>
-
-            {/* Endereço */}
-            <p className="mt-1 text-xs text-zinc-550 line-clamp-1 italic">
-              {property.address}
-            </p>
-
-            {/* Icones Relativos: e.g. 2 Qts, 80m2, 2 Vagas */}
-            <div className="my-4 pt-4 border-t border-zinc-200/80 flex justify-between items-center text-xs text-zinc-700 font-mono">
-              <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
-                <Bed className="h-3.5 w-3.5 text-primary shrink-0" style={{ color: '#ff6200' }} />
-                <span style={{ color: '#71717b' }}>{formatBedroomsLabel(property.bedrooms)}</span>
-              </span>
-              <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
-                <Maximize className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{formatAreaLabel(property.area)}</span>
-              </span>
-              <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
-                <Car className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>{formatParkingLabel(property.parkingSpaces)}</span>
-              </span>
-            </div>
-          </div>
-
-          <div className="border-t border-zinc-200/80 pt-4 mt-auto">
-            {/* Valor A partir R$ */}
-            <div className="mb-3">
-              <span className="text-[10px] tracking-widest font-bold text-zinc-500 uppercase font-mono block">
-                Investimento Estimado
-              </span>
-              <div className="text-xl font-extrabold text-zinc-900">
-                <span className="text-xs font-semibold text-primary mr-1 font-mono" style={index === 0 ? { color: '#ff6200' } : undefined}>A partir</span>
-                {formatBRL(property.price)}
-              </div>
-            </div>
-
-            {/* Entrada a partir R$ | Parcela a partir R$ */}
-            <div className="grid grid-cols-2 gap-3 mb-4 rounded-xl bg-zinc-50 border border-zinc-250 p-3 text-xs font-mono">
-              <div>
-                <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: index === 1 ? '#71717b' : '#ff6200' }}>
-                  Entrada R$
-                </span>
-                <span className="font-extrabold text-zinc-900 text-[14px] block">
-                  {formatBRL(property.downpayment)}
-                </span>
-              </div>
-              <div className="border-l border-zinc-200 pl-3">
-                <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: '#71717b' }}>
-                  Mensais R$
-                </span>
-                <span className="font-extrabold text-[#FF9D00] text-[14px] block" style={{ color: '#18181b' }}>
-                  {formatBRL(property.installments)}
-                </span>
-              </div>
-            </div>
-
-            {/* Botao Ver Oferta */}
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold tracking-wider uppercase cursor-pointer hover:opacity-90 transition-all duration-300"
-              style={{ color: '#ffffff', backgroundColor: '#ff6200', fontWeight: 'normal' }}
-            >
-              <Sparkles className="h-4 w-4 shrink-0 stroke-[2.5]" />
-              <span style={{ fontWeight: 'normal' }}>Ver Oferta</span>
-            </button>
-          </div>
-        </div>
-      </motion.div>
-      )}
-
-      {/* RENDER MODAL OVERLAY ON CLICK (IMMERSE FULL-SCREEN DETAIL PAGE) */}
+  return (
+    <>
+      {!isModalOnly && renderCard()}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] w-full max-w-full h-full max-h-full sm:h-[100vh] h-[100dvh] bg-white flex flex-col backdrop-blur-md overflow-hidden">
