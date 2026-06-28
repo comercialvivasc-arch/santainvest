@@ -558,6 +558,7 @@ export default function AdminPanel({
   const [propMcmvLogoUrl, setPropMcmvLogoUrl] = useState('');
   const [propType, setPropType] = useState('Apartamento');
   const [propBedrooms, setPropBedrooms] = useState<string | number>(2);
+  const [propBathrooms, setPropBathrooms] = useState<string | number>('');
   const [propSuites, setPropSuites] = useState<string | number>('');
   const [propArea, setPropArea] = useState<string | number>(80);
   const [propParking, setPropParking] = useState<string | number>(1);
@@ -569,6 +570,7 @@ export default function AdminPanel({
   const [propPrivateNotes, setPropPrivateNotes] = useState('');
   const [propDetailedDescription, setPropDetailedDescription] = useState('');
   const [propFloorPlans, setPropFloorPlans] = useState<FloorPlan[]>([]);
+  const [propEnabled, setPropEnabled] = useState(true);
   
   // Financing Percentages and Count settings
   const [propDownpaymentPct, setPropDownpaymentPct] = useState(10);
@@ -712,6 +714,7 @@ export default function AdminPanel({
     setPropMcmvLogoUrl(p.mcmvLogoUrl || '');
     setPropType(p.projectType);
     setPropBedrooms(p.bedrooms);
+    setPropBathrooms(p.bathrooms !== undefined && p.bathrooms !== null ? p.bathrooms : '');
     setPropSuites(p.suites !== undefined && p.suites !== null ? p.suites : '');
     setPropArea(p.area);
     setPropParking(p.parkingSpaces);
@@ -732,6 +735,7 @@ export default function AdminPanel({
     setPropTableConditionDescription(p.tableConditionDescription || '');
     setPropImageInput('');
     setPropImagesList(p.images);
+    setPropEnabled(p.enabled !== false);
     setPropPrivateNotes(p.privateNotes || '');
     setPropDetailedDescription(p.detailedDescription || '');
     setPropFloorPlans(p.floorPlans || []);
@@ -991,6 +995,7 @@ export default function AdminPanel({
         address: propAddress,
         projectType: propType,
         bedrooms: parseFlexField(propBedrooms),
+        bathrooms: parseFlexField(propBathrooms),
         suites: parseFlexField(propSuites),
         area: parseFlexField(propArea),
         parkingSpaces: parseFlexField(propParking),
@@ -1019,7 +1024,8 @@ export default function AdminPanel({
         mcmvLogoUrl: propMcmvLogoUrl,
         cefContractFee: propCefContractFee !== undefined && propCefContractFee > 0 ? Number(propCefContractFee) : undefined,
         availableUnits: propAvailableUnits !== undefined ? Number(propAvailableUnits) : undefined,
-        tableConditionDescription: propTableConditionDescription ? propTableConditionDescription.trim() : undefined
+        tableConditionDescription: propTableConditionDescription ? propTableConditionDescription.trim() : undefined,
+        enabled: propEnabled
       };
 
       if (editingPropertyId) {
@@ -1863,21 +1869,23 @@ export default function AdminPanel({
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          // Check size (keep logo relatively small for base64 doc storage)
                           if (file.size > 2000000) {
                             alert('Erro: Escolha uma imagem de logotipo de até 2MB.');
                             return;
                           }
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            if (event.target?.result) {
-                              setSettingsLogoUrl(event.target.result as string);
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          try {
+                            const storagePath = `brand/${Date.now()}_${file.name}`;
+                            const storageRef = ref(storage, storagePath);
+                            const snapshot = await uploadBytes(storageRef, file);
+                            const url = await getDownloadURL(snapshot.ref);
+                            setSettingsLogoUrl(url);
+                          } catch (err) {
+                            console.error(err);
+                            alert('Erro ao fazer upload da logo.');
+                          }
                         }
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
@@ -2107,20 +2115,23 @@ export default function AdminPanel({
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
                           if (file.size > 2000000) {
                             alert('Erro: Escolha uma imagem de compartilhamento de até 2MB.');
                             return;
                           }
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            if (event.target?.result) {
-                              setSettingsShareLogoUrl(event.target.result as string);
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          try {
+                            const storagePath = `brand/${Date.now()}_${file.name}`;
+                            const storageRef = ref(storage, storagePath);
+                            const snapshot = await uploadBytes(storageRef, file);
+                            const url = await getDownloadURL(snapshot.ref);
+                            setSettingsShareLogoUrl(url);
+                          } catch (err) {
+                            console.error(err);
+                            alert('Erro ao fazer upload da imagem de compartilhamento.');
+                          }
                         }
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
@@ -4627,6 +4638,24 @@ export default function AdminPanel({
                 <div className="bg-zinc-900/40 border border-zinc-900 p-4 rounded-xl space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="pr-4">
+                      <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">HABILITAR IMÓVEL NO SITE</label>
+                      <span className="text-xs text-zinc-500">Se desmarcado, o imóvel não será exibido na listagem do site.</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={propEnabled}
+                        onChange={(e) => setPropEnabled(e.target.checked)}
+                      />
+                      <div className="w-11 h-6 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-500 after:border-none after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900/40 border border-zinc-900 p-4 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="pr-4">
                       <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">PROGRAMA MINHA CASA MINHA VIDA (MCMV)</label>
                       <span className="text-xs text-zinc-500">Marque para exibir o selo "Minha Casa Minha Vida" no topo do card do imóvel.</span>
                     </div>
@@ -4705,6 +4734,18 @@ export default function AdminPanel({
                       value={propBedrooms}
                       onChange={(e) => setPropBedrooms(e.target.value)}
                       placeholder="Ex: 2, 3 ou 2 e 3 Qts"
+                    />
+                  </div>
+
+                  {/* Bathrooms */}
+                  <div className="col-span-2 lg:col-span-1">
+                    <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">Banheiros</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-orange-500 outline-none"
+                      value={propBathrooms}
+                      onChange={(e) => setPropBathrooms(e.target.value)}
+                      placeholder="Ex: 1 ou 2"
                     />
                   </div>
 

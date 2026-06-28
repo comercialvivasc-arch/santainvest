@@ -17,6 +17,7 @@ export interface Property {
   region: string; // e.g., 'Centro', 'Zona Sul', 'Litoral'
   projectType: string; // e.g., 'Apartamento', 'Cobertura', 'Studio', 'Casa'
   bedrooms: string | number;
+  bathrooms?: string | number;
   suites?: string | number;
   area: string | number; // in m²
   parkingSpaces: string | number;
@@ -47,6 +48,7 @@ export interface Property {
   cefContractFee?: number;
   availableUnits?: number;
   tableConditionDescription?: string;
+  enabled?: boolean; // Habilitar ou desabilitar o imóvel no site
 }
 
 export interface BannerAd {
