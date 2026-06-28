@@ -787,24 +787,35 @@ export default function AdminPanel({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
+    console.log("Iniciando upload de", files.length, "arquivos.");
+
     for (const file of Array.from(files) as File[]) {
+      console.log("Processando arquivo:", file.name, file.type, file.size);
       if (!file.type.startsWith('image/')) {
         alert('Por favor, envie apenas arquivos de imagem válida!');
         continue;
       }
       
       try {
-        const storageRef = ref(storage, `properties/${Date.now()}_${file.name}`);
+        const storagePath = `imoveis/${Date.now()}_${file.name}`;
+        console.log("Storage Path:", storagePath);
+        const storageRef = ref(storage, storagePath);
+        
+        console.log("Iniciando upload para o Firebase Storage...");
         const snapshot = await uploadBytes(storageRef, file);
+        console.log("Upload concluído. Obtendo URL...");
+        
         const downloadURL = await getDownloadURL(snapshot.ref);
+        console.log("URL obtida:", downloadURL);
         
         setPropImagesList((prev) => {
           if (prev.includes(downloadURL)) return prev;
           return [...prev, downloadURL];
         });
+        console.log("Imagem adicionada à lista local.");
       } catch (error) {
-        console.error("Error uploading image: ", error);
-        alert("Erro ao fazer upload da imagem.");
+        console.error("Erro detalhado no upload da imagem:", error);
+        alert("Erro ao fazer upload da imagem: " + (error instanceof Error ? error.message : String(error)));
       }
     }
   };
@@ -1012,13 +1023,16 @@ export default function AdminPanel({
       };
 
       if (editingPropertyId) {
+        console.log("Editing property...", payload);
         await onEditProperty(payload);
       } else {
+        console.log("Adding property...", payload);
         await onAddProperty(payload);
       }
+      console.log("Property saved successfully, closing form.");
       setIsPropertyFormOpen(false);
     } catch (err) {
-      console.error(err);
+      console.error("Error in onSubmitProperty:", err);
       alert('Erro ao salvar imóvel. Verifique a conexão ou tente novamente.');
     } finally {
       setIsSaving(false);

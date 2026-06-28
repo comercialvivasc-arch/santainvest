@@ -556,7 +556,7 @@ export default function App() {
 
   const handleEditProperty = async (updatedProp: Property) => {
     try {
-      console.log("[Mutation] Gravando alterações do imóvel no Firestore...");
+      console.log("[Mutation] Gravando alterações do imóvel no Firestore...", updatedProp);
       await savePropertyToFirestore(updatedProp);
       setProperties((prev) => prev.map((p) => p.id === updatedProp.id ? updatedProp : p));
       // Force instant re-sync with Firestore server to confirm and persist state
