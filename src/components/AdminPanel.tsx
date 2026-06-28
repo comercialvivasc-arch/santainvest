@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BannerAd, BrandSettings, Broker, Client, Lead, Visit, Message, FloorPlan } from '../types';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider, storage } from '../firebase';
 import { 
   signInWithPopup, 
   signInWithRedirect, 
@@ -16,6 +16,7 @@ import {
   createUserWithEmailAndPassword,
   signOut as fbSignOut 
 } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { 
   seedInitialDatabase,
   saveBrokerToFirestore,
@@ -782,28 +783,30 @@ export default function AdminPanel({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    Array.from(files).forEach((file: any) => {
+    for (const file of Array.from(files) as File[]) {
       if (!file.type.startsWith('image/')) {
         alert('Por favor, envie apenas arquivos de imagem válida!');
-        return;
+        continue;
       }
       
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const resultBase64 = event.target?.result as string;
-        if (resultBase64) {
-          setPropImagesList((prev) => {
-            if (prev.includes(resultBase64)) return prev;
-            return [...prev, resultBase64];
-          });
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+      try {
+        const storageRef = ref(storage, `properties/${Date.now()}_${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        
+        setPropImagesList((prev) => {
+          if (prev.includes(downloadURL)) return prev;
+          return [...prev, downloadURL];
+        });
+      } catch (error) {
+        console.error("Error uploading image: ", error);
+        alert("Erro ao fazer upload da imagem.");
+      }
+    }
   };
 
   const handleRemoveImageUrl = (idx: number) => {
