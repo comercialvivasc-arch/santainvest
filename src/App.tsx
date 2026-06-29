@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { HelmetProvider } from 'react-helmet-async';
 import { CadastroForm } from './components/CadastroForm';
 import Header from './components/Header';
 import SearchHero from './components/SearchHero';
@@ -550,13 +551,12 @@ export default function App() {
       console.log("[Mutation] Novo imóvel salvo e sincronizado com o servidor!");
     } catch (err) {
       console.error('Error writing new property to Firestore', err);
-      throw err;
     }
   };
 
   const handleEditProperty = async (updatedProp: Property) => {
     try {
-      console.log("[Mutation] Gravando alterações do imóvel no Firestore...", updatedProp);
+      console.log("[Mutation] Gravando alterações do imóvel no Firestore...");
       await savePropertyToFirestore(updatedProp);
       setProperties((prev) => prev.map((p) => p.id === updatedProp.id ? updatedProp : p));
       // Force instant re-sync with Firestore server to confirm and persist state
@@ -564,7 +564,6 @@ export default function App() {
       console.log("[Mutation] Alterações do imóvel salvas e sincronizadas com o servidor!");
     } catch (err) {
       console.error('Error editing property on Firestore', err);
-      throw err;
     }
   };
 
@@ -955,7 +954,8 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#050507] text-[#f4f4f5] flex flex-col justify-between selection:bg-primary selection:text-black" id="root-portal">
+    <HelmetProvider>
+      <div className="min-h-screen bg-[#050507] text-[#f4f4f5] flex flex-col justify-between selection:bg-primary selection:text-black" id="root-portal">
       {/* 1. STICKY GLASS HEADER */}
       <Header 
         currentView={currentView} 
@@ -1240,5 +1240,6 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+  </HelmetProvider>
   );
 }

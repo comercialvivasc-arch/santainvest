@@ -146,9 +146,9 @@ async function startServer() {
       } else {
         template = fs.readFileSync(path.resolve(process.cwd(), 'dist/index.html'), 'utf-8');
       }
-
-      // Check query parameters for product/property ID
       const imovelId = String(req.query.imovel || req.query.id || '');
+      const pathParts = req.path.split('/');
+      const slug = pathParts[pathParts.length - 1];
       
       let title = 'Meu Primeiro Imóvel';
       let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
@@ -180,39 +180,37 @@ async function startServer() {
         }
       }
 
-      let canonicalUrl = `${protocol}://${host}/`;
-      if (imovelId) {
-        canonicalUrl += `?imovel=${imovelId}`;
-      } else {
-        const cleanPath = req.path === '/' ? '' : req.path;
-        canonicalUrl += cleanPath;
-      }
+      let canonicalUrl = `${protocol}://${host}${req.originalUrl}`;
+      let prop: any = null;
 
       if (imovelId) {
-        const prop = await getPropertyInfo(imovelId);
-        if (prop) {
-          title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
+        prop = await getPropertyInfo(imovelId);
+      } else if (slug && slug !== '') {
+         prop = await fetchPropertyBySlug(slug);
+      }
+
+      if (prop) {
+        title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
+        
+        if (prop.seoDescription) {
+          description = prop.seoDescription;
+        } else {
+          const pType = prop.projectType || 'Lançamento';
+          const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
+          const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
+          const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
+          const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítess') + ')' : '';
+          const areaLabel = prop.area ? `${prop.area}m²` : '';
           
-          if (prop.seoDescription) {
-            description = prop.seoDescription;
-          } else {
-            const pType = prop.projectType || 'Lançamento';
-            const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
-            const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
-            const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
-            const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítes') + ')' : '';
-            const areaLabel = prop.area ? `${prop.area}m²` : '';
-            
-            const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
-            description = `${pType} de Alto Padrão - ${prop.name} em ${locationFormatted}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
-          }
-          
-          if (prop.images && prop.images.length > 0) {
-            imageUrl = prop.images[0];
-          }
+          const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
+          description = `${pType} de Alto Padrão - ${prop.name} em ${locationFormatted}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
+        }
+        
+        if (prop.images && prop.images.length > 0) {
+          imageUrl = prop.images[0];
         }
       }
-
+      
       const sanitizedImageUrl = sanitizeImageUrl(imageUrl, protocol, host);
 
       // Generate dynamic meta tags in pristine compliance
@@ -299,7 +297,15 @@ function sanitizeImageUrl(imgUrl: string, protocol: string, host: string): strin
 
 async function fetchPropertyFromFirestore(propId: string): Promise<any | null> {
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/meuprimeiroimovel/databases/(default)/documents/properties/${propId}`;
+    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    let projectId = 'meuprimeiroimovel';
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (config.projectId) {
+        projectId = config.projectId;
+      }
+    }
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/properties/${propId}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data: any = await res.json();
@@ -337,6 +343,81 @@ async function fetchPropertyFromFirestore(propId: string): Promise<any | null> {
     
     return {
       id: propId,
+      name,
+      status,
+      neighborhood,
+      region,
+      bedrooms,
+      area,
+      price,
+      images,
+      projectType,
+      suites,
+      parkingSpaces,
+      seoTitle,
+      seoDescription
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
+async function fetchPropertyBySlug(slug: string): Promise<any | null> {
+  try {
+    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    let projectId = 'meuprimeiroimovel';
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (config.projectId) {
+        projectId = config.projectId;
+      }
+    }
+    
+    // Query by slug
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'properties' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'slug' },
+              op: 'EQUAL',
+              value: { stringValue: slug }
+            }
+          }
+        }
+      })
+    });
+    
+    const results = await response.json();
+    if (!results || results.length === 0 || !results[0].document) return null;
+    
+    const doc = results[0].document;
+    const fields = doc.fields;
+    
+    const name = fields.name?.stringValue || '';
+    const status = fields.status?.stringValue || '';
+    const neighborhood = fields.neighborhood?.stringValue || '';
+    const region = fields.region?.stringValue || '';
+    const projectType = fields.projectType?.stringValue || 'Apartamento';
+    
+    const bedrooms = fields.bedrooms?.integerValue ? parseInt(fields.bedrooms.integerValue, 10) : 0;
+    const suites = fields.suites?.integerValue ? parseInt(fields.suites.integerValue, 10) : 0;
+    const parkingSpaces = fields.parkingSpaces?.integerValue ? parseInt(fields.parkingSpaces.integerValue, 10) : 0;
+    const area = fields.area?.integerValue ? parseInt(fields.area.integerValue, 10) : 0;
+    const price = fields.price?.integerValue ? parseInt(fields.price.integerValue, 10) : 0;
+    const seoTitle = fields.seoTitle?.stringValue || '';
+    const seoDescription = fields.seoDescription?.stringValue || '';
+    
+    let images: string[] = [];
+    if (fields.images?.arrayValue?.values) {
+      images = fields.images.arrayValue.values.map((v: any) => v.stringValue).filter(Boolean);
+    }
+    
+    return {
+      id: doc.name.split('/').pop(),
       name,
       status,
       neighborhood,

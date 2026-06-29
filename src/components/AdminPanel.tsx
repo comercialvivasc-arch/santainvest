@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BannerAd, BrandSettings, Broker, Client, Lead, Visit, Message, FloorPlan } from '../types';
-import { auth, googleProvider, storage } from '../firebase';
+import { auth, googleProvider } from '../firebase';
 import { 
   signInWithPopup, 
   signInWithRedirect, 
@@ -16,7 +16,6 @@ import {
   createUserWithEmailAndPassword,
   signOut as fbSignOut 
 } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { 
   seedInitialDatabase,
   saveBrokerToFirestore,
@@ -77,8 +76,8 @@ interface AdminPanelProps {
   banners: BannerAd[];
   settings: BrandSettings;
   onSaveSettings: (settings: BrandSettings) => Promise<void>;
-  onAddProperty: (p: Property) => Promise<void>;
-  onEditProperty: (p: Property) => Promise<void>;
+  onAddProperty: (p: Property) => void;
+  onEditProperty: (p: Property) => void;
   onDeleteProperty: (id: string) => void;
   onAddBanner: (b: BannerAd) => void;
   onEditBanner: (b: BannerAd) => void;
@@ -558,7 +557,6 @@ export default function AdminPanel({
   const [propMcmvLogoUrl, setPropMcmvLogoUrl] = useState('');
   const [propType, setPropType] = useState('Apartamento');
   const [propBedrooms, setPropBedrooms] = useState<string | number>(2);
-  const [propBathrooms, setPropBathrooms] = useState<string | number>('');
   const [propSuites, setPropSuites] = useState<string | number>('');
   const [propArea, setPropArea] = useState<string | number>(80);
   const [propParking, setPropParking] = useState<string | number>(1);
@@ -570,7 +568,6 @@ export default function AdminPanel({
   const [propPrivateNotes, setPropPrivateNotes] = useState('');
   const [propDetailedDescription, setPropDetailedDescription] = useState('');
   const [propFloorPlans, setPropFloorPlans] = useState<FloorPlan[]>([]);
-  const [propEnabled, setPropEnabled] = useState(true);
   
   // Financing Percentages and Count settings
   const [propDownpaymentPct, setPropDownpaymentPct] = useState(10);
@@ -714,7 +711,6 @@ export default function AdminPanel({
     setPropMcmvLogoUrl(p.mcmvLogoUrl || '');
     setPropType(p.projectType);
     setPropBedrooms(p.bedrooms);
-    setPropBathrooms(p.bathrooms !== undefined && p.bathrooms !== null ? p.bathrooms : '');
     setPropSuites(p.suites !== undefined && p.suites !== null ? p.suites : '');
     setPropArea(p.area);
     setPropParking(p.parkingSpaces);
@@ -735,7 +731,6 @@ export default function AdminPanel({
     setPropTableConditionDescription(p.tableConditionDescription || '');
     setPropImageInput('');
     setPropImagesList(p.images);
-    setPropEnabled(p.enabled !== false);
     setPropPrivateNotes(p.privateNotes || '');
     setPropDetailedDescription(p.detailedDescription || '');
     setPropFloorPlans(p.floorPlans || []);
@@ -787,41 +782,28 @@ export default function AdminPanel({
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    console.log("Iniciando upload de", files.length, "arquivos.");
-
-    for (const file of Array.from(files) as File[]) {
-      console.log("Processando arquivo:", file.name, file.type, file.size);
+    Array.from(files).forEach((file: any) => {
       if (!file.type.startsWith('image/')) {
         alert('Por favor, envie apenas arquivos de imagem válida!');
-        continue;
+        return;
       }
       
-      try {
-        const storagePath = `imoveis/${Date.now()}_${file.name}`;
-        console.log("Storage Path:", storagePath);
-        const storageRef = ref(storage, storagePath);
-        
-        console.log("Iniciando upload para o Firebase Storage...");
-        const snapshot = await uploadBytes(storageRef, file);
-        console.log("Upload concluído. Obtendo URL...");
-        
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        console.log("URL obtida:", downloadURL);
-        
-        setPropImagesList((prev) => {
-          if (prev.includes(downloadURL)) return prev;
-          return [...prev, downloadURL];
-        });
-        console.log("Imagem adicionada à lista local.");
-      } catch (error) {
-        console.error("Erro detalhado no upload da imagem:", error);
-        alert("Erro ao fazer upload da imagem: " + (error instanceof Error ? error.message : String(error)));
-      }
-    }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const resultBase64 = event.target?.result as string;
+        if (resultBase64) {
+          setPropImagesList((prev) => {
+            if (prev.includes(resultBase64)) return prev;
+            return [...prev, resultBase64];
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleRemoveImageUrl = (idx: number) => {
@@ -923,9 +905,7 @@ export default function AdminPanel({
     reader.readAsDataURL(file);
   };
 
-  const [isSaving, setIsSaving] = useState(false);
-
-  const onSubmitProperty = async (e: React.FormEvent) => {
+  const onSubmitProperty = (e: React.FormEvent) => {
     e.preventDefault();
     if (!propName || !propNeighborhood || !propRegion || !propAddress) {
       alert('Favor preencher os campos estruturais obrigatórios!');
@@ -937,112 +917,99 @@ export default function AdminPanel({
       return;
     }
 
-    setIsSaving(true);
-    try {
-      const calculatedSlug = propName
-        .toLowerCase()
-        .normalize('NFD') // strip Portuguese accents and diacritics
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '');
+    const calculatedSlug = propName
+      .toLowerCase()
+      .normalize('NFD') // strip Portuguese accents and diacritics
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
 
-      const calculatedSeoTitle = `${propName} | Lançamento ${propStatus} no ${propNeighborhood}`;
-      const calculatedSeoDesc = `Conheça ${propName} em ${propNeighborhood}, ${propRegion}. Lançamento residencial luxuoso com ${propBedrooms} dormitórios, ${propArea}m² privativos e parcelas iniciais de R$ ${propInstallments.toLocaleString('pt-BR')}. Agende já!`;
-      const calculatedKeywords = `${propName.toLowerCase()}, lançamento ${propNeighborhood.toLowerCase()}, comprar apartamento ${propRegion.toLowerCase()}, vivasc imovel`;
-      const calculatedSchema = JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "RealEstateListing",
+    const calculatedSeoTitle = `${propName} | Lançamento ${propStatus} no ${propNeighborhood}`;
+    const calculatedSeoDesc = `Conheça ${propName} em ${propNeighborhood}, ${propRegion}. Lançamento residencial luxuoso com ${propBedrooms} dormitórios, ${propArea}m² privativos e parcelas iniciais de R$ ${propInstallments.toLocaleString('pt-BR')}. Agende já!`;
+    const calculatedKeywords = `${propName.toLowerCase()}, lançamento ${propNeighborhood.toLowerCase()}, comprar apartamento ${propRegion.toLowerCase()}, vivasc imovel`;
+    const calculatedSchema = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "RealEstateListing",
+      "name": propName,
+      "description": calculatedSeoDesc,
+      "url": `https://vivasc.com.br/imovel/${calculatedSlug}`,
+      "itemOffered": {
+        "@type": "Apartment",
         "name": propName,
-        "description": calculatedSeoDesc,
-        "url": `https://vivasc.com.br/imovel/${calculatedSlug}`,
-        "itemOffered": {
-          "@type": "Apartment",
-          "name": propName,
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": propAddress,
-            "addressLocality": propNeighborhood,
-            "addressRegion": propRegion,
-            "addressCountry": "BR"
-          },
-          "numberOfRooms": propBedrooms,
-          "floorSize": {
-            "@type": "QuantitativeValue",
-            "value": propArea,
-            "unitCode": "MTK"
-          }
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": propAddress,
+          "addressLocality": propNeighborhood,
+          "addressRegion": propRegion,
+          "addressCountry": "BR"
+        },
+        "numberOfRooms": propBedrooms,
+        "floorSize": {
+          "@type": "QuantitativeValue",
+          "value": propArea,
+          "unitCode": "MTK"
         }
-      }, null, 2);
-
-      const parseFlexField = (val: any) => {
-        if (val === undefined || val === null || val === '') return '';
-        if (typeof val === 'number') return val;
-        const trimmed = String(val).trim();
-        const num = Number(trimmed);
-        if (!isNaN(num) && trimmed !== '') {
-          return num;
-        }
-        return trimmed;
-      };
-
-      const payload: Property = {
-        id: editingPropertyId || `prop-${Date.now()}`,
-        name: propName,
-        status: propStatus,
-        deliveryDate: propDelivery,
-        neighborhood: propNeighborhood,
-        region: propRegion,
-        address: propAddress,
-        projectType: propType,
-        bedrooms: parseFlexField(propBedrooms),
-        bathrooms: parseFlexField(propBathrooms),
-        suites: parseFlexField(propSuites),
-        area: parseFlexField(propArea),
-        parkingSpaces: parseFlexField(propParking),
-        price: typeof propPrice === 'number' ? propPrice : propPrice.toString(),
-        downpayment: Number(propDownpayment),
-        installments: Number(propInstallments),
-        downpaymentPct: Number(propDownpaymentPct),
-        downpaymentInstallmentsCount: Number(propDownpaymentInstallmentsCount),
-        installmentsPct: Number(propInstallmentsPct),
-        installmentsCount: Number(propInstallmentsCount),
-        reintegrationPct: Number(propReintegrationPct),
-        reintegrationCount: Number(propReintegrationCount),
-        reintegrationValue: Number(propReintegrationValue),
-        keysPct: Number(propKeysPct),
-        keysValue: Number(propKeysValue),
-        images: propImagesList,
-        slug: calculatedSlug,
-        seoTitle: calculatedSeoTitle,
-        seoDescription: calculatedSeoDesc,
-        seoKeywords: calculatedKeywords,
-        schemaMarkup: calculatedSchema,
-        privateNotes: propPrivateNotes,
-        detailedDescription: propDetailedDescription,
-        floorPlans: propFloorPlans,
-        isMcmv: propIsMcmv,
-        mcmvLogoUrl: propMcmvLogoUrl,
-        cefContractFee: propCefContractFee !== undefined && propCefContractFee > 0 ? Number(propCefContractFee) : undefined,
-        availableUnits: propAvailableUnits !== undefined ? Number(propAvailableUnits) : undefined,
-        tableConditionDescription: propTableConditionDescription ? propTableConditionDescription.trim() : undefined,
-        enabled: propEnabled
-      };
-
-      if (editingPropertyId) {
-        console.log("Editing property...", payload);
-        await onEditProperty(payload);
-      } else {
-        console.log("Adding property...", payload);
-        await onAddProperty(payload);
       }
-      console.log("Property saved successfully, closing form.");
-      setIsPropertyFormOpen(false);
-    } catch (err) {
-      console.error("Error in onSubmitProperty:", err);
-      alert('Erro ao salvar imóvel. Verifique a conexão ou tente novamente.');
-    } finally {
-      setIsSaving(false);
+    }, null, 2);
+
+    const parseFlexField = (val: any) => {
+      if (val === undefined || val === null || val === '') return '';
+      if (typeof val === 'number') return val;
+      const trimmed = String(val).trim();
+      const num = Number(trimmed);
+      if (!isNaN(num) && trimmed !== '') {
+        return num;
+      }
+      return trimmed;
+    };
+
+    const payload: Property = {
+      id: editingPropertyId || `prop-${Date.now()}`,
+      name: propName,
+      status: propStatus,
+      deliveryDate: propDelivery,
+      neighborhood: propNeighborhood,
+      region: propRegion,
+      address: propAddress,
+      projectType: propType,
+      bedrooms: parseFlexField(propBedrooms),
+      suites: parseFlexField(propSuites),
+      area: parseFlexField(propArea),
+      parkingSpaces: parseFlexField(propParking),
+      price: typeof propPrice === 'number' ? propPrice : propPrice.toString(),
+      downpayment: Number(propDownpayment),
+      installments: Number(propInstallments),
+      downpaymentPct: Number(propDownpaymentPct),
+      downpaymentInstallmentsCount: Number(propDownpaymentInstallmentsCount),
+      installmentsPct: Number(propInstallmentsPct),
+      installmentsCount: Number(propInstallmentsCount),
+      reintegrationPct: Number(propReintegrationPct),
+      reintegrationCount: Number(propReintegrationCount),
+      reintegrationValue: Number(propReintegrationValue),
+      keysPct: Number(propKeysPct),
+      keysValue: Number(propKeysValue),
+      images: propImagesList,
+      slug: calculatedSlug,
+      seoTitle: calculatedSeoTitle,
+      seoDescription: calculatedSeoDesc,
+      seoKeywords: calculatedKeywords,
+      schemaMarkup: calculatedSchema,
+      privateNotes: propPrivateNotes,
+      detailedDescription: propDetailedDescription,
+      floorPlans: propFloorPlans,
+      isMcmv: propIsMcmv,
+      mcmvLogoUrl: propMcmvLogoUrl,
+      cefContractFee: propCefContractFee !== undefined && propCefContractFee > 0 ? Number(propCefContractFee) : undefined,
+      availableUnits: propAvailableUnits !== undefined ? Number(propAvailableUnits) : undefined,
+      tableConditionDescription: propTableConditionDescription ? propTableConditionDescription.trim() : undefined
+    };
+
+    if (editingPropertyId) {
+      onEditProperty(payload);
+    } else {
+      onAddProperty(payload);
     }
+    setIsPropertyFormOpen(false);
   };
 
   // Banner handlers
@@ -1869,23 +1836,21 @@ export default function AdminPanel({
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
+                          // Check size (keep logo relatively small for base64 doc storage)
                           if (file.size > 2000000) {
                             alert('Erro: Escolha uma imagem de logotipo de até 2MB.');
                             return;
                           }
-                          try {
-                            const storagePath = `brand/${Date.now()}_${file.name}`;
-                            const storageRef = ref(storage, storagePath);
-                            const snapshot = await uploadBytes(storageRef, file);
-                            const url = await getDownloadURL(snapshot.ref);
-                            setSettingsLogoUrl(url);
-                          } catch (err) {
-                            console.error(err);
-                            alert('Erro ao fazer upload da logo.');
-                          }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            if (event.target?.result) {
+                              setSettingsLogoUrl(event.target.result as string);
+                            }
+                          };
+                          reader.readAsDataURL(file);
                         }
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
@@ -2115,23 +2080,20 @@ export default function AdminPanel({
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
                           if (file.size > 2000000) {
                             alert('Erro: Escolha uma imagem de compartilhamento de até 2MB.');
                             return;
                           }
-                          try {
-                            const storagePath = `brand/${Date.now()}_${file.name}`;
-                            const storageRef = ref(storage, storagePath);
-                            const snapshot = await uploadBytes(storageRef, file);
-                            const url = await getDownloadURL(snapshot.ref);
-                            setSettingsShareLogoUrl(url);
-                          } catch (err) {
-                            console.error(err);
-                            alert('Erro ao fazer upload da imagem de compartilhamento.');
-                          }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            if (event.target?.result) {
+                              setSettingsShareLogoUrl(event.target.result as string);
+                            }
+                          };
+                          reader.readAsDataURL(file);
                         }
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
@@ -4638,24 +4600,6 @@ export default function AdminPanel({
                 <div className="bg-zinc-900/40 border border-zinc-900 p-4 rounded-xl space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="pr-4">
-                      <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">HABILITAR IMÓVEL NO SITE</label>
-                      <span className="text-xs text-zinc-500">Se desmarcado, o imóvel não será exibido na listagem do site.</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={propEnabled}
-                        onChange={(e) => setPropEnabled(e.target.checked)}
-                      />
-                      <div className="w-11 h-6 bg-zinc-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-500 after:border-none after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="bg-zinc-900/40 border border-zinc-900 p-4 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="pr-4">
                       <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">PROGRAMA MINHA CASA MINHA VIDA (MCMV)</label>
                       <span className="text-xs text-zinc-500">Marque para exibir o selo "Minha Casa Minha Vida" no topo do card do imóvel.</span>
                     </div>
@@ -4734,18 +4678,6 @@ export default function AdminPanel({
                       value={propBedrooms}
                       onChange={(e) => setPropBedrooms(e.target.value)}
                       placeholder="Ex: 2, 3 ou 2 e 3 Qts"
-                    />
-                  </div>
-
-                  {/* Bathrooms */}
-                  <div className="col-span-2 lg:col-span-1">
-                    <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">Banheiros</label>
-                    <input
-                      type="text"
-                      className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-orange-500 outline-none"
-                      value={propBathrooms}
-                      onChange={(e) => setPropBathrooms(e.target.value)}
-                      placeholder="Ex: 1 ou 2"
                     />
                   </div>
 
@@ -5125,7 +5057,7 @@ export default function AdminPanel({
                             : 'border-zinc-800 opacity-60 hover:opacity-100'
                         }`}
                       >
-                        <img src={pUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-contain" />
+                        <img src={pUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                         {propImagesList.includes(pUrl) && (
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                             <Check className="h-5 w-5 text-orange-500 stroke-[3]" />
@@ -5187,7 +5119,7 @@ export default function AdminPanel({
                             src={url} 
                             alt={`Imagem ${idx + 1}`} 
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-contain transition-transform group-hover/img:scale-105" 
+                            className="w-full h-full object-cover transition-transform group-hover/img:scale-105" 
                           />
                           
                           {/* Top-right delete/remove button */}
@@ -5443,10 +5375,9 @@ export default function AdminPanel({
                   </button>
                   <button
                     type="submit"
-                    disabled={isSaving}
-                    className="px-8 py-3 rounded-xl bg-orange-500 text-black text-xs font-extrabold tracking-widest uppercase hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/15 cursor-pointer disabled:opacity-50"
+                    className="px-8 py-3 rounded-xl bg-orange-500 text-black text-xs font-extrabold tracking-widest uppercase hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/15 cursor-pointer"
                   >
-                    {isSaving ? 'Salvando...' : 'Salvar Empreendimento'}
+                    Salvar Empreendimento
                   </button>
                 </div>
               </form>
@@ -5584,7 +5515,7 @@ export default function AdminPanel({
                             bannerImageUrl === imgUrl ? 'border-orange-500 scale-95' : 'border-zinc-800'
                           }`}
                         >
-                          <img src={imgUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-contain" />
+                          <img src={imgUrl} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                         </button>
                       ))}
                     </div>
