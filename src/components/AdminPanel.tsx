@@ -1227,13 +1227,23 @@ export default function AdminPanel({
       return;
     }
 
-    const calculatedSlug = propName
+    const baseSlug = `${propName}-${propNeighborhood}-${propRegion}`
       .toLowerCase()
       .normalize('NFD') // strip Portuguese accents and diacritics
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)+/g, '');
 
+    const propId = editingPropertyId || `prop-${Date.now()}`;
+    
+    // Check for collision
+    let finalSlug = baseSlug;
+    const collision = properties.find(p => p.slug === finalSlug && p.id !== propId);
+    if (collision) {
+      finalSlug = `${baseSlug}-${propId.split('-').pop()}`;
+    }
+
+    const calculatedSlug = finalSlug;
     const calculatedSeoTitle = `${propName} | Lançamento ${propStatus} no ${propNeighborhood}`;
     const calculatedSeoDesc = `Conheça ${propName} em ${propNeighborhood}, ${propRegion}. Lançamento residencial luxuoso com ${propBedrooms} dormitórios, ${propArea}m² privativos e parcelas iniciais de R$ ${propInstallments.toLocaleString('pt-BR')}. Agende já!`;
     const calculatedKeywords = `${propName.toLowerCase()}, lançamento ${propNeighborhood.toLowerCase()}, comprar apartamento ${propRegion.toLowerCase()}, vivasc imovel`;
@@ -1242,7 +1252,7 @@ export default function AdminPanel({
       "@type": "RealEstateListing",
       "name": propName,
       "description": calculatedSeoDesc,
-      "url": `https://vivasc.com.br/imovel/${calculatedSlug}`,
+      "url": `https://santainvest.vercel.app/imovel/${calculatedSlug}`,
       "itemOffered": {
         "@type": "Apartment",
         "name": propName,
