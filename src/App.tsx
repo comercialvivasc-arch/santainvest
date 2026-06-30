@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { HelmetProvider } from 'react-helmet-async';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { CadastroForm } from './components/CadastroForm';
 import Header from './components/Header';
 import SearchHero from './components/SearchHero';
-import SearchPanel from './components/SearchPanel';
 import PropertyCard from './components/PropertyCard';
 import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
@@ -11,6 +11,7 @@ import LegalDocsModal from './components/LegalDocsModal';
 import CookieConsent from './components/CookieConsent';
 import FloatingChat from './components/FloatingChat';
 import ContatoSection from './components/ContatoSection';
+import PropertyDetailsPage from './components/PropertyDetailsPage';
 import { Property, BannerAd, SearchFilters, BrandSettings, Broker, Client, Lead, Visit, Message } from './types';
 import { INITIAL_PROPERTIES, INITIAL_BANNERS, DEFAULT_BRAND_SETTINGS } from './data';
 import { 
@@ -51,7 +52,18 @@ import {
 import { auth } from './firebase';
 
 export default function App() {
+  return (
+    <HelmetProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </HelmetProvider>
+  );
+}
+
+function AppContent() {
   const [isAuthenticatedUser, setIsAuthenticatedUser] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -954,14 +966,15 @@ export default function App() {
   );
 
   return (
-    <HelmetProvider>
-      <div className="min-h-screen bg-[#050507] text-[#f4f4f5] flex flex-col justify-between selection:bg-primary selection:text-black" id="root-portal">
-      {/* 1. STICKY GLASS HEADER */}
+    <div className="min-h-screen bg-[#050507] text-[#f4f4f5] flex flex-col justify-between selection:bg-primary selection:text-black" id="root-portal">
       <Header 
         currentView={currentView} 
         onNavigate={setCurrentView} 
         currentTab={currentTab}
-        onTabChange={setCurrentTab}
+        onTabChange={(tab) => {
+           setCurrentTab(tab);
+           navigate('/');
+        }}
         query={query} 
         setQuery={setQuery} 
         settings={settings}
@@ -970,6 +983,7 @@ export default function App() {
       {/* 2. DYNAMIC MAIN BODY ROUTER */}
       <main className="flex-grow">
         <AnimatePresence mode="wait">
+          <PropertyDetailsPage properties={properties} />
           {currentView === 'home' ? (
             <motion.div
               key={`landing-page-${currentTab}`}
@@ -1240,6 +1254,5 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
-  </HelmetProvider>
   );
 }

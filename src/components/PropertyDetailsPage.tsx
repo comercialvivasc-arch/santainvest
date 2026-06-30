@@ -1,23 +1,27 @@
 import React, { useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Property } from '../types';
 import { Helmet } from 'react-helmet-async';
 
 export default function PropertyDetailsPage({ properties }: { properties: Property[] }) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const property = useMemo(() => {
     return properties.find((p) => p.slug === slug) || null;
   }, [properties, slug]);
 
   if (!property) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-zinc-900">
-        <h1 className="text-2xl font-bold">Imóvel não encontrado</h1>
-        <button onClick={() => navigate('/')} className="mt-4 text-blue-600 underline">Voltar para a Home</button>
-      </div>
-    );
+    if (location.pathname.startsWith('/imovel/')) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center text-zinc-900">
+          <h1 className="text-2xl font-bold">Imóvel não encontrado</h1>
+          <button onClick={() => navigate('/')} className="mt-4 text-blue-600 underline">Voltar para a Home</button>
+        </div>
+      );
+    }
+    return null;
   }
 
   return (
