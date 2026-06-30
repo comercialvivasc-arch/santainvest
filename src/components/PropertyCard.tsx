@@ -566,82 +566,82 @@ export default function PropertyCard({
         </div>
 
         {/* BOTTOM METRICS AND TEXTS */}
-        <div className="p-5 flex-1 flex flex-col justify-between">
+        <div className="p-4 flex-1 flex flex-col justify-between">
           <div>
             {/* Project template / type & location subheaders */}
-            <div className="flex items-center justify-between text-[12px] mb-1">
+            <div className="flex items-center justify-between text-[11px] mb-0.5">
               <div className="flex items-center gap-1 font-bold tracking-wider text-primary uppercase font-mono" style={{ color: '#ff6200' }}>
                 <Compass className="h-3 w-3" />
                 {property.projectType}
               </div>
               {property.isMcmv && (
-                <McmvBadge customLogoUrl={property.mcmvLogoUrl} className="h-6" />
+                <McmvBadge customLogoUrl={property.mcmvLogoUrl} className="h-5" />
               )}
             </div>
 
             {/* Nome do Projeto */}
-            <h3 className="text-xl font-bold text-zinc-900 tracking-tight leading-[1.15] mt-1 group-hover:text-primary transition-colors">
+            <h3 className="text-[15px] font-bold text-zinc-900 tracking-tight leading-[1.15] mt-0.5 group-hover:text-primary transition-colors">
               {property.name}
             </h3>
 
             {/* Bairro */}
-            <p className="mt-1 text-sm font-semibold text-zinc-700 flex items-center gap-1">
+            <p className="mt-0.5 text-sm font-semibold text-zinc-700 flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5 text-primary shrink-0" style={{ color: '#ff6200' }} />
               {property.neighborhood}, {property.region}
             </p>
 
             {/* Endereço */}
-            <p className="mt-1 text-xs text-zinc-550 line-clamp-1 italic">
+            <p className="mt-0 text-xs text-zinc-550 line-clamp-1 italic">
               {property.address}
             </p>
 
             {/* Icones Relativos: e.g. 2 Qts, 80m2, 2 Vagas */}
-            <div className="my-4 pt-4 border-t border-zinc-200/80 flex justify-between items-center text-xs text-zinc-700 font-mono">
-              <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
-                <Bed className="h-3.5 w-3.5 text-primary shrink-0" style={{ color: '#ff6200' }} />
+            <div className="my-3 pt-3 border-t border-zinc-200/80 flex justify-between items-center text-[11px] text-zinc-700 font-mono">
+              <span className="flex items-center gap-1 bg-zinc-100 px-2 py-1 rounded-lg border border-zinc-200/80">
+                <Bed className="h-3 w-3 text-primary shrink-0" style={{ color: '#ff6200' }} />
                 <span style={{ color: '#71717b' }}>{formatBedroomsLabel(property.bedrooms)}</span>
               </span>
-              <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
-                <Maximize className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="flex items-center gap-1 bg-zinc-100 px-2 py-1 rounded-lg border border-zinc-200/80">
+                <Maximize className="h-3 w-3 text-primary shrink-0" />
                 <span>{formatAreaLabel(property.area)}</span>
               </span>
-              <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
+              <span className="flex items-center gap-1 bg-zinc-100 px-2 py-1 rounded-lg border border-zinc-200/80">
                 <span>{property.bathrooms || '1'} Banh.</span>
               </span>
-              <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
-                <Car className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="flex items-center gap-1 bg-zinc-100 px-2 py-1 rounded-lg border border-zinc-200/80">
+                <Car className="h-3 w-3 text-primary shrink-0" />
                 <span>{formatParkingLabel(property.parkingSpaces)}</span>
               </span>
             </div>
           </div>
 
-          <div className="border-t border-zinc-200/80 pt-4 mt-auto">
+          <div className="border-t border-zinc-200/80 pt-3 mt-auto">
             {/* Valor A partir R$ */}
-            <div className="mb-3">
-              <span className="text-[10px] tracking-widest font-bold text-zinc-500 uppercase font-mono block">
+            <div className="mb-2">
+              <span className="text-[9px] tracking-widest font-bold text-zinc-500 uppercase font-mono block">
                 Investimento Estimado
               </span>
-              <div className="text-xl font-extrabold text-zinc-900">
-                <span className="text-xs font-semibold text-primary mr-1 font-mono" style={index === 0 ? { color: '#ff6200' } : undefined}>A partir</span>
+              <div className="text-lg font-extrabold text-zinc-900">
+                <span className="text-[10px] font-semibold text-primary mr-1 font-mono" style={index === 0 ? { color: '#ff6200' } : undefined}>A partir</span>
                 {formatBRL(property.price)}
               </div>
             </div>
 
             {/* Entrada a partir R$ | Parcela a partir R$ */}
-            <div className="grid grid-cols-2 gap-3 mb-4 rounded-xl bg-zinc-50 border border-zinc-250 p-3 text-xs font-mono">
+            <div className="grid grid-cols-2 gap-2 mb-3 rounded-xl bg-zinc-50 border border-zinc-250 p-2 text-[11px] font-mono">
               <div>
-                <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: index === 1 ? '#71717b' : '#ff6200' }}>
+                <span className="text-[8px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: index === 1 ? '#71717b' : '#ff6200' }}>
                   Entrada R$
                 </span>
-                <span className="font-extrabold text-zinc-900 text-[14px] block">
+                <span className="font-extrabold text-zinc-900 text-[12px] block">
                   {formatBRL(property.downpayment)}
                 </span>
               </div>
-              <div className="border-l border-zinc-200 pl-3">
-                <span className="text-[9px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: '#71717b' }}>
+              <div className="border-l border-zinc-200 pl-2">
+                <span className="text-[8px] font-bold tracking-wider text-zinc-550 uppercase block mb-0.5" style={{ color: '#71717b' }}>
                   Mensais R$
                 </span>
-                <span className="font-extrabold text-[#FF9D00] text-[14px] block" style={{ color: '#18181b' }}>
+                <span className="font-extrabold text-[#FF9D00] text-[12px] block" style={{ color: '#18181b' }}>
                   {formatBRL(property.installments)}
                 </span>
               </div>
@@ -650,10 +650,10 @@ export default function PropertyCard({
             {/* Botao Ver Oferta */}
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold tracking-wider uppercase cursor-pointer hover:opacity-90 transition-all duration-300"
-              style={{ color: '#ffffff', backgroundColor: '#ff6200', fontWeight: 'normal' }}
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold tracking-wider uppercase cursor-pointer hover:opacity-90 transition-all duration-300 text-[#fefefe] bg-[#ff6200]"
+              style={{ fontWeight: 'normal' }}
             >
-              <Sparkles className="h-4 w-4 shrink-0 stroke-[2.5]" />
+              <Sparkles className="h-3.5 w-3.5 shrink-0 stroke-[2.5]" />
               <span style={{ fontWeight: 'normal' }}>Ver Oferta</span>
             </button>
           </div>
@@ -1001,12 +1001,7 @@ export default function PropertyCard({
                       {/* Left: Interactive Image with lightbox hover effect */}
                       <div className="md:col-span-7 space-y-2">
                         <div 
-                          className="relative aspect-[4/3] rounded-lg overflow-hidden bg-zinc-100 border border-zinc-200 cursor-zoom-in group"
-                          onClick={() => {
-                            // Expand plant image inside standard main slider or fallback to open in tab
-                            const matchedImgUrl = floorPlansList[activePlanIdx >= floorPlansList.length ? 0 : activePlanIdx].image;
-                            window.open(matchedImgUrl, '_blank', 'referrerPolicy=no-referrer');
-                          }}
+                          className="relative aspect-[4/3] rounded-lg overflow-hidden bg-zinc-100 border border-zinc-200 group"
                         >
                           <img
                             src={floorPlansList[activePlanIdx >= floorPlansList.length ? 0 : activePlanIdx].image}
@@ -1014,11 +1009,6 @@ export default function PropertyCard({
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-contain p-2 group-hover:scale-102 transition-transform duration-500"
                           />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <span className="bg-black/80 px-3 py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-widest text-white border border-white/10 flex items-center gap-1">
-                              Clique para ampliar
-                            </span>
-                          </div>
 
                           {floorPlansList[activePlanIdx >= floorPlansList.length ? 0 : activePlanIdx].area && (
                             <div 

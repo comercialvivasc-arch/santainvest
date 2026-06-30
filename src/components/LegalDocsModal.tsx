@@ -15,7 +15,7 @@ export default function LegalDocsModal({ isOpen, onClose, type, settings }: Lega
   const companyName = settings?.companyName || 'Meu Primeiro Imóvel ME';
   const creci = settings?.creci || 'Creci 36847';
   const cnpj = settings?.cnpj || '51.874.234/0001-90';
-  const brandName = settings?.brandName || 'VIVA SC';
+  const brandName = settings?.brandName || 'Meu Primeiro Imóvel';
 
   // Fallback text if admin left it empty
   const defaultTerms = `### Termos de Uso e Consentimento

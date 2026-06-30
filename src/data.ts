@@ -18,7 +18,7 @@ export const INITIAL_PROPERTIES: Property[] = [
     installments: 4500,
     availableUnits: 8,
     images: [
-      'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80',
+      'https://i.postimg.cc/mrCcfw9n/MODELO-2.png',
       'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80'
     ],
