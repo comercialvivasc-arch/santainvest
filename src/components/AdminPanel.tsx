@@ -4595,7 +4595,7 @@ export default function AdminPanel({
                     "@context": "https://schema.org",
                     "@type": "Product",
                     "name": prop.name,
-                    "image": (prop.images && prop.images[0]) || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=400&q=80",
+                    "image": (prop.images && prop.images[0]) || "https://i.postimg.cc/mrCcfw9n/MODELO-2.png",
                     "description": simulatedDescription,
                     "brand": {
                       "@type": "Brand",
@@ -4606,7 +4606,7 @@ export default function AdminPanel({
                       "price": prop.price || 1500000,
                       "priceCurrency": "BRL",
                       "availability": "https://schema.org/InStock",
-                      "url": `https://portal.vivasc.com.br${simulatedSlugUrl}`
+                      "url": `https://meuprimeiroimovelsc.com.br${simulatedSlugUrl}`
                     }
                   };
 
