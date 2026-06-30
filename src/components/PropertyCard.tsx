@@ -606,6 +606,9 @@ export default function PropertyCard({
                 <span>{formatAreaLabel(property.area)}</span>
               </span>
               <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
+                <span>{property.bathrooms || '1'} Banh.</span>
+              </span>
+              <span className="flex items-center gap-1.5 bg-zinc-100 px-2.5 py-1.5 rounded-lg border border-zinc-200/80">
                 <Car className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span>{formatParkingLabel(property.parkingSpaces)}</span>
               </span>
@@ -874,7 +877,7 @@ export default function PropertyCard({
                     )}
                     <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all">
                       <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Banheiros</span>
-                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{formatBathroomsLabel(property.bedrooms)}</span>
+                      <span className="text-sm font-extrabold text-zinc-900 mt-1.5 font-mono">{property.bathrooms || '1'}</span>
                     </div>
                     <div className={`bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 text-center flex flex-col items-center justify-center hover:bg-zinc-100 transition-all ${hasSuites ? 'col-span-2 sm:col-span-1' : 'col-span-2 sm:col-span-1'}`}>
                       <span className="text-[9px] text-zinc-500 uppercase font-mono tracking-wider font-semibold">Vagas / Garagem</span>

@@ -18,6 +18,7 @@ export interface Property {
   projectType: string; // e.g., 'Apartamento', 'Cobertura', 'Studio', 'Casa'
   bedrooms: string | number;
   suites?: string | number;
+  bathrooms?: string | number;
   area: string | number; // in m²
   parkingSpaces: string | number;
   price: string | number; // starting price (valor a partir de) - Changed to string | number

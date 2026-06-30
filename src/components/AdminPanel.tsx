@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BannerAd, BrandSettings, Broker, Client, Lead, Visit, Message, FloorPlan } from '../types';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider, storage } from '../firebase';
 import { 
   signInWithPopup, 
   signInWithRedirect, 
@@ -16,6 +16,7 @@ import {
   createUserWithEmailAndPassword,
   signOut as fbSignOut 
 } from 'firebase/auth';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { 
   seedInitialDatabase,
   saveBrokerToFirestore,
@@ -543,6 +544,24 @@ export default function AdminPanel({
   const [visitTime, setVisitTime] = useState('');
   const [visitStatus, setVisitStatus] = useState<Visit['status']>('Agendada');
 
+  // Image Upload Progress State
+  interface UploadState {
+    isUploading: boolean;
+    progress: number;
+    fileName: string;
+    error: string | null;
+    success: boolean;
+    isFallback?: boolean;
+  }
+  const [uploadState, setUploadState] = useState<UploadState>({
+    isUploading: false,
+    progress: 0,
+    fileName: '',
+    error: null,
+    success: false,
+    isFallback: false
+  });
+
   // Form Property State
   const [isPropertyFormOpen, setIsPropertyFormOpen] = useState(false);
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
@@ -559,6 +578,7 @@ export default function AdminPanel({
   const [propBedrooms, setPropBedrooms] = useState<string | number>(2);
   const [propSuites, setPropSuites] = useState<string | number>('');
   const [propArea, setPropArea] = useState<string | number>(80);
+  const [propBathrooms, setPropBathrooms] = useState<string | number>('');
   const [propParking, setPropParking] = useState<string | number>(1);
   const [propPrice, setPropPrice] = useState<string | number>(600000);
   const [propDownpayment, setPropDownpayment] = useState(60000);
@@ -782,28 +802,338 @@ export default function AdminPanel({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    Array.from(files).forEach((file: any) => {
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  const dataURLtoBlob = (dataurl: string): Blob => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/webp';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  };
+
+  const processAndCompressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      console.log(`[Image Process] Iniciando processamento para ${file.name}. Formato original: ${file.type}, Tamanho original: ${(file.size / 1024).toFixed(1)} KB`);
+      
+      if (!file.type.startsWith('image/')) {
+        reject(new Error("Formato de arquivo inválido. Apenas imagens são permitidas."));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            // Redimensionar para largura máxima de 1920px mantendo proporção
+            const MAX_WIDTH = 1920;
+            if (width > MAX_WIDTH) {
+              height = Math.round(height * (MAX_WIDTH / width));
+              width = MAX_WIDTH;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error("Não foi possível obter o contexto 2D do canvas"));
+              return;
+            }
+
+            // Desenhar imagem no canvas (remove metadados EXIF e mantém perfil sRGB padrão do canvas)
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Aplicar leve nitidez
+            try {
+              const imageData = ctx.getImageData(0, 0, width, height);
+              const data = imageData.data;
+              const output = ctx.createImageData(width, height);
+              const outData = output.data;
+              
+              // Kernel de nitidez leve
+              const amount = 0.1; // nitidez leve
+              const centerWeight = 1 + 4 * amount;
+              
+              for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                  const idx = (y * width + x) * 4;
+                  
+                  for (let c = 0; c < 3; c++) { // R, G, B
+                    const i = idx + c;
+                    const up = ((y - 1) * width + x) * 4 + c;
+                    const down = ((y + 1) * width + x) * 4 + c;
+                    const left = (y * width + x - 1) * 4 + c;
+                    const right = (y * width + x + 1) * 4 + c;
+
+                    const val = data[i] * centerWeight - (data[up] + data[down] + data[left] + data[right]) * amount;
+                    outData[i] = Math.min(255, Math.max(0, val));
+                  }
+                  outData[idx + 3] = data[idx + 3]; // Alpha
+                }
+              }
+              
+              // Tratar as bordas (apenas copiar)
+              for (let x = 0; x < width; x++) {
+                // Top border
+                const topIdx = x * 4;
+                for (let c = 0; c < 4; c++) outData[topIdx + c] = data[topIdx + c];
+                // Bottom border
+                const botIdx = ((height - 1) * width + x) * 4;
+                for (let c = 0; c < 4; c++) outData[botIdx + c] = data[botIdx + c];
+              }
+              for (let y = 0; y < height; y++) {
+                // Left border
+                const leftIdx = y * width * 4;
+                for (let c = 0; c < 4; c++) outData[leftIdx + c] = data[leftIdx + c];
+                // Right border
+                const rightIdx = (y * width + width - 1) * 4;
+                for (let c = 0; c < 4; c++) outData[rightIdx + c] = data[rightIdx + c];
+              }
+
+              ctx.putImageData(output, 0, 0);
+              console.log("[Image Process] Filtro de nitidez leve aplicado com sucesso.");
+            } catch (sharpError) {
+              console.warn("[Image Process] Falha ao aplicar filtro de nitidez, prosseguindo com imagem original:", sharpError);
+              ctx.drawImage(img, 0, 0, width, height);
+            }
+
+            // Converter para WebP com compressão gradual se ultrapassar 1MB
+            let quality = 0.82;
+            let resultBase64 = '';
+            let sizeInBytes = 0;
+            let attempts = 0;
+            const MAX_ATTEMPTS = 5;
+
+            do {
+              resultBase64 = canvas.toDataURL('image/webp', quality);
+              sizeInBytes = Math.ceil((resultBase64.length - 'data:image/webp;base64,'.length) * 3 / 4);
+              console.log(`[Image Process] Conversão WebP - Tentativa ${attempts + 1}: Qualidade ${quality.toFixed(2)}, Tamanho gerado: ${(sizeInBytes / 1024).toFixed(1)} KB`);
+              
+              if (sizeInBytes <= 1048576) {
+                break;
+              }
+              quality -= 0.12; // Reduz a qualidade gradualmente
+              attempts++;
+            } while (quality > 0.1 && attempts < MAX_ATTEMPTS);
+
+            console.log(`[Image Process] Conversão concluída para ${file.name}. Tamanho final: ${(sizeInBytes / 1024).toFixed(1)} KB. Qualidade final: ${quality.toFixed(2)}`);
+            resolve(resultBase64);
+          } catch (err) {
+            console.error("[Image Process] Erro interno durante o canvas/processamento:", err);
+            reject(err);
+          }
+        };
+        img.onerror = (err) => {
+          console.error("[Image Process] Erro ao carregar imagem no objeto Image:", err);
+          reject(err);
+        };
+      };
+      reader.onerror = (err) => {
+        console.error("[Image Process] Erro na leitura do FileReader:", err);
+        reject(err);
+      };
+    });
+  };
+
+  const uploadToStorageWithProgress = (base64Image: string, path: string, fileName: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log(`[Upload Storage] Preparando upload para o caminho: ${path}`);
+        const blob = dataURLtoBlob(base64Image);
+        const storageRef = ref(storage, path);
+        
+        setUploadState({
+          isUploading: true,
+          progress: 0,
+          fileName: fileName,
+          error: null,
+          success: false
+        });
+
+        const uploadTask = uploadBytesResumable(storageRef, blob);
+
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+            console.log(`[Upload Storage] Progresso: ${pct}% concluído para ${fileName}`);
+            setUploadState(prev => ({
+              ...prev,
+              progress: pct
+            }));
+          },
+          (error) => {
+            console.error(`[Upload Storage] Erro durante o upload de ${fileName}:`, error);
+            setUploadState(prev => ({
+              ...prev,
+              isUploading: false,
+              error: error.message || 'Erro desconhecido no Firebase Storage'
+            }));
+            reject(error);
+          },
+          async () => {
+            try {
+              console.log(`[Upload Storage] Upload concluído com sucesso para ${fileName}. Obtendo URL pública...`);
+              const url = await getDownloadURL(uploadTask.snapshot.ref);
+              console.log(`[Upload Storage] URL gerada: ${url}`);
+              
+              setUploadState({
+                isUploading: false,
+                progress: 100,
+                fileName: fileName,
+                error: null,
+                success: true
+              });
+
+              setTimeout(() => {
+                setUploadState(prev => {
+                  if (prev.success) {
+                    return { ...prev, success: false, progress: 0 };
+                  }
+                  return prev;
+                });
+              }, 3000);
+
+              resolve(url);
+            } catch (urlError) {
+              console.error(`[Upload Storage] Erro ao obter download URL para ${fileName}:`, urlError);
+              setUploadState(prev => ({
+                ...prev,
+                isUploading: false,
+                error: urlError instanceof Error ? urlError.message : 'Erro ao recuperar URL pública'
+              }));
+              reject(urlError);
+            }
+          }
+        );
+      } catch (err: any) {
+        console.error(`[Upload Storage] Erro na inicialização do upload para ${fileName}:`, err);
+        setUploadState({
+          isUploading: false,
+          progress: 0,
+          fileName: fileName,
+          error: err.message || 'Erro na preparação do arquivo',
+          success: false
+        });
+        reject(err);
+      }
+    });
+  };
+
+  const handleSingleImageUpload = async (file: File, folder: string, setUrl: (url: string) => void) => {
+    let resultBase64 = '';
+    console.log(`[Upload Debug] Iniciando handleSingleImageUpload para arquivo: ${file.name}, pasta: ${folder}`);
+    try {
       if (!file.type.startsWith('image/')) {
         alert('Por favor, envie apenas arquivos de imagem válida!');
         return;
       }
-      
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const resultBase64 = event.target?.result as string;
-        if (resultBase64) {
-          setPropImagesList((prev) => {
-            if (prev.includes(resultBase64)) return prev;
-            return [...prev, resultBase64];
+      resultBase64 = await processAndCompressImage(file);
+      const storagePath = `${folder}/${Date.now()}_${generateUUID()}.webp`;
+      console.log(`[Upload Debug] Uploading to: ${storagePath}`);
+      const url = await uploadToStorageWithProgress(resultBase64, storagePath, file.name);
+      console.log(`[Upload Debug] Upload bem-sucedido, URL: ${url}`);
+      setUrl(url);
+    } catch (err: any) {
+      console.warn(`[Firebase Storage Fallback] Erro ao enviar para o Storage:`, err);
+      if (resultBase64) {
+        console.log(`[Upload Debug] Usando fallback para Base64`);
+        setUrl(resultBase64);
+        
+        // Configura o estado de upload para sucesso com aviso de Fallback
+        setUploadState({
+          isUploading: false,
+          progress: 100,
+          fileName: `${file.name}`,
+          error: null,
+          success: true,
+          isFallback: true
+        });
+        
+        setTimeout(() => {
+          setUploadState(prev => {
+            if (prev.success) {
+              return { ...prev, success: false, isFallback: false, progress: 0 };
+            }
+            return prev;
           });
+        }, 5000);
+      } else {
+        console.error(`Erro no processamento da imagem para ${folder}:`, err);
+      }
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+      
+      for (const file of Array.from(files) as File[]) {
+        if (!file.type.startsWith('image/')) {
+          alert('Por favor, envie apenas arquivos de imagem válida!');
+          continue;
         }
-      };
-      reader.readAsDataURL(file);
-    });
+        
+        let resultBase64 = '';
+        try {
+          resultBase64 = await processAndCompressImage(file);
+          const storagePath = `empreendimentos/${Date.now()}_${generateUUID()}.webp`;
+          const url = await uploadToStorageWithProgress(resultBase64, storagePath, file.name);
+          setPropImagesList((prev) => {
+            if (prev.includes(url)) return prev;
+            return [...prev, url];
+          });
+        } catch (err) {
+          console.warn(`[Firebase Storage Fallback] Erro ao enviar para o Storage, usando fallback para Base64 local compactado:`, err);
+          if (resultBase64) {
+            setPropImagesList((prev) => {
+              if (prev.includes(resultBase64)) return prev;
+              return [...prev, resultBase64];
+            });
+            
+            // Configura o estado de upload para sucesso com aviso de Fallback
+            setUploadState({
+              isUploading: false,
+              progress: 100,
+              fileName: `${file.name}`,
+              error: null,
+              success: true,
+              isFallback: true
+            });
+            
+            setTimeout(() => {
+              setUploadState(prev => {
+                if (prev.success) {
+                  return { ...prev, success: false, isFallback: false, progress: 0 };
+                }
+                return prev;
+              });
+            }, 5000);
+          } else {
+            console.error("Erro na compressão de imagem:", err);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Erro no handleImageUpload:", err);
+    }
   };
 
   const handleRemoveImageUrl = (idx: number) => {
@@ -871,38 +1201,18 @@ export default function AdminPanel({
     setPropFloorPlans(propFloorPlans.filter((_, i) => i !== idx));
   };
 
-  const handleBannerImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor, envie apenas arquivos de imagem válidos!');
-      return;
+    if (file) {
+      await handleSingleImageUpload(file, 'banners', setBannerImageUrl);
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setBannerImageUrl(result);
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handlePlanImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePlanImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor, envie apenas arquivos de imagem de planta válidos!');
-      return;
+    if (file) {
+      await handleSingleImageUpload(file, 'empreendimentos/plantas', setNewPlanImageUrl);
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setNewPlanImageUrl(result);
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   const onSubmitProperty = (e: React.FormEvent) => {
@@ -974,6 +1284,7 @@ export default function AdminPanel({
       projectType: propType,
       bedrooms: parseFlexField(propBedrooms),
       suites: parseFlexField(propSuites),
+      bathrooms: parseFlexField(propBathrooms),
       area: parseFlexField(propArea),
       parkingSpaces: parseFlexField(propParking),
       price: typeof propPrice === 'number' ? propPrice : propPrice.toString(),
@@ -1836,21 +2147,10 @@ export default function AdminPanel({
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          // Check size (keep logo relatively small for base64 doc storage)
-                          if (file.size > 2000000) {
-                            alert('Erro: Escolha uma imagem de logotipo de até 2MB.');
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            if (event.target?.result) {
-                              setSettingsLogoUrl(event.target.result as string);
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          await handleSingleImageUpload(file, 'configuracoes', setSettingsLogoUrl);
                         }
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
@@ -1914,20 +2214,10 @@ export default function AdminPanel({
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > 2000000) {
-                            alert('Erro: Escolha uma imagem de logotipo de até 2MB.');
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            if (event.target?.result) {
-                              setSettingsFooterLogoUrl(event.target.result as string);
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          await handleSingleImageUpload(file, 'configuracoes', setSettingsFooterLogoUrl);
                         }
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
@@ -2004,20 +2294,10 @@ export default function AdminPanel({
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > 500000) {
-                            alert('Erro: Escolha uma imagem de favicon de até 500KB.');
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            if (event.target?.result) {
-                              setSettingsFaviconUrl(event.target.result as string);
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          await handleSingleImageUpload(file, 'configuracoes', setSettingsFaviconUrl);
                         }
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
@@ -2080,20 +2360,10 @@ export default function AdminPanel({
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > 2000000) {
-                            alert('Erro: Escolha uma imagem de compartilhamento de até 2MB.');
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            if (event.target?.result) {
-                              setSettingsShareLogoUrl(event.target.result as string);
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          await handleSingleImageUpload(file, 'configuracoes', setSettingsShareLogoUrl);
                         }
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-15"
@@ -2413,10 +2683,14 @@ export default function AdminPanel({
               <div className="border-t border-zinc-900 pt-5 text-right">
                 <button
                   type="submit"
-                  disabled={isSettingsUpdating}
-                  className="px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-extrabold tracking-widest uppercase transition-all duration-300 shadow-lg cursor-pointer disabled:opacity-40"
+                  disabled={isSettingsUpdating || uploadState.isUploading}
+                  className="px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-extrabold tracking-widest uppercase transition-all duration-300 shadow-lg cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {isSettingsUpdating ? 'Atualizando marca...' : 'Salvar no Firebase'}
+                  {isSettingsUpdating 
+                    ? 'Atualizando marca...' 
+                    : uploadState.isUploading 
+                      ? 'Aguardando Upload...' 
+                      : 'Salvar no Firebase'}
                 </button>
               </div>
             </form>
@@ -4631,20 +4905,10 @@ export default function AdminPanel({
                             type="file"
                             accept="image/*"
                             className="hidden"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                if (!file.type.startsWith('image/')) {
-                                  alert('Selecione apenas arquivos de imagem!');
-                                  return;
-                                }
-                                const reader = new FileReader();
-                                reader.onload = (event) => {
-                                  if (event.target?.result) {
-                                    setPropMcmvLogoUrl(event.target.result as string);
-                                  }
-                                };
-                                reader.readAsDataURL(file);
+                                await handleSingleImageUpload(file, 'empreendimentos/mcmv', setPropMcmvLogoUrl);
                               }
                             }}
                           />
@@ -4690,6 +4954,18 @@ export default function AdminPanel({
                       value={propSuites}
                       onChange={(e) => setPropSuites(e.target.value)}
                       placeholder="Ex: 1, 2 ou deixe vazio"
+                    />
+                  </div>
+
+                  {/* Bathrooms */}
+                  <div className="col-span-2 lg:col-span-1">
+                    <label className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block mb-1">Banheiros (Ex: 1 ou 2)</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg bg-black/60 border border-zinc-850 px-3 py-2 text-sm text-white focus:border-orange-500 outline-none"
+                      value={propBathrooms}
+                      onChange={(e) => setPropBathrooms(e.target.value)}
+                      placeholder="Ex: 1, 2"
                     />
                   </div>
 
@@ -5074,7 +5350,7 @@ export default function AdminPanel({
                       multiple
                       accept="image/*"
                       onChange={handleImageUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
                     />
                     <div className="h-9 w-9 rounded-full bg-orange-500/10 flex items-center justify-center border border-orange-500/20 group-hover:scale-105 transition-transform">
                       <Upload className="h-4.5 w-4.5 text-orange-500" />
@@ -5296,6 +5572,7 @@ export default function AdminPanel({
                       <div className="relative">
                         <input
                           type="file"
+                          id="plan-image-upload"
                           accept="image/*"
                           onChange={handlePlanImageUpload}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-15"
@@ -5375,9 +5652,10 @@ export default function AdminPanel({
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-3 rounded-xl bg-orange-500 text-black text-xs font-extrabold tracking-widest uppercase hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/15 cursor-pointer"
+                    disabled={uploadState.isUploading}
+                    className="px-8 py-3 rounded-xl bg-orange-500 text-black text-xs font-extrabold tracking-widest uppercase hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/15 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Salvar Empreendimento
+                    {uploadState.isUploading ? 'Aguardando Upload...' : 'Salvar Empreendimento'}
                   </button>
                 </div>
               </form>
@@ -5473,7 +5751,7 @@ export default function AdminPanel({
                         type="file"
                         accept="image/*"
                         onChange={handleBannerImageUpload}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-15"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
                       />
                       <button
                         type="button"
@@ -5569,14 +5847,108 @@ export default function AdminPanel({
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-orange-500 text-black text-xs font-extrabold tracking-widest uppercase hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/10 cursor-pointer"
+                    disabled={uploadState.isUploading}
+                    className="px-6 py-2.5 rounded-xl bg-orange-500 text-black text-xs font-extrabold tracking-widest uppercase hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/10 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    Salvar Banner
+                    {uploadState.isUploading ? 'Aguardando Upload...' : 'Salvar Banner'}
                   </button>
                 </div>
               </form>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* FLOATING IMAGE UPLOAD PROGRESS NOTIFICATION */}
+      <AnimatePresence>
+        {uploadState.isUploading && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-[100] w-80 bg-zinc-950 border border-zinc-800 rounded-xl p-4 shadow-2xl shadow-black/80 flex flex-col gap-3 font-sans"
+          >
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase font-mono block">
+                Enviando Imagem...
+              </span>
+              <span className="text-xs font-mono font-bold text-orange-500">
+                {uploadState.progress}%
+              </span>
+            </div>
+            
+            <p className="text-[11px] text-zinc-300 font-mono truncate max-w-full">
+              {uploadState.fileName}
+            </p>
+
+            {/* Progress bar container */}
+            <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-orange-600 to-orange-400"
+                style={{ width: `${uploadState.progress}%` }}
+                initial={{ width: 0 }}
+                animate={{ width: `${uploadState.progress}%` }}
+                transition={{ duration: 0.1 }}
+              />
+            </div>
+          </motion.div>
+        )}
+
+        {/* Upload Success Alert */}
+        {uploadState.success && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className={`fixed bottom-6 right-6 z-[100] w-80 bg-zinc-950 border ${
+              uploadState.isFallback ? 'border-orange-500/30' : 'border-green-500/30'
+            } rounded-xl p-4 shadow-2xl shadow-black/80 flex items-center gap-3 font-sans`}
+          >
+            <div className={`h-8 w-8 rounded-full ${
+              uploadState.isFallback ? 'bg-orange-500/10 text-orange-500' : 'bg-green-500/10 text-green-500'
+            } flex items-center justify-center shrink-0 font-bold`}>
+              {uploadState.isFallback ? '⚠️' : '✓'}
+            </div>
+            <div className="flex-1">
+              <h4 className="text-xs font-bold text-white">
+                {uploadState.isFallback ? 'Salvo no Banco Local' : 'Upload Concluído'}
+              </h4>
+              <p className="text-[10px] text-zinc-400">
+                {uploadState.isFallback 
+                  ? 'Firebase Storage inativo. Imagem salva em formato local compactado.' 
+                  : 'Imagem enviada com sucesso.'}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Upload Error Alert */}
+        {uploadState.error && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-[100] w-80 bg-zinc-950 border border-red-500/30 rounded-xl p-4 shadow-2xl shadow-black/80 flex flex-col gap-2 font-sans"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 shrink-0 font-bold">
+                ✕
+              </div>
+              <div className="flex-1">
+                <h4 className="text-xs font-bold text-white">Erro no Envio</h4>
+                <p className="text-[10px] text-zinc-400">Falha ao processar ou enviar a imagem.</p>
+              </div>
+              <button
+                onClick={() => setUploadState(prev => ({ ...prev, error: null }))}
+                className="text-zinc-500 hover:text-white text-xs font-bold font-mono"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-2 bg-red-950/20 rounded border border-red-500/10 max-h-24 overflow-y-auto text-[9px] font-mono text-red-400 leading-relaxed break-all">
+              {uploadState.error}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
