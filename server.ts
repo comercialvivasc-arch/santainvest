@@ -152,7 +152,7 @@ async function startServer() {
       
       let title = 'Meu Primeiro Imóvel';
       let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
-      let imageUrl = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80';
+      let imageUrl = 'https://i.postimg.cc/mrCcfw9n/MODELO-2.png';
       let siteName = 'Meu Primeiro Imóvel';
 
       const settings = await fetchBrandSettings();
@@ -281,7 +281,7 @@ function formatBRL(value: number) {
 
 function sanitizeImageUrl(imgUrl: string, protocol: string, host: string): string {
   if (!imgUrl) {
-    return 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&h=630&q=80';
+    return 'https://i.postimg.cc/mrCcfw9n/MODELO-2.png';
   }
   if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
     return imgUrl;
