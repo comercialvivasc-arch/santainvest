@@ -130,6 +130,10 @@ function AppContent() {
 
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
   const [isDbLoading, setIsDbLoading] = useState(true);
+  
+  const [currentView, setCurrentView] = useState<'home' | 'admin'>('home');
+  const [currentTab, setCurrentTab] = useState('lançamentos');
+  const [globalSelectedPropertyId, setGlobalSelectedPropertyId] = useState<string | null>(null);
 
   const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
   const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy' | null>(null);

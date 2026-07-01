@@ -19,133 +19,138 @@ interface Property {
   images: string[];
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
 
-  // Add JSON and URL-encoded body parsing with 25MB limit to support base64 document attachments
-  app.use(express.json({ limit: '25mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+// Add JSON and URL-encoded body parsing with 25MB limit to support base64 document attachments
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-  // API endpoint for automatic email dispatches when messages/leads enter the portal
-  app.post('/api/notify-email', async (req, res) => {
-    try {
-      const { type, data } = req.body;
-      if (!type || !data) {
-        return res.status(400).json({ error: 'Missing type or data' });
-      }
-
-      console.log(`[Email Notification API] Triggered for type: "${type}", user: "${data.name || 'Anonymous'}"`);
-
-      // 1. Fetch current brand configuration to find dispatch target email
-      const brandSettings = await fetchBrandSettings();
-      const targetEmail = brandSettings?.email || 'comercial.vivasc@gmail.com';
-      const companyName = brandSettings?.companyName || 'VIVASC Lançamentos Imobiliários';
-
-      // 2. Build template & Subject
-      const { subject, html } = buildEmailHtml(type, data, brandSettings);
-
-      // 3. Resolve attachments
-      const attachments: any[] = [];
-      if (type === 'lead' && data.preApprovalData) {
-        const pa = data.preApprovalData;
-        if (pa.rgCpfDoc && pa.rgCpfDoc.base64) {
-          const parsed = parseBase64Attachment(pa.rgCpfDoc);
-          if (parsed) attachments.push(parsed);
-        }
-        if (pa.residenciaDoc && pa.residenciaDoc.base64) {
-          const parsed = parseBase64Attachment(pa.residenciaDoc);
-          if (parsed) attachments.push(parsed);
-        }
-        if (pa.rendaDoc && pa.rendaDoc.base64) {
-          const parsed = parseBase64Attachment(pa.rendaDoc);
-          if (parsed) attachments.push(parsed);
-        }
-      }
-
-      // 4. Set up nodemailer transporter
-      const transporter = getMailTransporter();
-
-      if (transporter) {
-        const sender = process.env.EMAIL_FROM || process.env.SMTP_USER || 'contato@vivasclancamentos.com';
-        const info = await transporter.sendMail({
-          from: `"${companyName} Portal" <${sender}>`,
-          to: targetEmail,
-          subject,
-          html,
-          attachments
-        });
-        console.log(`[Email Notification API] Email sent successfully via SMTP! MessageId: ${info.messageId}`);
-        return res.json({ success: true, message: 'Email sent via SMTP', messageId: info.messageId });
-      } else {
-        // Fallback or development visual debug reporting
-        console.log("======================================================================");
-        console.log(`✉️ [EMAIL WORKSPACE LOG] - SMTP not configured. Printing email content to console.`);
-        console.log(`TO: ${targetEmail}`);
-        console.log(`SUBJECT: ${subject}`);
-        console.log(`ATTACHMENTS: ${attachments.length} file(s) attached.`);
-        console.log("----------------------------------------------------------------------");
-        console.log(`HTML BODY PREVIEW (first 600 chars):\n${html.slice(0, 600)}...`);
-        console.log("======================================================================");
-
-        return res.json({ 
-          success: true, 
-          simulated: true, 
-          message: 'Notification processed! Add SMTP environment variables to transmit live.',
-          target: targetEmail,
-          attachmentsCount: attachments.length
-        });
-      }
-    } catch (err: any) {
-      console.error('[Email Notification API Error]', err);
-      let friendlyError = err.message || 'Erro desconhecido ao processar e-mail.';
-      if (err.message && (err.message.includes('535') || err.message.toLowerCase().includes('invalid login') || err.message.toLowerCase().includes('username and password not accepted'))) {
-        friendlyError = "Erro de Autenticação SMTP (Gmail/Google Workspace - Código 535). A Google rejeitou o login e senha configurados na plataforma como SMTP_USER e SMTP_PASS. Se você está usando o e-mail 'comercial.vivasc@gmail.com', o Gmail BLOQUEIA senhas comuns por motivos de segurança. Para corrigir isso: 1. Acesse sua Conta Google. 2. Ative a 'Verificação em 2 Etapas'. 3. Procure por 'Senhas de App' (App Passwords) ao final da página de segurança física. 4. Crie uma nova senha de app chamada 'CRM VIVASC' e copie o código gerado de 16 letras. 5. Cole este código de 16 letras SEM espaços diretamente no segredo SMTP_PASS nas configurações da plataforma.";
-      }
-      return res.status(500).json({ 
-        error: 'Failed to process email dispatch due to SMTP authorization issues', 
-        details: err.message,
-        friendlyInstructions: friendlyError
-      });
+// API endpoint for automatic email dispatches when messages/leads enter the portal
+app.post('/api/notify-email', async (req, res) => {
+  try {
+    const { type, data } = req.body;
+    if (!type || !data) {
+      return res.status(400).json({ error: 'Missing type or data' });
     }
-  });
 
-  // API route for short links
-  app.get('/api/s/:id', async (req, res) => {
-    const { id } = req.params;
-    const prop = await getPropertyInfo(id);
-    if (prop && prop.slug) {
-      res.redirect(301, `/imovel/${prop.slug}`);
+    console.log(`[Email Notification API] Triggered for type: "${type}", user: "${data.name || 'Anonymous'}"`);
+
+    // 1. Fetch current brand configuration to find dispatch target email
+    const brandSettings = await fetchBrandSettings();
+    const targetEmail = brandSettings?.email || 'comercial.vivasc@gmail.com';
+    const companyName = brandSettings?.companyName || 'VIVASC Lançamentos Imobiliários';
+
+    // 2. Build template & Subject
+    const { subject, html } = buildEmailHtml(type, data, brandSettings);
+
+    // 3. Resolve attachments
+    const attachments: any[] = [];
+    if (type === 'lead' && data.preApprovalData) {
+      const pa = data.preApprovalData;
+      if (pa.rgCpfDoc && pa.rgCpfDoc.base64) {
+        const parsed = parseBase64Attachment(pa.rgCpfDoc);
+        if (parsed) attachments.push(parsed);
+      }
+      if (pa.residenciaDoc && pa.residenciaDoc.base64) {
+        const parsed = parseBase64Attachment(pa.residenciaDoc);
+        if (parsed) attachments.push(parsed);
+      }
+      if (pa.rendaDoc && pa.rendaDoc.base64) {
+        const parsed = parseBase64Attachment(pa.rendaDoc);
+        if (parsed) attachments.push(parsed);
+      }
+    }
+
+    // 4. Set up nodemailer transporter
+    const transporter = getMailTransporter();
+
+    if (transporter) {
+      const sender = process.env.EMAIL_FROM || process.env.SMTP_USER || 'contato@vivasclancamentos.com';
+      const info = await transporter.sendMail({
+        from: `"${companyName} Portal" <${sender}>`,
+        to: targetEmail,
+        subject,
+        html,
+        attachments
+      });
+      console.log(`[Email Notification API] Email sent successfully via SMTP! MessageId: ${info.messageId}`);
+      return res.json({ success: true, message: 'Email sent via SMTP', messageId: info.messageId });
     } else {
-      res.redirect('/');
-    }
-  });
+      // Fallback or development visual debug reporting
+      console.log("======================================================================");
+      console.log(`✉️ [EMAIL WORKSPACE LOG] - SMTP not configured. Printing email content to console.`);
+      console.log(`TO: ${targetEmail}`);
+      console.log(`SUBJECT: ${subject}`);
+      console.log(`ATTACHMENTS: ${attachments.length} file(s) attached.`);
+      console.log("----------------------------------------------------------------------");
+      console.log(`HTML BODY PREVIEW (first 600 chars):\n${html.slice(0, 600)}...`);
+      console.log("======================================================================");
 
-  app.get('/robots.txt', (req, res) => {
-    res.type('text/plain');
-    res.send('User-agent: *\nAllow: /\nSitemap: https://www.meuprimeiroimovelsc.com.br/sitemap.xml');
-  });
-
-  app.get('/sitemap.xml', async (req, res) => {
-    try {
-      const properties = await fetchAllProperties(); // Assuming a helper exists or fetch from INITIAL_PROPERTIES
-      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-      xml += '  <url>\n    <loc>https://www.meuprimeiroimovelsc.com.br/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n';
-      properties.forEach((p: any) => {
-        if (p.slug) {
-          xml += `  <url>\n    <loc>https://www.meuprimeiroimovelsc.com.br/imovel/${p.slug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
-        }
+      return res.json({ 
+        success: true, 
+        simulated: true, 
+        message: 'Notification processed! Add SMTP environment variables to transmit live.',
+        target: targetEmail,
+        attachmentsCount: attachments.length
       });
-      xml += '</urlset>';
-      res.type('application/xml');
-      res.send(xml);
-    } catch (err) {
-      res.status(500).send('Error generating sitemap');
     }
-  });
+  } catch (err: any) {
+    console.error('[Email Notification API Error]', err);
+    let friendlyError = err.message || 'Erro desconhecido ao processar e-mail.';
+    if (err.message && (err.message.includes('535') || err.message.toLowerCase().includes('invalid login') || err.message.toLowerCase().includes('username and password not accepted'))) {
+      friendlyError = "Erro de Autenticação SMTP (Gmail/Google Workspace - Código 535). A Google rejeitou o login e senha configurados na plataforma como SMTP_USER e SMTP_PASS. Se você está usando o e-mail 'comercial.vivasc@gmail.com', o Gmail BLOQUEIA senhas comuns por motivos de segurança. Para corrigir isso: 1. Acesse sua Conta Google. 2. Ative a 'Verificação em 2 Etapas'. 3. Procure por 'Senhas de App' (App Passwords) ao final da página de segurança física. 4. Crie uma nova senha de app chamada 'CRM VIVASC' e copie o código gerado de 16 letras. 5. Cole este código de 16 letras SEM espaços diretamente no segredo SMTP_PASS nas configurações da plataforma.";
+    }
+    return res.status(500).json({ 
+      error: 'Failed to process email dispatch due to SMTP authorization issues', 
+      details: err.message,
+      friendlyInstructions: friendlyError
+    });
+  }
+});
+
+// API route for short links
+app.get('/api/s/:id', async (req, res) => {
+  const { id } = req.params;
+  const prop = await getPropertyInfo(id);
+  if (prop && prop.slug) {
+    res.redirect(301, `/imovel/${prop.slug}`);
+  } else {
+    res.redirect('/');
+  }
+});
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send('User-agent: *\nAllow: /\nSitemap: https://www.meuprimeiroimovelsc.com.br/sitemap.xml');
+});
+
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const properties = await fetchAllProperties();
+    
+    async function fetchAllProperties() {
+      // Logic to fetch all properties (e.g. from Firestore or INITIAL_PROPERTIES)
+      return INITIAL_PROPERTIES; 
+    }
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+    xml += '  <url>\n    <loc>https://www.meuprimeiroimovelsc.com.br/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n';
+    properties.forEach((p: any) => {
+      if (p.slug) {
+        xml += `  <url>\n    <loc>https://www.meuprimeiroimovelsc.com.br/imovel/${p.slug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      }
+    });
+    xml += '</urlset>';
+    res.type('application/xml');
+    res.send(xml);
+  } catch (err) {
+    res.status(500).send('Error generating sitemap');
+  }
+});
 
 
+async function startServer() {
   let vite: any;
   if (process.env.NODE_ENV !== 'production') {
     vite = await createViteServer({
@@ -215,7 +220,7 @@ async function startServer() {
       if (imovelId) {
         prop = await getPropertyInfo(imovelId);
       } else if (slug && slug !== '') {
-         prop = await fetchPropertyBySlug(slug);
+          prop = await fetchPropertyBySlug(slug);
       }
 
       if (prop) {
@@ -244,27 +249,27 @@ async function startServer() {
 
       // Generate dynamic meta tags in pristine compliance
       const metaTags = `
-    <title>${escapeHtml(title)}</title>
-    <!-- Open Graph / Facebook / WhatsApp -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
-    <meta property="og:title" content="${escapeHtml(title)}" />
-    <meta property="og:description" content="${escapeHtml(description)}" />
-    <meta property="og:image" content="${escapeHtml(sanitizedImageUrl)}" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:site_name" content="${escapeHtml(siteName)}" />
+  <title>${escapeHtml(title)}</title>
+  <!-- Open Graph / Facebook / WhatsApp -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+  <meta property="og:title" content="${escapeHtml(title)}" />
+  <meta property="og:description" content="${escapeHtml(description)}" />
+  <meta property="og:image" content="${escapeHtml(sanitizedImageUrl)}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="${escapeHtml(siteName)}" />
 
-    <!-- Twitter / X -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}" />
-    <meta name="twitter:title" content="${escapeHtml(title)}" />
-    <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${escapeHtml(sanitizedImageUrl)}" />
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}" />
+  <meta name="twitter:title" content="${escapeHtml(title)}" />
+  <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta name="twitter:image" content="${escapeHtml(sanitizedImageUrl)}" />
 
-    <!-- SEO / Canonical Links -->
-    <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
-    `;
+  <!-- SEO / Canonical Links -->
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
+  `;
 
       // Replace and clean any existing duplicate tags
       let html = template;
@@ -289,10 +294,12 @@ async function startServer() {
     }
   });
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[VIVASC Server] Running on http://localhost:${PORT}`);
+  app.listen(3000, '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:3000`);
   });
 }
+
+startServer();
 
 // Helpers
 function escapeHtml(unsafe: string): string {
@@ -779,5 +786,4 @@ function buildEmailHtml(type: string, data: any, brandSettings: any): { subject:
   }
 }
 
-startServer();
 
