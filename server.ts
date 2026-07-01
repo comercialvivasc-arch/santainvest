@@ -150,105 +150,91 @@ app.get('/sitemap.xml', async (req, res) => {
 });
 
 
-async function startServer() {
-  let vite: any;
-  if (process.env.NODE_ENV !== 'production') {
-    vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'custom',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath, { index: false }));
+async function handleIndexRequest(req: express.Request, res: express.Response, next: express.NextFunction, vite?: any) {
+  const url = req.originalUrl;
+  
+  // Pass assets to standard handling
+  if (url.includes('.') && !url.includes('?')) {
+    return next();
   }
 
-  // Intercept index page / GET route
-  app.get('*', async (req, res, next) => {
-    const url = req.originalUrl;
+  try {
+    let template: string;
+    if (process.env.NODE_ENV !== 'production' && vite) {
+      template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+      template = await vite.transformIndexHtml(url, template);
+    } else {
+      template = fs.readFileSync(path.resolve(process.cwd(), 'dist/index.html'), 'utf-8');
+    }
+    const imovelId = String(req.query.imovel || req.query.id || '');
+    const pathParts = req.path.split('/');
+    const slug = pathParts[pathParts.length - 1];
     
-    // Pass assets to standard handling
-    if (url.includes('.') && !url.includes('?')) {
-      return next();
+    let title = 'Meu Primeiro Imóvel';
+    let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
+    let imageUrl = 'https://i.postimg.cc/mrCcfw9n/MODELO-2.png';
+    let siteName = 'Meu Primeiro Imóvel';
+
+    const settings = await fetchBrandSettings();
+    if (settings) {
+      if (settings.companyName) {
+        siteName = settings.companyName;
+      }
+      if (settings.companyName && settings.slogan) {
+        title = `${settings.companyName} - ${settings.slogan}`;
+      }
+      if (settings.shareLogoUrl) {
+        imageUrl = settings.shareLogoUrl;
+      }
     }
 
-    try {
-      let template: string;
-      if (process.env.NODE_ENV !== 'production') {
-        template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
-        template = await vite.transformIndexHtml(url, template);
+    // Determine the dynamic canonical URL context & properties
+    const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
+    let host: string = 'santainvest.vercel.app';
+    const rawHost = req.headers['x-forwarded-host'] || req.get('host');
+    if (rawHost) {
+      if (Array.isArray(rawHost)) {
+        host = rawHost[0];
       } else {
-        template = fs.readFileSync(path.resolve(process.cwd(), 'dist/index.html'), 'utf-8');
+        host = rawHost;
       }
-      const imovelId = String(req.query.imovel || req.query.id || '');
-      const pathParts = req.path.split('/');
-      const slug = pathParts[pathParts.length - 1];
+    }
+
+    let canonicalUrl = `${protocol}://${host}${req.originalUrl}`;
+    let prop: any = null;
+
+    if (imovelId) {
+      prop = await getPropertyInfo(imovelId);
+    } else if (slug && slug !== '') {
+        prop = await fetchPropertyBySlug(slug);
+    }
+
+    if (prop) {
+      title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
       
-      let title = 'Meu Primeiro Imóvel';
-      let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
-      let imageUrl = 'https://i.postimg.cc/mrCcfw9n/MODELO-2.png';
-      let siteName = 'Meu Primeiro Imóvel';
-
-      const settings = await fetchBrandSettings();
-      if (settings) {
-        if (settings.companyName) {
-          siteName = settings.companyName;
-        }
-        if (settings.companyName && settings.slogan) {
-          title = `${settings.companyName} - ${settings.slogan}`;
-        }
-        if (settings.shareLogoUrl) {
-          imageUrl = settings.shareLogoUrl;
-        }
-      }
-
-      // Determine the dynamic canonical URL context & properties
-      const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
-      let host: string = 'santainvest.vercel.app';
-      const rawHost = req.headers['x-forwarded-host'] || req.get('host');
-      if (rawHost) {
-        if (Array.isArray(rawHost)) {
-          host = rawHost[0];
-        } else {
-          host = rawHost;
-        }
-      }
-
-      let canonicalUrl = `${protocol}://${host}${req.originalUrl}`;
-      let prop: any = null;
-
-      if (imovelId) {
-        prop = await getPropertyInfo(imovelId);
-      } else if (slug && slug !== '') {
-          prop = await fetchPropertyBySlug(slug);
-      }
-
-      if (prop) {
-        title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
+      if (prop.seoDescription) {
+        description = prop.seoDescription;
+      } else {
+        const pType = prop.projectType || 'Lançamento';
+        const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
+        const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
+        const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
+        const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítess') + ')' : '';
+        const areaLabel = prop.area ? `${prop.area}m²` : '';
         
-        if (prop.seoDescription) {
-          description = prop.seoDescription;
-        } else {
-          const pType = prop.projectType || 'Lançamento';
-          const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
-          const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
-          const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
-          const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítess') + ')' : '';
-          const areaLabel = prop.area ? `${prop.area}m²` : '';
-          
-          const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
-          description = `${pType} de Alto Padrão - ${prop.name} em ${locationFormatted}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
-        }
-        
-        if (prop.images && prop.images.length > 0) {
-          imageUrl = prop.images[0];
-        }
+        const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
+        description = `${pType} de Alto Padrão - ${prop.name} em ${locationFormatted}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
       }
       
-      const sanitizedImageUrl = sanitizeImageUrl(imageUrl, protocol, host);
+      if (prop.images && prop.images.length > 0) {
+        imageUrl = prop.images[0];
+      }
+    }
+    
+    const sanitizedImageUrl = sanitizeImageUrl(imageUrl, protocol, host);
 
-      // Generate dynamic meta tags in pristine compliance
-      const metaTags = `
+    // Generate dynamic meta tags in pristine compliance
+    const metaTags = `
   <title>${escapeHtml(title)}</title>
   <!-- Open Graph / Facebook / WhatsApp -->
   <meta property="og:type" content="website" />
@@ -271,35 +257,67 @@ async function startServer() {
   <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
   `;
 
-      // Replace and clean any existing duplicate tags
-      let html = template;
-      html = html.replace(/<title>.*?<\/title>/gi, '');
-      html = html.replace(/<meta\s+property=["']og:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
-      html = html.replace(/<meta\s+name=["']twitter:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
-      html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/gi, '');
-      
-      if (html.includes('<head>')) {
-        html = html.replace('<head>', `<head>${metaTags}`);
-      } else {
-        html = metaTags + html;
-      }
-
-      res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
-    } catch (e: any) {
-      if (process.env.NODE_ENV !== 'production' && vite) {
-        vite.ssrFixStacktrace(e);
-      }
-      console.error('Render error:', e);
-      res.status(500).end(e.stack || 'Server Error');
+    // Replace and clean any existing duplicate tags
+    let html = template;
+    html = html.replace(/<title>.*?<\/title>/gi, '');
+    html = html.replace(/<meta\s+property=["']og:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
+    html = html.replace(/<meta\s+name=["']twitter:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
+    html = html.replace(/<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/gi, '');
+    
+    if (html.includes('<head>')) {
+      html = html.replace('<head>', `<head>${metaTags}`);
+    } else {
+      html = metaTags + html;
     }
-  });
 
+    res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+  } catch (e: any) {
+    if (process.env.NODE_ENV !== 'production' && vite) {
+      vite.ssrFixStacktrace(e);
+    }
+    console.error('Render error:', e);
+    res.status(500).end(e.stack || 'Server Error');
+  }
+}
+
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(process.cwd(), 'dist');
+  app.use(express.static(distPath, { index: false }));
+  
+  // Clean, synchronous register for production mapping
+  app.get('*', (req, res, next) => {
+    handleIndexRequest(req, res, next);
+  });
+} else {
+  // Local development: initialize Vite asynchronously
+  async function initVite() {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'custom',
+    });
+    app.use(vite.middlewares);
+    
+    app.get('*', (req, res, next) => {
+      handleIndexRequest(req, res, next, vite);
+    });
+    
+    // Start local listening since we are in dev
+    app.listen(3000, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:3000`);
+    });
+  }
+  initVite();
+}
+
+// Start standalone production listener only when NOT running serverless on Vercel
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   app.listen(3000, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:3000`);
+    console.log(`Server running in standalone mode on port 3000`);
   });
 }
 
-startServer();
+export default app;
 
 // Helpers
 function escapeHtml(unsafe: string): string {
