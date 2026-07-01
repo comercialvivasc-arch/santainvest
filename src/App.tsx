@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { HelmetProvider } from 'react-helmet-async';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { CadastroForm } from './components/CadastroForm';
 import Header from './components/Header';
 import SearchHero from './components/SearchHero';
@@ -54,9 +54,7 @@ import { auth } from './firebase';
 export default function App() {
   return (
     <HelmetProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <AppContent />
     </HelmetProvider>
   );
 }

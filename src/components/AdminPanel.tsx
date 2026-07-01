@@ -1252,7 +1252,7 @@ export default function AdminPanel({
       "@type": "RealEstateListing",
       "name": propName,
       "description": calculatedSeoDesc,
-      "url": `https://santainvest.vercel.app/imovel/${calculatedSlug}`,
+      "url": `https://www.meuprimeiroimovelsc.com.br/imovel/${calculatedSlug}`,
       "itemOffered": {
         "@type": "Apartment",
         "name": propName,

@@ -449,7 +449,7 @@ export default function PropertyCard({
       ? `Olá! Gostaria de consultar mais detalhes e condições exclusivas sobre o lançamento imobiliário "${property.name}" localizado no bairro ${property.neighborhood} (${property.region}).`
       : `Olá! Tenho interesse no lançamento "${property.name}" em ${property.neighborhood}. Valor sugerido: ${formatBRL(property.price)}. Gostaria de maiores informações sobre a Entrada de ${formatBRL(property.downpayment)} e parcelas de ${formatBRL(property.installments)}.`;
     
-    const realUrl = `${window.location.origin}/api/s/${property.id}`;
+    const realUrl = `${window.location.origin}/imovel/${property.slug}`;
     const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}`;
     
     return `https://wa.me/${getCleanPhone()}?text=${encodeURIComponent(fullText)}`;
@@ -458,7 +458,7 @@ export default function PropertyCard({
   const getCatalogWhatsAppLink = () => {
     const baseText = `Olá, me interessou este projeto e gostaria de receber o Catálogo do empreendimento ${property.name} (Ref: ${formatPropRef(property.id)}). Aguardo contato.`;
     
-    const realUrl = `${window.location.origin}/api/s/${property.id}`;
+    const realUrl = `${window.location.origin}/imovel/${property.slug}`;
     const fullText = `${baseText}\n\nLink do imóvel: ${realUrl}`;
     
     return `https://wa.me/${getCleanPhone()}?text=${encodeURIComponent(fullText)}`;

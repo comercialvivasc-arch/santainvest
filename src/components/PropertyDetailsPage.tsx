@@ -29,7 +29,7 @@ export default function PropertyDetailsPage({ properties }: { properties: Proper
       <Helmet>
         <title>{property.seoTitle || property.name}</title>
         <meta name="description" content={property.seoDescription || property.detailedDescription} />
-        <link rel="canonical" href={`https://santainvest.vercel.app/imovel/${property.slug}`} />
+        <link rel="canonical" href={`https://www.meuprimeiroimovelsc.com.br/imovel/${property.slug}`} />
         <script type="application/ld+json">
           {property.schemaMarkup}
         </script>

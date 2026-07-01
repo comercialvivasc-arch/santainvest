@@ -111,9 +111,38 @@ async function startServer() {
   });
 
   // API route for short links
-  app.get('/api/s/:id', (req, res) => {
+  app.get('/api/s/:id', async (req, res) => {
     const { id } = req.params;
-    res.redirect(`/?imovel=${id}`);
+    const prop = await getPropertyInfo(id);
+    if (prop && prop.slug) {
+      res.redirect(301, `/imovel/${prop.slug}`);
+    } else {
+      res.redirect('/');
+    }
+  });
+
+  app.get('/robots.txt', (req, res) => {
+    res.type('text/plain');
+    res.send('User-agent: *\nAllow: /\nSitemap: https://www.meuprimeiroimovelsc.com.br/sitemap.xml');
+  });
+
+  app.get('/sitemap.xml', async (req, res) => {
+    try {
+      const properties = await fetchAllProperties(); // Assuming a helper exists or fetch from INITIAL_PROPERTIES
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+      xml += '  <url>\n    <loc>https://www.meuprimeiroimovelsc.com.br/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n';
+      properties.forEach((p: any) => {
+        if (p.slug) {
+          xml += `  <url>\n    <loc>https://www.meuprimeiroimovelsc.com.br/imovel/${p.slug}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+        }
+      });
+      xml += '</urlset>';
+      res.type('application/xml');
+      res.send(xml);
+    } catch (err) {
+      res.status(500).send('Error generating sitemap');
+    }
   });
 
 
