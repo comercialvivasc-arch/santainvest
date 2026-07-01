@@ -197,7 +197,7 @@ export default function SearchHero({
                       const el = document.getElementById('projects-showcase');
                       setTimeout(() => {
                         el?.scrollIntoView({ behavior: 'smooth' });
-                      }, 80);
+                      }, 300);
                     }}
                     className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-zinc-50 border-b border-zinc-100/50 text-left transition-all cursor-pointer group"
                   >

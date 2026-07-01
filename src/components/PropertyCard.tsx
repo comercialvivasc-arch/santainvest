@@ -539,7 +539,7 @@ export default function PropertyCard({
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-20">
                 {property.images.map((_, idx) => (
                   <div
-                    key={idx}
+                    key={`${property.id}-${idx}`}
                     className={`h-1 rounded-full transition-all duration-300 ${
                       idx === currentImgIndex ? 'w-4 bg-primary' : 'w-1 bg-zinc-400'
                     }`}
@@ -2329,7 +2329,7 @@ export default function PropertyCard({
                 <div className="flex gap-2 justify-center overflow-x-auto py-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20">
                   {property.images.map((imgUrl, index) => (
                     <button
-                      key={index}
+                      key={`${property.id}-${index}`}
                       onClick={() => setCurrentImgIndex(index)}
                       className={`relative flex-shrink-0 w-16 h-11 rounded-md overflow-hidden border transition-all duration-200 cursor-pointer ${
                         index === currentImgIndex

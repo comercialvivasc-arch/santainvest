@@ -1,31 +1,21 @@
 import React from 'react';
 import { Menu, X } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Link, useLocation } from 'react-router-dom';
 import { BrandSettings } from '../types';
 
 interface HeaderProps {
-  currentView: 'home' | 'admin';
-  onNavigate: (view: 'home' | 'admin') => void;
-  currentTab: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato' | 'cadastro';
-  onTabChange: (tab: 'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato' | 'cadastro') => void;
-  query?: string;
-  setQuery?: (q: string) => void;
   settings: BrandSettings;
 }
 
 export default function Header({ 
-  currentView, 
-  onNavigate, 
-  currentTab, 
-  onTabChange, 
-  query, 
-  setQuery, 
   settings 
 }: HeaderProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(true);
   const [lastScrollY, setLastScrollY] = React.useState(0);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const location = useLocation();
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -52,21 +42,14 @@ export default function Header({
 
   const headerBgClass = 'bg-transparent border-b border-transparent shadow-none';
 
-  const menuItems: { id: typeof currentTab; label: string }[] = [
-    { id: 'lançamentos', label: 'Lançamentos' },
-    { id: 'bairros', label: 'Bairros' },
-    { id: 'sobre', label: 'Sobre Nós' },
-    { id: 'cadastro', label: 'Cadastro' },
-    { id: 'favoritos', label: 'Favoritos' },
-    { id: 'contato', label: 'Contato' }
+  const menuItems: { to: string; label: string }[] = [
+    { to: '/', label: 'Lançamentos' },
+    { to: '/bairros', label: 'Bairros' },
+    { to: '/sobre', label: 'Sobre Nós' },
+    { to: '/cadastro', label: 'Cadastro' },
+    { to: '/favoritos', label: 'Favoritos' },
+    { to: '/contato', label: 'Contato' }
   ];
-
-  const handleMenuClick = (tabId: typeof currentTab) => {
-    onTabChange(tabId);
-    onNavigate('home');
-    setIsOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   return (
     <header 
@@ -78,8 +61,8 @@ export default function Header({
         className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8"
       >
         {/* Futuristic Logo & Brand (ESQUERDA) */}
-        <div 
-          onClick={() => handleMenuClick('home')} 
+        <Link 
+          to="/"
           className="flex cursor-pointer items-center gap-2 sm:gap-3 group shrink-0"
           id="brand-logo"
         >
@@ -105,17 +88,17 @@ export default function Header({
               {settings.tagline || 'Futuristic Living'}
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Navigation & Actions (DIREITA) */}
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs xl:text-sm font-bold tracking-wide uppercase shrink-0">
           {menuItems.map((item) => {
-            const isActive = currentView === 'home' && currentTab === item.id;
+            const isActive = location.pathname === item.to;
             return (
-              <button 
-                key={item.id}
-                onClick={() => handleMenuClick(item.id)}
+              <Link 
+                key={item.to}
+                to={item.to}
                 className={`transition-all duration-200 cursor-pointer text-left relative py-1 ${
                   isActive 
                     ? 'text-[#FF9D00]' 
@@ -126,9 +109,15 @@ export default function Header({
                 {isActive && (
                   <span className="absolute bottom-[-4px] left-0 right-0 h-[2.5px] bg-[#FF9D00] rounded-full animate-fade-in" />
                 )}
-              </button>
+              </Link>
             );
           })}
+          <Link
+            to="/admin"
+            className="text-[10px] tracking-widest font-mono uppercase bg-[#FF9D00] text-black font-extrabold py-2 px-4 rounded-xl shadow-lg cursor-pointer hover:bg-white transition-all duration-200"
+          >
+            Painel Admin
+          </Link>
         </nav>
 
         {/* Mobile Menu Toggle (DIREITA - MOBILE VIEW) */}
@@ -155,11 +144,12 @@ export default function Header({
           className="lg:hidden border-t border-zinc-800 p-5 flex flex-col gap-2 shadow-2xl relative z-40"
         >
           {menuItems.map((item) => {
-            const isActive = currentView === 'home' && currentTab === item.id;
+            const isActive = location.pathname === item.to;
             return (
-              <button 
-                key={item.id}
-                onClick={() => handleMenuClick(item.id)}
+              <Link 
+                key={item.to}
+                to={item.to}
+                onClick={() => setIsOpen(false)}
                 className={`text-xs tracking-wider font-extrabold uppercase py-3 px-4 rounded-xl text-left transition-all duration-200 ${
                   isActive 
                     ? 'bg-[#203366] text-[#FF9D00]' 
@@ -167,19 +157,17 @@ export default function Header({
                 }`}
               >
                 {item.label}
-              </button>
+              </Link>
             );
           })}
 
-          <button
-            onClick={() => {
-              onNavigate(currentView === 'admin' ? 'home' : 'admin');
-              setIsOpen(false);
-            }}
+          <Link
+            to="/admin"
+            onClick={() => setIsOpen(false)}
             className="text-xs tracking-widest font-mono uppercase bg-[#FF9D00] text-black font-extrabold py-3.5 px-4 rounded-xl text-center mt-2.5 shadow-lg cursor-pointer"
           >
-            {currentView === 'admin' ? 'Voltar ao Portal' : 'Painel Admin'}
-          </button>
+            Painel Admin
+          </Link>
         </motion.div>
       )}
     </header>

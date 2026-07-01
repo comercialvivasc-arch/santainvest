@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { HelmetProvider } from 'react-helmet-async';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { CadastroForm } from './components/CadastroForm';
 import Header from './components/Header';
 import SearchHero from './components/SearchHero';
 import PropertyCard from './components/PropertyCard';
+import SearchPanel from './components/SearchPanel';
 import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import LegalDocsModal from './components/LegalDocsModal';
@@ -130,41 +131,9 @@ function AppContent() {
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
   const [isDbLoading, setIsDbLoading] = useState(true);
 
-  // Navigation View ('home' or 'admin')
-  const [currentView, setCurrentView] = useState<'home' | 'admin'>('home');
-  const [currentTab, setCurrentTab] = useState<'home' | 'sobre' | 'lançamentos' | 'bairros' | 'favoritos' | 'contato' | 'cadastro'>('home');
+  const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
   const [legalModalType, setLegalModalType] = useState<'terms' | 'privacy' | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-
-  // Sync favorites with client-side localStorage
-  useEffect(() => {
-    const updateFavorites = () => {
-      try {
-        const favs = localStorage.getItem('vivasc_favorites');
-        if (favs) {
-          const parsed = JSON.parse(favs);
-          if (Array.isArray(parsed)) {
-            setFavoriteIds(parsed);
-          }
-        } else {
-          setFavoriteIds([]);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    updateFavorites();
-    const interval = setInterval(updateFavorites, 1500);
-    window.addEventListener('storage', updateFavorites);
-    window.addEventListener('favorites-updated', updateFavorites);
-    return () => {
-      window.removeEventListener('storage', updateFavorites);
-      window.removeEventListener('favorites-updated', updateFavorites);
-      clearInterval(interval);
-    };
-  }, [currentTab]);
-
-  const [globalSelectedPropertyId, setGlobalSelectedPropertyId] = useState<string | null>(null);
 
   // Search filter parameters
   const [query, setQuery] = useState('');
@@ -174,9 +143,6 @@ function AppContent() {
   const [selectedStatus, setSelectedStatus] = useState<Property['status'] | null>(null);
   const [selectedProjectType, setSelectedProjectType] = useState<string | null>(null);
   const [maxDownpayment, setMaxDownpayment] = useState<number>(0); // 0 means any
-  const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
-
-  // Sync state helpers
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
@@ -412,7 +378,7 @@ function AppContent() {
     localStorage.setItem('vivas_settings', JSON.stringify(settings));
   }, [settings]);
 
-  // Dynamic header metadata injection (Favicon, OG Image, SEO tags)
+  // Dynamic header metadata injection (Favicon)
   useEffect(() => {
     // 1. Dynamic Favicon Update
     const faviconUrl = settings?.faviconUrl || '';
@@ -435,62 +401,7 @@ function AppContent() {
       }
       linkShortcut.href = faviconUrl;
     }
-
-    // 2. Metadata details selection
-    let shareTitle = settings?.brandName ? `${settings.brandName} | Lançamentos Imobiliários` : 'VIVA SC | Lançamentos Imobiliários';
-    let shareDesc = settings?.tagline || 'Veja os melhores projetos de alto padrão com as melhores condições de pagamento direto com a construtora.';
-    let shareImg = settings?.shareLogoUrl || settings?.logoUrl || '/logo.svg';
-
-    // If an active property is loaded
-    if (globalSelectedPropertyId) {
-      const activeProperty = properties.find(p => p.id === globalSelectedPropertyId);
-      if (activeProperty) {
-        shareTitle = `${activeProperty.name} | ${settings?.brandName || 'VIVA SC'}`;
-        shareDesc = `${activeProperty.projectType || 'Lançamento'} - ${activeProperty.neighborhood}, ${activeProperty.region}. Veja fotos, plantas e plano de parcelas facilitado!`;
-        if (activeProperty.images && activeProperty.images.length > 0) {
-          shareImg = activeProperty.images[0];
-        } else if (activeProperty.mainImage) {
-          shareImg = activeProperty.mainImage;
-        }
-      }
-    }
-
-    // Helper functions to set/update meta tags safely
-    const setMetaTag = (propertyOrName: string, content: string, isPropertyName = true) => {
-      if (!content) return;
-      const selector = isPropertyName ? `meta[property='${propertyOrName}']` : `meta[name='${propertyOrName}']`;
-      let el = document.querySelector(selector);
-      if (!el) {
-        el = document.createElement('meta');
-        if (isPropertyName) {
-          el.setAttribute('property', propertyOrName);
-        } else {
-          el.setAttribute('name', propertyOrName);
-        }
-        document.head.appendChild(el);
-      }
-      el.setAttribute('content', content);
-    };
-
-    // Update typical OG / Meta Tags
-    setMetaTag('og:title', shareTitle, true);
-    setMetaTag('og:description', shareDesc, true);
-    if (shareImg) {
-      setMetaTag('og:image', shareImg, true);
-    }
-    setMetaTag('og:url', window.location.href, true);
-    setMetaTag('og:type', 'website', true);
-
-    setMetaTag('twitter:card', 'summary_large_image', false);
-    setMetaTag('twitter:title', shareTitle, false);
-    setMetaTag('twitter:description', shareDesc, false);
-    if (shareImg) {
-      setMetaTag('twitter:image', shareImg, false);
-    }
-
-    // Update document title dynamically
-    document.title = shareTitle;
-  }, [globalSelectedPropertyId, properties, settings]);
+  }, [settings]);
 
   // Open Admin view automatically if ?admin=true or hash is #admin on mount
   useEffect(() => {
@@ -500,43 +411,15 @@ function AppContent() {
     }
   }, []);
 
-  // Deep link parsing on mount or properties load
+  // Deep link parsing on mount
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const imovelId = params.get('imovel') || params.get('id');
-    
     // Check for path navigation
     if (window.location.pathname === '/cadastro') {
-      setCurrentTab('cadastro');
-    } else if (imovelId && imovelId !== globalSelectedPropertyId) {
-      const found = properties.some((p) => p.id === imovelId);
-      if (found) {
-        setGlobalSelectedPropertyId(imovelId);
-      }
+      // Logic for cadastro if needed
     }
-  }, [properties]);
+  }, []);
 
-  // Sync globalSelectedPropertyId to URL search params
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const currentParam = params.get('imovel') || params.get('id');
-    if (globalSelectedPropertyId) {
-      if (currentParam !== globalSelectedPropertyId) {
-        params.set('imovel', globalSelectedPropertyId);
-        // Preserve other existing params if present
-        const newUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
-      }
-    } else {
-      if (currentParam) {
-        params.delete('imovel');
-        params.delete('id');
-        const searchStr = params.toString();
-        const newUrl = `${window.location.pathname}${searchStr ? '?' + searchStr : ''}${window.location.hash}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
-      }
-    }
-  }, [globalSelectedPropertyId]);
+  // No sync needed for globalSelectedPropertyId anymore
 
   // MUTATION CALLBACKS FOR ADMIN ACTIONS (COMMITS TO FIRESTORE AND FORWARD UPDATED LOGIC)
   const handleSaveSettings = async (updatedSettings: BrandSettings) => {
@@ -627,9 +510,6 @@ function AppContent() {
   };
 
   // ADVANCED REAL-TIME FILTER ENGINE
-  const globalSelectedProperty = useMemo(() => {
-    return properties.find((p) => p.id === globalSelectedPropertyId) || null;
-  }, [properties, globalSelectedPropertyId]);
 
   const filteredProperties = useMemo(() => {
     return properties.filter((p) => {
@@ -966,50 +846,35 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-[#050507] text-[#f4f4f5] flex flex-col justify-between selection:bg-primary selection:text-black" id="root-portal">
       <Header 
-        currentView={currentView} 
-        onNavigate={setCurrentView} 
-        currentTab={currentTab}
-        onTabChange={(tab) => {
-           setCurrentTab(tab);
-           navigate('/');
-        }}
-        query={query} 
-        setQuery={setQuery} 
         settings={settings}
       />
 
       {/* 2. DYNAMIC MAIN BODY ROUTER */}
       <main className="flex-grow">
-        <AnimatePresence mode="wait">
-          <PropertyDetailsPage properties={properties} />
-          {currentView === 'home' ? (
-            <motion.div
-              key={`landing-page-${currentTab}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              style={{ backgroundColor: '#9b9b9b' }}
-            >
-              {currentTab === 'home' && (
-                <SearchHero 
-                  properties={properties}
-                  banners={banners}
-                  query={query}
-                  setQuery={setQuery}
-                  onOpenProperty={(id) => setGlobalSelectedPropertyId(id)}
-                />
-              )}
+        <Suspense fallback={<div className="text-white">Carregando...</div>}>
+          <AnimatePresence mode="wait">
+            <Routes>
+              <Route path="/" element={
+                <motion.div
+                  key="home"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  style={{ backgroundColor: '#ffffff' }}
+                >
+                  <SearchHero 
+                    properties={properties}
+                    banners={banners}
+                    query={query}
+                    setQuery={setQuery}
+                    onOpenProperty={(id) => {}} // This will be handled by Link in PropertyCard
+                  />
+                  {/* Visual grid accent lines from design guideline - REMOVED per user request */}
 
-              {/* Real Estate Suggested Grid Section */}
-              {(currentTab === 'home' || currentTab === 'lançamentos') && (
-                <section id="projects-showcase" className="w-full bg-white text-zinc-900 py-20 relative border-y border-zinc-100">
-                  {/* Visual grid accent lines from design guideline */}
-                  <div className="absolute top-0 right-[25%] w-[1px] h-full bg-zinc-100 pointer-events-none"></div>
-                  <div className="absolute top-0 left-[25%] w-[1px] h-full bg-zinc-100 pointer-events-none"></div>
-
-                  <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                  <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-32">
                   <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6 relative z-10">
+
                     <div>
                       <span 
                         style={{ color: '#ff6200' }}
@@ -1026,7 +891,6 @@ function AppContent() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-4">
-                      {/* MANUAL RESYNC DIRECTLY FROM SERVER */}
                       {/* FILTERS POPUP TRIGGER BUTTON */}
                       <button 
                         onClick={() => setIsFilterPopupOpen(true)}
@@ -1036,177 +900,120 @@ function AppContent() {
                         <SlidersHorizontal className="h-4 w-4 text-[#FF9D00]" />
                         Filtrar Lançamentos
                       </button>
-
-                      {/* Dynamic stats tracker indicator (Translucent widget) */}
-                      <div className="flex items-center gap-6 text-zinc-700 font-mono text-[11px] bg-zinc-50 p-4 border border-zinc-200 rounded-xl shadow-sm">
-                      <div>
-                        <span className="block text-zinc-400 font-bold uppercase text-[9px]">Lançamentos</span>
-                        <span className="text-base font-extrabold text-zinc-900 block mt-0.5">{properties.length}</span>
-                      </div>
-                      <div className="h-8 w-[1px] bg-zinc-200"></div>
-                      <div>
-                        <span className="block text-zinc-400 font-bold uppercase text-[9px]">Filtrados</span>
-                        <span className="text-base font-extrabold text-[#FF9D00] block mt-0.5">{filteredProperties.length}</span>
-                      </div>
                     </div>
                   </div>
-                </div>
+                  
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
+                      {filteredProperties.map((prop, idx) => (
+                        <PropertyCard 
+                          key={prop.id} 
+                          property={prop} 
+                          allProperties={properties} 
+                          settings={settings} 
+                          index={idx}
+                        />
+                      ))}
+                    </div>
+                  </div>
 
-                  {/* Grid items */}
-                  <motion.div 
-                    layout 
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10"
-                  >
-                    {filteredProperties.map((prop, idx) => (
-                      <PropertyCard 
-                        key={prop.id} 
-                        property={prop} 
-                        allProperties={properties} 
-                        settings={settings} 
-                        onNavigateToProperty={setGlobalSelectedPropertyId}
-                        index={idx}
-                      />
-                    ))}
-                  </motion.div>
+                  {/* Filters Popup Modal */}
+                  <AnimatePresence>
+                    {isFilterPopupOpen && (
+                      <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                        {/* Close backdrop on click */}
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="absolute inset-0 cursor-default"
+                          onClick={() => setIsFilterPopupOpen(false)}
+                        />
 
-                  {/* Empty listings state inside showcase */}
-                  {filteredProperties.length === 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="max-w-md mx-auto text-center py-16 border border-zinc-200 rounded-2xl bg-zinc-50 p-8 relative z-10 shadow-sm"
-                    >
-                      <FilterX className="h-10 w-10 text-[#FF9D00] mx-auto mb-4 animate-pulse" />
-                      <h3 className="text-lg font-bold text-zinc-900 uppercase tracking-tight">Nenhum Imóvel Encontrado</h3>
-                      <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
-                        Não existem lançamentos integrados que correspondam simultaneamente a todos os filtros selecionados:
-                        <span className="block text-[#FF9D00] font-mono mt-1 font-semibold">
-                          {query ? `Busca "${query}"` : ''} 
-                          {selectedBedrooms ? ` | ${selectedBedrooms} Dorms` : ''} 
-                          {` | Valor até R$ ${(maxPrice / 1000000).toFixed(1)}M`}
-                        </span>
-                      </p>
-                      <button
-                        onClick={handleResetFilters}
-                        className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-[#FF9D00] px-5 py-3 text-xs font-bold text-black uppercase tracking-wider hover:bg-[#E08A00] hover:shadow-lg hover:shadow-[#FF9D00]/20 transition-all duration-300 cursor-pointer"
-                      >
-                        Limpar Filtros e Ver Todos
-                      </button>
-                    </motion.div>
-                  )}
-                </div>
-              </section>
-              )}
-
-              {/* Conditional sub-page renders */}
-              {currentTab === 'sobre' && renderSobreSection()}
-              {currentTab === 'bairros' && renderBairrosSection()}
-              {currentTab === 'favoritos' && renderFavoritosSection()}
-              {currentTab === 'cadastro' && renderCadastroSection()}
-              {currentTab === 'contato' && (
+                        <motion.div
+                          initial={{ scale: 0.95, opacity: 0, y: 15 }}
+                          animate={{ scale: 1, opacity: 1, y: 0 }}
+                          exit={{ scale: 0.95, opacity: 0, y: 15 }}
+                          className="relative w-full max-w-4xl bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
+                        >
+                          {/* Scrollable Filters */}
+                          <div className="overflow-y-auto flex-1 styles-scrollbar-custom bg-white">
+                            <SearchPanel 
+                              properties={properties}
+                              selectedBedrooms={selectedBedrooms}
+                              setSelectedBedrooms={setSelectedBedrooms}
+                              minPrice={minPrice}
+                              setMinPrice={setMinPrice}
+                              maxPrice={maxPrice}
+                              setMaxPrice={setMaxPrice}
+                              selectedStatus={selectedStatus}
+                              setSelectedStatus={setSelectedStatus}
+                              selectedProjectType={selectedProjectType}
+                              setSelectedProjectType={setSelectedProjectType}
+                              onSearch={({ query: q, bedrooms: b, minPrice: minVal, maxPrice: maxVal, status: s, projectType: pt }) => {
+                                setQuery(q);
+                                if (b !== undefined) setSelectedBedrooms(b);
+                                if (minVal !== undefined) setMinPrice(minVal);
+                                if (maxVal !== undefined) setMaxPrice(maxVal);
+                                if (s !== undefined) setSelectedStatus(s);
+                                if (pt !== undefined) setSelectedProjectType(pt);
+                              }}
+                              onClose={() => setIsFilterPopupOpen(false)}
+                              onClearFilters={handleResetFilters}
+                            />
+                          </div>
+                        </motion.div>
+                      </div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              } />
+              <Route path="/imovel/:slug" element={<PropertyDetailsPage properties={properties} />} />
+              <Route path="/sobre" element={renderSobreSection()} />
+              <Route path="/bairros" element={renderBairrosSection()} />
+              <Route path="/favoritos" element={renderFavoritosSection()} />
+              <Route path="/cadastro" element={renderCadastroSection()} />
+              <Route path="/contato" element={
                 <ContatoSection 
                   settings={settings} 
                   properties={properties} 
                   saveMessageToFirestore={saveMessageToFirestore} 
                 />
-              )}
-
-              {/* Filters Popup Modal */}
-              <AnimatePresence>
-                {isFilterPopupOpen && (
-                  <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-                    {/* Close backdrop on click */}
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 cursor-default"
-                      onClick={() => setIsFilterPopupOpen(false)}
-                    />
-
-                    <motion.div
-                      initial={{ scale: 0.95, opacity: 0, y: 15 }}
-                      animate={{ scale: 1, opacity: 1, y: 0 }}
-                      exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                      className="relative w-full max-w-4xl bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
-                    >
-                      {/* Scrollable Filters */}
-                      <div className="overflow-y-auto flex-1 styles-scrollbar-custom bg-white">
-                        <SearchPanel 
-                          properties={properties}
-                          selectedBedrooms={selectedBedrooms}
-                          setSelectedBedrooms={setSelectedBedrooms}
-                          minPrice={minPrice}
-                          setMinPrice={setMinPrice}
-                          maxPrice={maxPrice}
-                          setMaxPrice={setMaxPrice}
-                          selectedStatus={selectedStatus}
-                          setSelectedStatus={setSelectedStatus}
-                          selectedProjectType={selectedProjectType}
-                          setSelectedProjectType={setSelectedProjectType}
-                          onSearch={({ query: q, bedrooms: b, minPrice: minVal, maxPrice: maxVal, status: s, projectType: pt }) => {
-                            setQuery(q);
-                            if (b !== undefined) setSelectedBedrooms(b);
-                            if (minVal !== undefined) setMinPrice(minVal);
-                            if (maxVal !== undefined) setMaxPrice(maxVal);
-                            if (s !== undefined) setSelectedStatus(s);
-                            if (pt !== undefined) setSelectedProjectType(pt);
-                          }}
-                          onClose={() => setIsFilterPopupOpen(false)}
-                          onClearFilters={handleResetFilters}
-                        />
-                      </div>
-                    </motion.div>
-                  </div>
-                )}
-              </AnimatePresence>
-
-            </motion.div>
-          ) : (
-            <motion.div
-              key="admin-page"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              style={{ backgroundColor: '#9b9b9b' }}
-            >
-              <AdminPanel
-                properties={properties}
-                banners={banners}
-                settings={settings}
-                onSaveSettings={handleSaveSettings}
-                onAddProperty={handleAddProperty}
-                onEditProperty={handleEditProperty}
-                onDeleteProperty={handleDeleteProperty}
-                onAddBanner={handleAddBanner}
-                onEditBanner={handleEditBanner}
-                onDeleteBanner={handleDeleteBanner}
-                brokers={brokers}
-                clients={clients}
-                leads={leads}
-                visits={visits}
-                messages={messages}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+              } />
+              <Route path="/admin" element={
+                <AdminPanel
+                  properties={properties}
+                  banners={banners}
+                  settings={settings}
+                  onSaveSettings={handleSaveSettings}
+                  onAddProperty={handleAddProperty}
+                  onEditProperty={handleEditProperty}
+                  onDeleteProperty={handleDeleteProperty}
+                  onAddBanner={handleAddBanner}
+                  onEditBanner={handleEditBanner}
+                  onDeleteBanner={handleDeleteBanner}
+                  brokers={brokers}
+                  clients={clients}
+                  leads={leads}
+                  visits={visits}
+                  messages={messages}
+                />
+              } />
+              {/* ... other routes ... */}
+            </Routes>
+          </AnimatePresence>
+        </Suspense>
       </main>
 
-      {/* 3. INTERACTIVE FLOATING CHAT COMPONENT (Simulated chat with blonde business executive) */}
-      <FloatingChat settings={settings} brokers={brokers} />
-
-      {/* 4. DURABLE BRANDED LIGHT GRAY FOOTER */}
       <Footer 
-        settings={settings} 
-        onTabChange={setCurrentTab}
-        onNavigateToHome={() => setCurrentView('home')}
-        onNavigateToAdmin={() => setCurrentView('admin')}
+        settings={settings}
         onOpenTerms={() => setLegalModalType('terms')}
         onOpenPrivacy={() => setLegalModalType('privacy')}
       />
+      
+      {/* 3. INTERACTIVE FLOATING CHAT COMPONENT */}
+      <FloatingChat settings={settings} brokers={brokers} />
 
-      {/* Cookie Consent overlay */}
+      {/* 4. Cookie Consent overlay */}
       <CookieConsent 
         settings={settings}
         onOpenTerms={() => setLegalModalType('terms')}
@@ -1220,22 +1027,6 @@ function AppContent() {
         type={legalModalType || 'terms'}
         settings={settings}
       />
-
-      {/* Global Property Detail Modal Host */}
-      {globalSelectedProperty && (
-        <PropertyCard 
-          property={globalSelectedProperty}
-          allProperties={properties}
-          settings={settings}
-          isOpen={true}
-          isModalOnly={true}
-          onOpenChange={(open) => {
-            if (!open) setGlobalSelectedPropertyId(null);
-          }}
-          onNavigateToProperty={setGlobalSelectedPropertyId}
-          onNavigateToAdmin={() => setCurrentView('admin')}
-        />
-      )}
 
       {/* Dynamic Sync feedback notification */}
       <AnimatePresence>

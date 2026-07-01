@@ -30,6 +30,15 @@ export default function PropertyDetailsPage({ properties }: { properties: Proper
         <title>{property.seoTitle || property.name}</title>
         <meta name="description" content={property.seoDescription || property.detailedDescription} />
         <link rel="canonical" href={`https://www.meuprimeiroimovelsc.com.br/imovel/${property.slug}`} />
+        <meta property="og:title" content={property.seoTitle || property.name} />
+        <meta property="og:description" content={property.seoDescription || property.detailedDescription} />
+        <meta property="og:image" content={property.mainImage || (property.images && property.images[0]) || ''} />
+        <meta property="og:url" content={`https://www.meuprimeiroimovelsc.com.br/imovel/${property.slug}`} />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={property.seoTitle || property.name} />
+        <meta name="twitter:description" content={property.seoDescription || property.detailedDescription} />
+        <meta name="twitter:image" content={property.mainImage || (property.images && property.images[0]) || ''} />
         <script type="application/ld+json">
           {property.schemaMarkup}
         </script>
