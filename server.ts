@@ -185,15 +185,19 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
   }
 
   const imovelId = String(req.query.imovel || req.query.id || '');
-  const pathParts = req.path.split('/');
-  const slug = pathParts[pathParts.length - 1];
+  
+  let slug = '';
+  const match = req.path.match(/^\/imovel\/([^\/?#]+)\/?$/i);
+  if (match) {
+    slug = decodeURIComponent(match[1]).trim();
+  }
   
   let title = 'Meu Primeiro Imóvel';
   let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
   let imageUrl = 'https://i.postimg.cc/mrCcfw9n/MODELO-2.png';
   let siteName = 'Meu Primeiro Imóvel';
 
-  // 1. Fetch Brand Settings
+  // 1. Fetch Brand Settings (Safe)
   try {
       const settings = await fetchBrandSettings();
       if (settings) {
@@ -205,7 +209,7 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
       console.error('[SSR] Error fetching brand settings (non-fatal):', e);
   }
 
-  // 2. Fetch Property
+  // 2. Fetch Property (Safe)
   let prop: any = null;
   try {
       if (imovelId) {
@@ -218,7 +222,7 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
       console.error('[SSR] Error fetching property info (non-fatal):', e);
   }
 
-  // 3. Setup Metatags
+  // 3. Setup Metatags (Safe)
   try {
       if (prop) {
         title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
@@ -230,7 +234,7 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
           const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
           const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
           const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
-          const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítess') + ')' : '';
+          const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítes') + ')' : '';
           const areaLabel = prop.area ? `${prop.area}m²` : '';
           
           const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
@@ -245,7 +249,7 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
       console.error('[SSR] Error building metatags (non-fatal):', e);
   }
   
-  // 4. Final Response Construction
+  // 4. Final Response Construction (Safe)
   try {
     const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
     let host: string = 'santainvest.vercel.app';
@@ -290,7 +294,8 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
     res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
   } catch (e: any) {
     console.error('[SSR] Error sending response:', e);
-    res.status(200).set({ 'Content-Type': 'text/html' }).end(template); // Fallback to raw template
+    // FALLBACK: Return template as is to avoid 500
+    res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
   }
 }
 
@@ -439,20 +444,31 @@ async function fetchPropertyFromFirestore(propId: string): Promise<any | null> {
 }
 
 async function fetchPropertyBySlug(slug: string): Promise<any | null> {
+  // 1. Validation
+  if (!slug || typeof slug !== 'string' || slug === 'imovel' || slug.length < 3) {
+      console.warn(`[Data] Invalid slug provided: ${slug}`);
+      return null;
+  }
+
   try {
     const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
     let projectId = 'meuprimeiroimovel';
     if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      if (config.projectId) {
-        projectId = config.projectId;
+      try {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (config.projectId) projectId = config.projectId;
+      } catch (e) {
+        console.warn('[Data] Failed to read firebase-applet-config.json, using default');
       }
     }
     
     // Query by slug
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
+    console.log(`[Data] Querying slug: ${slug} at ${url}`);
+    
     const response = await fetch(url, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         structuredQuery: {
           from: [{ collectionId: 'properties' }],
@@ -468,18 +484,31 @@ async function fetchPropertyBySlug(slug: string): Promise<any | null> {
     });
     
     if (!response.ok) {
-        console.error(`[Data] Failed to query slug ${slug}. Status: ${response.status}`);
+        const errText = await response.text();
+        console.error(`[Data] Failed to query slug ${slug}. Status: ${response.status}, Body: ${errText}`);
         return null;
     }
 
     const results = await response.json();
-    if (!results || !Array.isArray(results) || results.length === 0 || !results[0].document) {
-        console.warn(`[Data] No document found for slug: ${slug}`);
+
+    if (!Array.isArray(results) || results.length === 0) {
+      console.warn(`[Data] Empty Firestore response for slug: ${slug}`);
+      return null;
+    }
+
+    const match = results.find((item: any) => item && item.document && item.document.fields);
+    if (!match?.document) {
+      console.warn(`[Data] No valid document found for slug: ${slug}`);
+      return null;
+    }
+
+    const doc = match.document;
+    const fields = doc.fields || null;
+    
+    if (!fields) {
+        console.warn(`[Data] Document found but without fields for slug: ${slug}`);
         return null;
     }
-    
-    const doc = results[0].document;
-    const fields = doc.fields;
     
     const name = fields.name?.stringValue || '';
     const status = fields.status?.stringValue || '';
@@ -502,7 +531,9 @@ async function fetchPropertyBySlug(slug: string): Promise<any | null> {
     
     let images: string[] = [];
     if (fields.images?.arrayValue?.values) {
-      images = fields.images.arrayValue.values.map((v: any) => v.stringValue).filter(Boolean);
+      images = fields.images.arrayValue.values
+        .map((v: any) => v.stringValue)
+        .filter((v: any) => typeof v === 'string' && v.length > 0);
     }
     
     return {
@@ -522,7 +553,7 @@ async function fetchPropertyBySlug(slug: string): Promise<any | null> {
       seoDescription
     };
   } catch (err) {
-    console.error(`[Data] Error in fetchPropertyBySlug for ${slug}:`, err);
+    console.error(`[Data] Unexpected error in fetchPropertyBySlug for ${slug}:`, err);
     return null;
   }
 }
@@ -544,19 +575,28 @@ async function fetchBrandSettings(): Promise<any | null> {
     const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
     let projectId = 'meuprimeiroimovel';
     if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      if (config.projectId) {
-        projectId = config.projectId;
+      try {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (config.projectId) projectId = config.projectId;
+      } catch (e) {
+        console.warn('[Data] Failed to read firebase-applet-config.json in fetchBrandSettings, using default');
       }
     }
+    
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/brand`;
     const res = await fetch(url);
+    
     if (!res.ok) {
-        console.error(`[Data] Failed to fetch brand settings. Status: ${res.status}`);
+        const errText = await res.text();
+        console.error(`[Data] Failed to fetch brand settings. Status: ${res.status}, Body: ${errText}`);
         return null;
     }
+    
     const data: any = await res.json();
-    if (!data.fields) return null;
+    if (!data.fields) {
+        console.warn(`[Data] Brand settings document found but no fields.`);
+        return null;
+    }
     
     const fields = data.fields;
     return {
