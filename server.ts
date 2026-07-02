@@ -157,15 +157,22 @@ async function getTemplate(vite?: any): Promise<string> {
         ? path.resolve(process.cwd(), 'dist/index.html')
         : path.resolve(process.cwd(), 'index.html');
     
-    if (fs.existsSync(templatePath)) {
-        console.log(`[SSR] Found template at: ${templatePath}`);
-        let template = fs.readFileSync(templatePath, 'utf-8');
-        if (!isProd && vite) {
-            template = await vite.transformIndexHtml('/', template);
+    try {
+        if (fs.existsSync(templatePath)) {
+            console.log(`[SSR] Found template at: ${templatePath}`);
+            let template = fs.readFileSync(templatePath, 'utf-8');
+            if (!isProd && vite) {
+                template = await vite.transformIndexHtml('/', template);
+            }
+            return template;
         }
-        return template;
+        console.error(`[SSR] Template file NOT found at: ${templatePath}`);
+    } catch (e) {
+        console.error(`[SSR] Error reading template file at: ${templatePath}`, e);
     }
-    throw new Error(`Template not found at ${templatePath}`);
+    
+    // Return a minimal fallback HTML to prevent 500
+    return '<html><head><title>Meu Primeiro Imóvel</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>';
 }
 
 async function handleIndexRequest(req: express.Request, res: express.Response, next: express.NextFunction, vite?: any) {
@@ -180,8 +187,9 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
   try {
       template = await getTemplate(vite);
   } catch (e) {
-      console.error('[SSR] Critical Error: Failed to load template.', e);
-      return res.status(500).send('Critical Error: Failed to load application.');
+      console.error('[SSR] Critical Error in getTemplate.', e);
+      // Fallback
+      template = '<html><head><title>Meu Primeiro Imóvel</title></head><body><div id="root"></div></body></html>';
   }
 
   const imovelId = String(req.query.imovel || req.query.id || '');
@@ -199,12 +207,14 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
 
   // 1. Fetch Brand Settings (Safe)
   try {
+      console.log(`[SSR] Fetching brand settings...`);
       const settings = await fetchBrandSettings();
       if (settings) {
           if (settings.companyName) siteName = settings.companyName;
           if (settings.companyName && settings.slogan) title = `${settings.companyName} - ${settings.slogan}`;
           if (settings.shareLogoUrl) imageUrl = settings.shareLogoUrl;
       }
+      console.log(`[SSR] Brand settings fetched.`);
   } catch (e) {
       console.error('[SSR] Error fetching brand settings (non-fatal):', e);
   }
@@ -212,6 +222,7 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
   // 2. Fetch Property (Safe)
   let prop: any = null;
   try {
+      console.log(`[SSR] Fetching property for ${slug || imovelId}...`);
       if (imovelId) {
           prop = await getPropertyInfo(imovelId);
       } else if (slug && slug !== 'imovel' && slug !== '') {
@@ -224,33 +235,36 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
 
   // 3. Setup Metatags (Safe)
   try {
+      console.log(`[SSR] Building metatags...`);
       if (prop) {
-        title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
+        title = prop.seoTitle || `${prop.name || 'Imóvel'} em ${prop.neighborhood || ''}, ${prop.region || ''}`.replace(/, $/, '');
         
         if (prop.seoDescription) {
           description = prop.seoDescription;
         } else {
           const pType = prop.projectType || 'Lançamento';
           const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
-          const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
+          const locationFormatted = [prop.neighborhood, prop.region].filter(Boolean).join(', ');
           const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
           const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítes') + ')' : '';
           const areaLabel = prop.area ? `${prop.area}m²` : '';
           
           const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
-          description = `${pType} de Alto Padrão - ${prop.name} em ${locationFormatted}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
+          description = `${pType} de Alto Padrão - ${prop.name || 'Imóvel'}${locationFormatted ? ' em ' + locationFormatted : ''}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
         }
         
         if (prop.images && prop.images.length > 0) {
           imageUrl = prop.images[0];
         }
       }
+      console.log(`[SSR] Metatags built.`);
   } catch (e) {
       console.error('[SSR] Error building metatags (non-fatal):', e);
   }
   
   // 4. Final Response Construction (Safe)
   try {
+    console.log(`[SSR] Constructing final response...`);
     const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
     let host: string = 'santainvest.vercel.app';
     const rawHost = req.headers['x-forwarded-host'] || req.get('host');
@@ -291,6 +305,7 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
     } else {
       html = metaTags + html;
     }
+    console.log(`[SSR] Response constructed.`);
     res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
   } catch (e: any) {
     console.error('[SSR] Error sending response:', e);
