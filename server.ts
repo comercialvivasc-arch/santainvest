@@ -152,6 +152,7 @@ app.get('/sitemap.xml', async (req, res) => {
 
 async function handleIndexRequest(req: express.Request, res: express.Response, next: express.NextFunction, vite?: any) {
   const url = req.originalUrl;
+  console.log(`[SSR] Request URL: ${url}`);
   
   // Pass assets to standard handling
   if (url.includes('.') && !url.includes('?')) {
@@ -160,55 +161,56 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
 
   try {
     let template: string;
-    if (process.env.NODE_ENV !== 'production' && vite) {
-      template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
-      template = await vite.transformIndexHtml(url, template);
-    } else {
-      template = fs.readFileSync(path.resolve(process.cwd(), 'dist/index.html'), 'utf-8');
+    
+    // 1. Load Template
+    try {
+        if (process.env.NODE_ENV !== 'production' && vite) {
+            template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+            template = await vite.transformIndexHtml(url, template);
+        } else {
+            const indexPath = path.resolve(process.cwd(), 'dist/index.html');
+            console.log(`[SSR] Loading index from: ${indexPath}`);
+            template = fs.readFileSync(indexPath, 'utf-8');
+        }
+    } catch (e) {
+        console.error('[SSR] Failed to read index.html', e);
+        return res.status(500).send('Critical Error: Failed to load application.');
     }
+
     const imovelId = String(req.query.imovel || req.query.id || '');
     const pathParts = req.path.split('/');
     const slug = pathParts[pathParts.length - 1];
     
+    // 2. Fetch Data (with error handling)
     let title = 'Meu Primeiro Imóvel';
     let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
     let imageUrl = 'https://i.postimg.cc/mrCcfw9n/MODELO-2.png';
     let siteName = 'Meu Primeiro Imóvel';
 
-    const settings = await fetchBrandSettings();
-    if (settings) {
-      if (settings.companyName) {
-        siteName = settings.companyName;
-      }
-      if (settings.companyName && settings.slogan) {
-        title = `${settings.companyName} - ${settings.slogan}`;
-      }
-      if (settings.shareLogoUrl) {
-        imageUrl = settings.shareLogoUrl;
-      }
+    try {
+        const settings = await fetchBrandSettings();
+        if (settings) {
+            if (settings.companyName) siteName = settings.companyName;
+            if (settings.companyName && settings.slogan) title = `${settings.companyName} - ${settings.slogan}`;
+            if (settings.shareLogoUrl) imageUrl = settings.shareLogoUrl;
+        }
+    } catch (e) {
+        console.error('[SSR] Error fetching brand settings (non-fatal):', e);
     }
 
-    // Determine the dynamic canonical URL context & properties
-    const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
-    let host: string = 'santainvest.vercel.app';
-    const rawHost = req.headers['x-forwarded-host'] || req.get('host');
-    if (rawHost) {
-      if (Array.isArray(rawHost)) {
-        host = rawHost[0];
-      } else {
-        host = rawHost;
-      }
-    }
-
-    let canonicalUrl = `${protocol}://${host}${req.originalUrl}`;
     let prop: any = null;
-
-    if (imovelId) {
-      prop = await getPropertyInfo(imovelId);
-    } else if (slug && slug !== '') {
-        prop = await fetchPropertyBySlug(slug);
+    try {
+        if (imovelId) {
+            prop = await getPropertyInfo(imovelId);
+        } else if (slug && slug !== '') {
+            prop = await fetchPropertyBySlug(slug);
+        }
+        console.log(`[SSR] Search Result for ${slug || imovelId}:`, prop ? 'FOUND' : 'NOT FOUND');
+    } catch (e) {
+        console.error('[SSR] Error fetching property info (non-fatal):', e);
     }
 
+    // 3. Setup Metatags
     if (prop) {
       title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
       
@@ -231,6 +233,19 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
       }
     }
     
+    // Determine the dynamic canonical URL context & properties
+    const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
+    let host: string = 'santainvest.vercel.app';
+    const rawHost = req.headers['x-forwarded-host'] || req.get('host');
+    if (rawHost) {
+      if (Array.isArray(rawHost)) {
+        host = rawHost[0];
+      } else {
+        host = rawHost;
+      }
+    }
+
+    let canonicalUrl = `${protocol}://${host}${req.originalUrl}`;
     const sanitizedImageUrl = sanitizeImageUrl(imageUrl, protocol, host);
 
     // Generate dynamic meta tags in pristine compliance
@@ -272,17 +287,14 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
 
     res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
   } catch (e: any) {
-    if (process.env.NODE_ENV !== 'production' && vite) {
-      vite.ssrFixStacktrace(e);
-    }
-    console.error('Render error:', e);
-    res.status(500).end(e.stack || 'Server Error');
+    console.error('[SSR] Unexpected error in render path:', e);
+    res.status(500).end('Unexpected Server Error');
   }
 }
 
 if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(process.cwd(), 'dist');
-  app.use(express.static(distPath, { index: false }));
+  // Let Vercel handle static assets automatically.
+  // We only need to handle index.html rendering for SPA fallback and SEO.
   
   // Clean, synchronous register for production mapping
   app.get('*', (req, res, next) => {
@@ -361,9 +373,15 @@ async function fetchPropertyFromFirestore(propId: string): Promise<any | null> {
     }
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/properties/${propId}`;
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+        console.error(`[Data] Failed to fetch property ${propId}. Status: ${res.status}`);
+        return null;
+    }
     const data: any = await res.json();
-    if (!data.fields) return null;
+    if (!data.fields) {
+        console.warn(`[Data] Property ${propId} found but no fields.`);
+        return null;
+    }
     
     const fields = data.fields;
     const name = fields.name?.stringValue || '';
@@ -412,6 +430,7 @@ async function fetchPropertyFromFirestore(propId: string): Promise<any | null> {
       seoDescription
     };
   } catch (err) {
+    console.error(`[Data] Error in fetchPropertyFromFirestore for ${propId}:`, err);
     return null;
   }
 }
@@ -445,8 +464,16 @@ async function fetchPropertyBySlug(slug: string): Promise<any | null> {
       })
     });
     
+    if (!response.ok) {
+        console.error(`[Data] Failed to query slug ${slug}. Status: ${response.status}`);
+        return null;
+    }
+
     const results = await response.json();
-    if (!results || results.length === 0 || !results[0].document) return null;
+    if (!results || !Array.isArray(results) || results.length === 0 || !results[0].document) {
+        console.warn(`[Data] No document found for slug: ${slug}`);
+        return null;
+    }
     
     const doc = results[0].document;
     const fields = doc.fields;
@@ -457,11 +484,16 @@ async function fetchPropertyBySlug(slug: string): Promise<any | null> {
     const region = fields.region?.stringValue || '';
     const projectType = fields.projectType?.stringValue || 'Apartamento';
     
-    const bedrooms = fields.bedrooms?.integerValue ? parseInt(fields.bedrooms.integerValue, 10) : 0;
-    const suites = fields.suites?.integerValue ? parseInt(fields.suites.integerValue, 10) : 0;
-    const parkingSpaces = fields.parkingSpaces?.integerValue ? parseInt(fields.parkingSpaces.integerValue, 10) : 0;
-    const area = fields.area?.integerValue ? parseInt(fields.area.integerValue, 10) : 0;
-    const price = fields.price?.integerValue ? parseInt(fields.price.integerValue, 10) : 0;
+    const bedrooms = fields.bedrooms?.integerValue ? parseInt(fields.bedrooms.integerValue, 10) : 
+                     (fields.bedrooms?.doubleValue ? Math.round(fields.bedrooms.doubleValue) : 0);
+    const suites = fields.suites?.integerValue ? parseInt(fields.suites.integerValue, 10) : 
+                   (fields.suites?.doubleValue ? Math.round(fields.suites.doubleValue) : 0);
+    const parkingSpaces = fields.parkingSpaces?.integerValue ? parseInt(fields.parkingSpaces.integerValue, 10) : 
+                          (fields.parkingSpaces?.doubleValue ? Math.round(fields.parkingSpaces.doubleValue) : 0);
+    const area = fields.area?.integerValue ? parseInt(fields.area.integerValue, 10) : 
+                 (fields.area?.doubleValue ? Math.round(fields.area.doubleValue) : 0);
+    const price = fields.price?.integerValue ? parseInt(fields.price.integerValue, 10) : 
+                  (fields.price?.doubleValue ? Math.round(fields.price.doubleValue) : 0);
     const seoTitle = fields.seoTitle?.stringValue || '';
     const seoDescription = fields.seoDescription?.stringValue || '';
     
@@ -487,6 +519,7 @@ async function fetchPropertyBySlug(slug: string): Promise<any | null> {
       seoDescription
     };
   } catch (err) {
+    console.error(`[Data] Error in fetchPropertyBySlug for ${slug}:`, err);
     return null;
   }
 }
@@ -515,7 +548,10 @@ async function fetchBrandSettings(): Promise<any | null> {
     }
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/brand`;
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+        console.error(`[Data] Failed to fetch brand settings. Status: ${res.status}`);
+        return null;
+    }
     const data: any = await res.json();
     if (!data.fields) return null;
     
@@ -527,7 +563,8 @@ async function fetchBrandSettings(): Promise<any | null> {
       phone: fields.phone?.stringValue || '',
       email: fields.email?.stringValue || 'comercial.vivasc@gmail.com',
     };
-  } catch {
+  } catch (err) {
+    console.error(`[Data] Error in fetchBrandSettings:`, err);
     return null;
   }
 }
