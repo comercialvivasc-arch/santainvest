@@ -150,130 +150,133 @@ app.get('/sitemap.xml', async (req, res) => {
 });
 
 
+// Load template robustly
+async function getTemplate(vite?: any): Promise<string> {
+    const isProd = process.env.NODE_ENV === 'production';
+    const templatePath = isProd 
+        ? path.resolve(process.cwd(), 'dist/index.html')
+        : path.resolve(process.cwd(), 'index.html');
+    
+    if (fs.existsSync(templatePath)) {
+        console.log(`[SSR] Found template at: ${templatePath}`);
+        let template = fs.readFileSync(templatePath, 'utf-8');
+        if (!isProd && vite) {
+            template = await vite.transformIndexHtml('/', template);
+        }
+        return template;
+    }
+    throw new Error(`Template not found at ${templatePath}`);
+}
+
 async function handleIndexRequest(req: express.Request, res: express.Response, next: express.NextFunction, vite?: any) {
   const url = req.originalUrl;
   console.log(`[SSR] Request URL: ${url}`);
   
-  // Pass assets to standard handling
   if (url.includes('.') && !url.includes('?')) {
     return next();
   }
 
+  let template: string;
   try {
-    let template: string;
-    
-    // 1. Load Template
-    try {
-        if (process.env.NODE_ENV !== 'production' && vite) {
-            template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
-            template = await vite.transformIndexHtml(url, template);
-        } else {
-            const indexPath = path.resolve(process.cwd(), 'dist/index.html');
-            console.log(`[SSR] Loading index from: ${indexPath}`);
-            template = fs.readFileSync(indexPath, 'utf-8');
-        }
-    } catch (e) {
-        console.error('[SSR] Failed to read index.html', e);
-        return res.status(500).send('Critical Error: Failed to load application.');
-    }
+      template = await getTemplate(vite);
+  } catch (e) {
+      console.error('[SSR] Critical Error: Failed to load template.', e);
+      return res.status(500).send('Critical Error: Failed to load application.');
+  }
 
-    const imovelId = String(req.query.imovel || req.query.id || '');
-    const pathParts = req.path.split('/');
-    const slug = pathParts[pathParts.length - 1];
-    
-    // 2. Fetch Data (with error handling)
-    let title = 'Meu Primeiro Imóvel';
-    let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
-    let imageUrl = 'https://i.postimg.cc/mrCcfw9n/MODELO-2.png';
-    let siteName = 'Meu Primeiro Imóvel';
+  const imovelId = String(req.query.imovel || req.query.id || '');
+  const pathParts = req.path.split('/');
+  const slug = pathParts[pathParts.length - 1];
+  
+  let title = 'Meu Primeiro Imóvel';
+  let description = 'Imóveis em Balneário Camboriú, Itajaí e região. Apartamentos, casas e investimentos imobiliários selecionados.';
+  let imageUrl = 'https://i.postimg.cc/mrCcfw9n/MODELO-2.png';
+  let siteName = 'Meu Primeiro Imóvel';
 
-    try {
-        const settings = await fetchBrandSettings();
-        if (settings) {
-            if (settings.companyName) siteName = settings.companyName;
-            if (settings.companyName && settings.slogan) title = `${settings.companyName} - ${settings.slogan}`;
-            if (settings.shareLogoUrl) imageUrl = settings.shareLogoUrl;
-        }
-    } catch (e) {
-        console.error('[SSR] Error fetching brand settings (non-fatal):', e);
-    }
+  // 1. Fetch Brand Settings
+  try {
+      const settings = await fetchBrandSettings();
+      if (settings) {
+          if (settings.companyName) siteName = settings.companyName;
+          if (settings.companyName && settings.slogan) title = `${settings.companyName} - ${settings.slogan}`;
+          if (settings.shareLogoUrl) imageUrl = settings.shareLogoUrl;
+      }
+  } catch (e) {
+      console.error('[SSR] Error fetching brand settings (non-fatal):', e);
+  }
 
-    let prop: any = null;
-    try {
-        if (imovelId) {
-            prop = await getPropertyInfo(imovelId);
-        } else if (slug && slug !== '') {
-            prop = await fetchPropertyBySlug(slug);
-        }
-        console.log(`[SSR] Search Result for ${slug || imovelId}:`, prop ? 'FOUND' : 'NOT FOUND');
-    } catch (e) {
-        console.error('[SSR] Error fetching property info (non-fatal):', e);
-    }
+  // 2. Fetch Property
+  let prop: any = null;
+  try {
+      if (imovelId) {
+          prop = await getPropertyInfo(imovelId);
+      } else if (slug && slug !== 'imovel' && slug !== '') {
+          prop = await fetchPropertyBySlug(slug);
+      }
+      console.log(`[SSR] Search Result for ${slug || imovelId}:`, prop ? 'FOUND' : 'NOT FOUND');
+  } catch (e) {
+      console.error('[SSR] Error fetching property info (non-fatal):', e);
+  }
 
-    // 3. Setup Metatags
-    if (prop) {
-      title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
-      
-      if (prop.seoDescription) {
-        description = prop.seoDescription;
-      } else {
-        const pType = prop.projectType || 'Lançamento';
-        const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
-        const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
-        const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
-        const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítess') + ')' : '';
-        const areaLabel = prop.area ? `${prop.area}m²` : '';
+  // 3. Setup Metatags
+  try {
+      if (prop) {
+        title = prop.seoTitle || `${prop.name} em ${prop.neighborhood}, ${prop.region}`;
         
-        const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
-        description = `${pType} de Alto Padrão - ${prop.name} em ${locationFormatted}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
+        if (prop.seoDescription) {
+          description = prop.seoDescription;
+        } else {
+          const pType = prop.projectType || 'Lançamento';
+          const priceFormatted = prop.price ? formatBRL(prop.price) : 'Sob Consulta';
+          const locationFormatted = `${prop.neighborhood}, ${prop.region}`;
+          const bedLabel = prop.bedrooms ? `${prop.bedrooms} ` + (Number(prop.bedrooms) === 1 ? 'dormitório' : 'dormitórios') : '';
+          const suitesLabel = prop.suites ? ` (${prop.suites} ` + (Number(prop.suites) === 1 ? 'suíte' : 'suítess') + ')' : '';
+          const areaLabel = prop.area ? `${prop.area}m²` : '';
+          
+          const specs = [areaLabel, bedLabel + suitesLabel].filter(Boolean).join(' | ');
+          description = `${pType} de Alto Padrão - ${prop.name} em ${locationFormatted}. ${specs ? specs + '. ' : ''}Valor sugerido: a partir de ${priceFormatted}. Fluxo direto com a construtora facilitado. Saiba mais!`;
+        }
+        
+        if (prop.images && prop.images.length > 0) {
+          imageUrl = prop.images[0];
+        }
       }
-      
-      if (prop.images && prop.images.length > 0) {
-        imageUrl = prop.images[0];
-      }
-    }
-    
-    // Determine the dynamic canonical URL context & properties
+  } catch (e) {
+      console.error('[SSR] Error building metatags (non-fatal):', e);
+  }
+  
+  // 4. Final Response Construction
+  try {
     const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
     let host: string = 'santainvest.vercel.app';
     const rawHost = req.headers['x-forwarded-host'] || req.get('host');
     if (rawHost) {
-      if (Array.isArray(rawHost)) {
-        host = rawHost[0];
-      } else {
-        host = rawHost;
-      }
+      host = Array.isArray(rawHost) ? rawHost[0] : rawHost;
     }
 
     let canonicalUrl = `${protocol}://${host}${req.originalUrl}`;
     const sanitizedImageUrl = sanitizeImageUrl(imageUrl, protocol, host);
 
-    // Generate dynamic meta tags in pristine compliance
     const metaTags = `
-  <title>${escapeHtml(title)}</title>
-  <!-- Open Graph / Facebook / WhatsApp -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
-  <meta property="og:title" content="${escapeHtml(title)}" />
-  <meta property="og:description" content="${escapeHtml(description)}" />
-  <meta property="og:image" content="${escapeHtml(sanitizedImageUrl)}" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:site_name" content="${escapeHtml(siteName)}" />
+      <title>${escapeHtml(title)}</title>
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+      <meta property="og:title" content="${escapeHtml(title)}" />
+      <meta property="og:description" content="${escapeHtml(description)}" />
+      <meta property="og:image" content="${escapeHtml(sanitizedImageUrl)}" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:site_name" content="${escapeHtml(siteName)}" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}" />
+      <meta name="twitter:title" content="${escapeHtml(title)}" />
+      <meta name="twitter:description" content="${escapeHtml(description)}" />
+      <meta name="twitter:image" content="${escapeHtml(sanitizedImageUrl)}" />
+      <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
+    `;
 
-  <!-- Twitter / X -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}" />
-  <meta name="twitter:title" content="${escapeHtml(title)}" />
-  <meta name="twitter:description" content="${escapeHtml(description)}" />
-  <meta name="twitter:image" content="${escapeHtml(sanitizedImageUrl)}" />
-
-  <!-- SEO / Canonical Links -->
-  <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
-  `;
-
-    // Replace and clean any existing duplicate tags
     let html = template;
+    // Basic replacement
     html = html.replace(/<title>.*?<\/title>/gi, '');
     html = html.replace(/<meta\s+property=["']og:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
     html = html.replace(/<meta\s+name=["']twitter:[^"']*["']\s+content=["'][^"']*["']\s*\/?>/gi, '');
@@ -284,13 +287,13 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
     } else {
       html = metaTags + html;
     }
-
     res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
   } catch (e: any) {
-    console.error('[SSR] Unexpected error in render path:', e);
-    res.status(500).end('Unexpected Server Error');
+    console.error('[SSR] Error sending response:', e);
+    res.status(200).set({ 'Content-Type': 'text/html' }).end(template); // Fallback to raw template
   }
 }
+
 
 if (process.env.NODE_ENV === 'production') {
   // Let Vercel handle static assets automatically.
