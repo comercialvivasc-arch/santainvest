@@ -152,21 +152,41 @@ app.get('/sitemap.xml', async (req, res) => {
 
 // Load template robustly
 async function getTemplate(vite?: any): Promise<string> {
-    const isProd = process.env.NODE_ENV === 'production';
-    const templatePath = isProd 
-        ? path.resolve(process.cwd(), 'dist/index.html')
-        : path.resolve(process.cwd(), 'index.html');
+    const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
+    const isProd = process.env.NODE_ENV === 'production' || isVercel;
+    
+    // In dev mode (with active vite middleware), we MUST load the root index.html template
+    // rather than the compiled dist/index.html to avoid stale asset bundles reference.
+    const pathsToTry = (isProd && !vite)
+        ? [
+            path.resolve(process.cwd(), 'dist/index.html'),
+            path.resolve(process.cwd(), '../dist/index.html'),
+            path.resolve(process.cwd(), 'index.html')
+          ]
+        : [
+            path.resolve(process.cwd(), 'index.html'),
+            path.resolve(process.cwd(), 'dist/index.html'),
+            path.resolve(process.cwd(), '../dist/index.html')
+          ];
+
+    let templatePath = '';
+    for (const p of pathsToTry) {
+        if (fs.existsSync(p)) {
+            templatePath = p;
+            break;
+        }
+    }
     
     try {
-        if (fs.existsSync(templatePath)) {
+        if (templatePath) {
             console.log(`[SSR] Found template at: ${templatePath}`);
             let template = fs.readFileSync(templatePath, 'utf-8');
-            if (!isProd && vite) {
+            if (vite) {
                 template = await vite.transformIndexHtml('/', template);
             }
             return template;
         }
-        console.error(`[SSR] Template file NOT found at: ${templatePath}`);
+        console.error(`[SSR] Template file NOT found in any searched path: ${JSON.stringify(pathsToTry)}`);
     } catch (e) {
         console.error(`[SSR] Error reading template file at: ${templatePath}`, e);
     }
@@ -315,9 +335,16 @@ async function handleIndexRequest(req: express.Request, res: express.Response, n
 }
 
 
-if (process.env.NODE_ENV === 'production') {
-  // Let Vercel handle static assets automatically.
-  // We only need to handle index.html rendering for SPA fallback and SEO.
+const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
+const isProd = process.env.NODE_ENV === 'production' || isVercel;
+
+if (isProd) {
+  // If we are in production but NOT running on Vercel (e.g. running in Cloud Run/Docker container),
+  // we must serve static files from the 'dist' directory.
+  if (!isVercel) {
+    const distPath = path.resolve(process.cwd(), 'dist');
+    app.use(express.static(distPath, { index: false }));
+  }
   
   // Clean, synchronous register for production mapping
   app.get('*', (req, res, next) => {
@@ -346,7 +373,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Start standalone production listener only when NOT running serverless on Vercel
-if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+if (isProd && !isVercel) {
   app.listen(3000, '0.0.0.0', () => {
     console.log(`Server running in standalone mode on port 3000`);
   });

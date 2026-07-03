@@ -6,5 +6,10 @@
     { "source": "/robots.txt", "destination": "/api/index" },
     { "source": "/sitemap.xml", "destination": "/api/index" },
     { "source": "/((?!assets/|.*\\..*$).*)", "destination": "/api/index" }
-  ]
+  ],
+  "functions": {
+    "api/*.ts": {
+      "includeFiles": "dist/**"
+    }
+  }
 }
