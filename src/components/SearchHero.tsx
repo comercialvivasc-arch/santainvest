@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, ChevronDown, Search, MapPin, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Property, BannerAd } from '../types';
@@ -18,6 +19,7 @@ export default function SearchHero({
   setQuery,
   onOpenProperty,
 }: SearchHeroProps) {
+  const navigate = useNavigate();
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const [searchInput, setSearchInput] = useState(query || '');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -194,10 +196,15 @@ export default function SearchHero({
                       setSearchInput(item.name);
                       setQuery(item.name);
                       setShowSuggestions(false);
-                      const el = document.getElementById('projects-showcase');
-                      setTimeout(() => {
-                        el?.scrollIntoView({ behavior: 'smooth' });
-                      }, 300);
+                      const property = properties.find(p => p.neighborhood === item.name || p.region === item.name);
+                      if (property) {
+                        navigate(`/imovel/${property.slug || property.id}`);
+                      } else {
+                        const el = document.getElementById('projects-showcase');
+                        setTimeout(() => {
+                          el?.scrollIntoView({ behavior: 'smooth' });
+                        }, 300);
+                      }
                     }}
                     className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-zinc-50 border-b border-zinc-100/50 text-left transition-all cursor-pointer group"
                   >
@@ -247,8 +254,16 @@ export default function SearchHero({
           {/* Button "Conhecer agora" */}
           <button
             onClick={() => {
-              if (currentBanner.link && onOpenProperty) {
-                onOpenProperty(currentBanner.link);
+              if (currentBanner.link) {
+                const targetProp = properties.find(p => p.id === currentBanner.link);
+                if (targetProp) {
+                  navigate(`/imovel/${targetProp.slug || targetProp.id}`);
+                } else {
+                  const el = document.getElementById('projects-showcase');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }
               } else {
                 const el = document.getElementById('projects-showcase');
                 if (el) {

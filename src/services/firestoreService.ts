@@ -207,6 +207,15 @@ export function subscribeBanners(
  * Creates or overwrites a property in Firestore
  */
 export async function savePropertyToFirestore(property: Property): Promise<void> {
+  // Ensure slug exists
+  if (!property.slug || property.slug === '') {
+    const slugBase = `${property.name}-${property.neighborhood}-${property.region}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+    property.slug = `${slugBase}-${property.id.slice(-6)}`;
+  }
+  
   const path = `${PROPERTIES_COLLECTION}/${property.id}`;
   const projectId = db.app?.options?.projectId || 'unknown';
   const userEmail = auth.currentUser?.email || 'N/A';
@@ -232,6 +241,28 @@ export async function savePropertyToFirestore(property: Property): Promise<void>
   } catch (error: any) {
     console.error(`[Firestore Log] Erro ao gravar Imóvel no Firestore (${path}):`, error);
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/**
+ * Migrates existing properties to include a slug if missing
+ */
+export async function migratePropertiesToIncludeSlugs(): Promise<void> {
+  try {
+    const props = await getPropertiesFromServer();
+    for (const prop of props) {
+      if (!prop.slug || prop.slug === '') {
+        const slugBase = `${prop.name}-${prop.neighborhood}-${prop.region}`
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)+/g, '');
+        const updatedProp = { ...prop, slug: `${slugBase}-${prop.id.slice(-6)}` };
+        await savePropertyToFirestore(updatedProp);
+        console.log(`Migrated property ${prop.id} with slug ${updatedProp.slug}`);
+      }
+    }
+  } catch (err) {
+    console.error('Migration failed', err);
   }
 }
 

@@ -43,7 +43,7 @@ export default function Header({
   const headerBgClass = 'bg-transparent border-b border-transparent shadow-none';
 
   const menuItems: { to: string; label: string }[] = [
-    { to: '/', label: 'Lançamentos' },
+    { to: '/home', label: 'Lançamentos' },
     { to: '/bairros', label: 'Bairros' },
     { to: '/sobre', label: 'Sobre Nós' },
     { to: '/cadastro', label: 'Cadastro' },
@@ -62,7 +62,7 @@ export default function Header({
       >
         {/* Futuristic Logo & Brand (ESQUERDA) */}
         <Link 
-          to="/"
+          to="/home"
           className="flex cursor-pointer items-center gap-2 sm:gap-3 group shrink-0"
           id="brand-logo"
         >

@@ -107,6 +107,32 @@ export default function AdminPanel({
   visits = [],
   messages = [],
 }: AdminPanelProps) {
+  // Data Migration: Ensure all properties have slugs
+  useEffect(() => {
+    if (properties.length === 0) return;
+
+    let needsUpdate = false;
+    const updatedProperties: Property[] = properties.map((prop) => {
+      if (!prop.slug || prop.slug === '') {
+        needsUpdate = true;
+        const slugBase = `${prop.name}-${prop.neighborhood}-${prop.region}`
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)+/g, '');
+        return { ...prop, slug: `${slugBase}-${prop.id.slice(-6)}` };
+      }
+      return prop;
+    });
+
+    if (needsUpdate) {
+      console.log('[Migration] Atualizando slugs para propriedades existentes...');
+      updatedProperties.forEach(async (prop) => {
+        await onEditProperty(prop);
+      });
+      console.log('[Migration] Slugs atualizados.');
+    }
+  }, [properties]);
+
   // Authorization and Firebase state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState('');

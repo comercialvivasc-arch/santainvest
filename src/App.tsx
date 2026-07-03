@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { HelmetProvider } from 'react-helmet-async';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { CadastroForm } from './components/CadastroForm';
 import Header from './components/Header';
 import SearchHero from './components/SearchHero';
@@ -12,7 +12,8 @@ import LegalDocsModal from './components/LegalDocsModal';
 import CookieConsent from './components/CookieConsent';
 import FloatingChat from './components/FloatingChat';
 import ContatoSection from './components/ContatoSection';
-import PropertyDetailsPage from './components/PropertyDetailsPage';
+import HomePage from './pages/HomePage';
+import PropertyPage from './pages/PropertyPage';
 import { Property, BannerAd, SearchFilters, BrandSettings, Broker, Client, Lead, Visit, Message } from './types';
 import { INITIAL_PROPERTIES, INITIAL_BANNERS, DEFAULT_BRAND_SETTINGS } from './data';
 import { 
@@ -858,120 +859,31 @@ function AppContent() {
         <Suspense fallback={<div className="text-white">Carregando...</div>}>
           <AnimatePresence mode="wait">
             <Routes>
-              <Route path="/" element={
-                <motion.div
-                  key="home"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  style={{ backgroundColor: '#ffffff' }}
-                >
-                  <SearchHero 
-                    properties={properties}
-                    banners={banners}
-                    query={query}
-                    setQuery={setQuery}
-                    onOpenProperty={(id) => {}} // This will be handled by Link in PropertyCard
-                  />
-                  {/* Visual grid accent lines from design guideline - REMOVED per user request */}
-
-                  <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-32">
-                  <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6 relative z-10">
-
-                    <div>
-                      <span 
-                        style={{ color: '#ff6200' }}
-                        className="text-[11px] font-bold tracking-widest uppercase font-mono block mb-1"
-                      >
-                        ✦ Portfolio Selecionado
-                      </span>
-                      <h2 className="text-3xl font-black text-zinc-950 tracking-tight sm:text-4xl uppercase">
-                        Lançamentos Sugeridos
-                      </h2>
-                      <p className="mt-2 text-sm text-zinc-500">
-                        Projetos modernos com arquitetura futurista e excelentes simulações de parcelamento.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4">
-                      {/* FILTERS POPUP TRIGGER BUTTON */}
-                      <button 
-                        onClick={() => setIsFilterPopupOpen(true)}
-                        className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-[#FF9D00]/40 px-5 py-3.5 text-xs font-bold uppercase tracking-widest text-zinc-900 transition-all duration-300 shadow-sm cursor-pointer"
-                        title="Abrir filtros de pesquisa"
-                      >
-                        <SlidersHorizontal className="h-4 w-4 text-[#FF9D00]" />
-                        Filtrar Lançamentos
-                      </button>
-                    </div>
-                  </div>
-                  
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
-                      {filteredProperties.map((prop, idx) => (
-                        <PropertyCard 
-                          key={prop.id} 
-                          property={prop} 
-                          allProperties={properties} 
-                          settings={settings} 
-                          index={idx}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Filters Popup Modal */}
-                  <AnimatePresence>
-                    {isFilterPopupOpen && (
-                      <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-                        {/* Close backdrop on click */}
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="absolute inset-0 cursor-default"
-                          onClick={() => setIsFilterPopupOpen(false)}
-                        />
-
-                        <motion.div
-                          initial={{ scale: 0.95, opacity: 0, y: 15 }}
-                          animate={{ scale: 1, opacity: 1, y: 0 }}
-                          exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                          className="relative w-full max-w-4xl bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
-                        >
-                          {/* Scrollable Filters */}
-                          <div className="overflow-y-auto flex-1 styles-scrollbar-custom bg-white">
-                            <SearchPanel 
-                              properties={properties}
-                              selectedBedrooms={selectedBedrooms}
-                              setSelectedBedrooms={setSelectedBedrooms}
-                              minPrice={minPrice}
-                              setMinPrice={setMinPrice}
-                              maxPrice={maxPrice}
-                              setMaxPrice={setMaxPrice}
-                              selectedStatus={selectedStatus}
-                              setSelectedStatus={setSelectedStatus}
-                              selectedProjectType={selectedProjectType}
-                              setSelectedProjectType={setSelectedProjectType}
-                              onSearch={({ query: q, bedrooms: b, minPrice: minVal, maxPrice: maxVal, status: s, projectType: pt }) => {
-                                setQuery(q);
-                                if (b !== undefined) setSelectedBedrooms(b);
-                                if (minVal !== undefined) setMinPrice(minVal);
-                                if (maxVal !== undefined) setMaxPrice(maxVal);
-                                if (s !== undefined) setSelectedStatus(s);
-                                if (pt !== undefined) setSelectedProjectType(pt);
-                              }}
-                              onClose={() => setIsFilterPopupOpen(false)}
-                              onClearFilters={handleResetFilters}
-                            />
-                          </div>
-                        </motion.div>
-                      </div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
+              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/home" element={
+                <HomePage 
+                  properties={properties}
+                  banners={banners}
+                  settings={settings}
+                  query={query}
+                  setQuery={setQuery}
+                  filteredProperties={filteredProperties}
+                  isFilterPopupOpen={isFilterPopupOpen}
+                  setIsFilterPopupOpen={setIsFilterPopupOpen}
+                  selectedBedrooms={selectedBedrooms}
+                  setSelectedBedrooms={setSelectedBedrooms}
+                  minPrice={minPrice}
+                  setMinPrice={setMinPrice}
+                  maxPrice={maxPrice}
+                  setMaxPrice={setMaxPrice}
+                  selectedStatus={selectedStatus}
+                  setSelectedStatus={setSelectedStatus}
+                  selectedProjectType={selectedProjectType}
+                  setSelectedProjectType={setSelectedProjectType}
+                  handleResetFilters={handleResetFilters}
+                />
               } />
-              <Route path="/imovel/:slug" element={<PropertyDetailsPage properties={properties} />} />
+              <Route path="/imovel/:slug" element={<PropertyPage properties={properties} settings={settings} />} />
               <Route path="/sobre" element={renderSobreSection()} />
               <Route path="/bairros" element={renderBairrosSection()} />
               <Route path="/favoritos" element={renderFavoritosSection()} />
@@ -1010,6 +922,7 @@ function AppContent() {
 
       <Footer 
         settings={settings}
+        onNavigateToHome={() => navigate('/home')}
         onOpenTerms={() => setLegalModalType('terms')}
         onOpenPrivacy={() => setLegalModalType('privacy')}
       />
